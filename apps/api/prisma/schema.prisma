@@ -8,17 +8,18 @@
 //   - Data Model Conceptual v1.1
 //   - Data & Consistency Rules v1.1
 //
-// NOTA DE DEPENDÊNCIA EXPLÍCITA — Row-Level Security (Camada 2, ADR-001 3.3):
-// Este schema prepara a estrutura para RLS (tenant_id em toda a tabela de negócio,
-// indexado) mas NÃO ativa políticas RLS nesta migração. RLS só é uma segunda camada
-// real (não meramente simbólica) quando a aplicação se liga com um utilizador de
-// base de dados dedicado, não-owner/não-superuser — por defeito, o Postgres não
-// aplica RLS ao dono da tabela — e quando o middleware de tenant (Camada 1) injeta
-// a variável de sessão tenant_id em cada transação. Ambas as condições só existem a
-// partir do Passo 4 (middleware de tenant + serviço único de autorização). Ativar
-// políticas RLS antes disso daria falsa sensação de segurança. Decisão confirmada
-// explicitamente com a Fundadora/CEO durante o Passo 2 — as políticas RLS
-// (ENABLE ROW LEVEL SECURITY + CREATE POLICY por tabela) ficam para o Passo 4.
+// ATUALIZAÇÃO (Passo 4, 2026-07-06) — Row-Level Security (Camada 2, ADR-001 3.3)
+// ATIVA: ver migração 20260706105932_enable_row_level_security e Especificação
+// Técnica do Passo 4 (docs/04-implementation-blueprint/03-especificacao-tecnica-
+// passo-4-camada1-autorizacao.md). O runtime de negócio liga-se com o role
+// dedicado `nexa_app` (sujeito a RLS, sem DDL); o runtime da Fundação
+// (registo/sessão) usa `nexa_fundacao` (BYPASSRLS, sem DDL — exceção
+// documentada para operações transversais sem tenant ainda conhecido);
+// migrações continuam a usar `nexa_dev` (owner). Nota original do Passo 2,
+// mantida por historial: este schema já preparava a estrutura (tenant_id em
+// toda a tabela de negócio, indexado) antes de a Camada 2 estar ativa —
+// a ativação ficou deliberadamente adiada até o middleware de tenant (Camada 1)
+// e o utilizador de BD dedicado existirem, evitando falsa sensação de segurança.
 
 generator client {
   provider = "prisma-client-js"

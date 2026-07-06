@@ -80,6 +80,7 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Base de dados de teste dedicada** `nexa_test` — primeiro passo do M1 com cobertura automatizada real (Jest) de um dos 4 fluxos críticos (NFR-17): `apps/api/test/tenant-isolation.e2e-spec.ts` (isolamento artificial) e `tenant-context-http.e2e-spec.ts` (propagação via pedido HTTP real — foi este teste que revelou a necessidade do role `nexa_fundacao`).
 - **Renovação deslizante da sessão continua NÃO implementada** — dependência que tinha sido registada para este passo acabou por não ser resolvida ainda; **fica explicitamente para o Passo 5 ou seguinte**, a avaliar quando o hook por pedido for revisitado.
 - Todos os testes (T1-T5, S1-S5, mais a verificação HTTP adicional) passaram — detalhe em §3.10 da especificação.
+- **Verificação final de consistência** (pedida antes do encerramento formal): encontradas e corrigidas 5 divergências reais — cabeçalho stale do `schema.prisma`; `npm run prisma:migrate` silenciosamente quebrado pela troca de `DATABASE_URL` (corrigido com `apps/api/.env.migrate`, git-ignored); comentário desatualizado em `.env`; `fundacao/README.md` desatualizado; 4 menções obsoletas no Master Roadmap ("Passo 3 a decorrer" → "Passo 5 a decorrer"). Detalhe completo em Especificação Técnica do Passo 4, §3.11. **Passo 4 formalmente encerrado.**
 
 ---
 

@@ -4,8 +4,8 @@
 |---|---|
 | **Documento** | Especificação Técnica do Passo 4 — Camada 1 (Middleware de Tenant + Serviço Único de Autorização) |
 | **Fase** | 7 — Desenvolvimento da Plataforma, M1 (Fundação), Passo 4 — **o mais crítico de todo o M1** |
-| **Versão** | 1.2 |
-| **Estado** | ✅ Aprovado e implementado |
+| **Versão** | 1.3 |
+| **Estado** | ✅ Aprovado, implementado e formalmente encerrado |
 | **Owner** | CTO / Arquiteto Principal |
 | **Documentos de referência** | ADR-001 (Multi-Tenancy) · ADR-003 (Base de Dados e ORM) · ADR-004 (Autenticação, Sessão, Autorização) · System Design Principles v1.6 (3.2, 3.6, 3.8) · Security & Access Principles v1.1 (3.1-3.3, 3.9) · Coding Standards v1.0 (3.3, 3.4) · Especificação Técnica do Passo 3 (Autenticação) · Blueprint de Implementação do MVP v1.3 |
 | **Última atualização** | 2026-07-06 |
@@ -223,6 +223,22 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 
 **Exit Criteria do Passo 4: cumprido integralmente**, incluindo as duas correções técnicas devidamente documentadas e aprovadas antes de implementadas. Dados de teste removidos de `nexa_dev`/`nexa_test` após validação.
 
+### 3.11 Verificação Final de Consistência (pedida antes do encerramento definitivo)
+
+*A pedido explícito da Fundadora/CEO, antes de considerar o Passo 4 oficialmente fechado: verificação de divergências de nomenclatura, dependências implícitas e dívida documental entre implementação, documentação técnica e critérios de aceitação.*
+
+**Encontrado e corrigido:**
+
+| # | Divergência encontrada | Correção |
+|---|---|---|
+| 1 | Cabeçalho de `schema.prisma` (escrito no Passo 2) ainda afirmava que RLS **não** estava ativa — desatualizado desde a migração deste passo | Atualizado para refletir o estado real (RLS ativa, os três roles e as suas responsabilidades) |
+| 2 | **Dependência implícita real:** `npm run prisma:migrate` (script já existente desde o Passo 2) usa `.env`, cujo `DATABASE_URL` passou a ser `nexa_app` (sem DDL) — o script ficaria silenciosamente quebrado para qualquer migração futura | Criado `apps/api/.env.migrate` (git-ignored, `nexa_dev`); script atualizado para `node --env-file=.env.migrate ...prisma migrate dev`; verificado com `migrate status` real — liga corretamente a `nexa_dev` |
+| 3 | Comentário em `apps/api/.env` ainda descrevia a convenção antiga (override inline de `DATABASE_URL`) em vez do mecanismo final (`.env.migrate` + script) | Comentário atualizado |
+| 4 | `apps/api/src/modules/fundacao/README.md` ainda listava a Camada 1 (Passo 4) como "a juntar-se nos passos correspondentes" — desatualizado, já implementada | Atualizado para refletir Passos 3 e 4 implementados |
+| 5 | Master Roadmap (`docs/00-governance/00-master-roadmap.md`) tinha 4 menções a "Passos 0-2 concluídos, Passo 3 a decorrer", desatualizadas desde a conclusão deste passo | Atualizadas para "Passos 0-4 concluídos, Passo 5 a decorrer" em todas as ocorrências (3.1, 3.2, 3.2a/7, 3.7/M8, 3.10); versão 1.4 → 1.5, histórico registado |
+
+**Confirmado, sem divergências:** nomenclatura de roles (`nexa_dev`/`nexa_app`/`nexa_fundacao`) consistente em `.env`/`.env.test`/`.env.migrate`/código/documentação; nome da migração (`20260706105932_enable_row_level_security`) idêntico em todas as referências; nenhuma referência órfã ao tipo `UtilizadorAutenticado` (renomeado para `TenantContextValue` no Passo 4); `prisma validate`, `build` e os 6 testes automatizados voltaram a passar após todas as correções desta secção.
+
 ---
 
 ## 4. Decisões Tomadas
@@ -260,3 +276,4 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 | 1.1 | 2026-07-06 | **Pré-requisito de rollback resolvido.** Fundadora/CEO aprovou a inicialização de git local (sem remoto); `.gitignore` reforçado e revisto; commit inicial `8f047cb` ("chore: baseline approved - implementation steps 0-3", 74 ficheiros) criado; árvore de trabalho confirmada limpa. Questão em Aberto 1 e Decisão D7 atualizadas para refletir a resolução. A especificação em si (arquitetura, critérios, testes) permanece por aprovar antes de iniciar a implementação | CTO (Claude) + Fundadora/CEO |
 | 1.1 | 2026-07-06 | **Aprovação formal da especificação.** Fundadora/CEO autoriza a implementação, condicionada a: baseline git antes de iniciar (concluído), conformidade integral com Blueprint/ADRs/Security & Access Principles/Coding Standards/Data & Consistency Rules, documentação prévia de qualquer desvio, e relatório técnico completo no fecho | Fundadora/CEO |
 | 1.2 | 2026-07-06 | Registadas as duas correções técnicas identificadas e aprovadas durante a implementação (3.9: TenantContextMiddleware substitui a resolução de sessão no SessionGuard; role `nexa_fundacao` com BYPASSRLS para o PrismaService bruto), adicionada a secção 3.10 com os resultados reais de T1-T5/S1-S5 e da verificação HTTP end-to-end adicional, novas Decisões D8-D10. Exit Criteria do Passo 4 cumprido integralmente | CTO (Claude) + Fundadora/CEO |
+| 1.3 | 2026-07-06 | **Encerramento formal.** Fundadora/CEO aprova a implementação e solicita verificação final de consistência antes do fecho definitivo. Adicionada a secção 3.11 com 5 divergências reais encontradas e corrigidas (cabeçalho stale de `schema.prisma`; script `prisma:migrate` quebrado silenciosamente pela mudança de `DATABASE_URL` — corrigido com novo `.env.migrate`; comentário desatualizado em `.env`; `fundacao/README.md` desatualizado; 4 menções obsoletas no Master Roadmap). Confirmada ausência de outras divergências de nomenclatura/dependências implícitas. Passo 4 formalmente encerrado; autorizado o início do Passo 5 | CTO (Claude) + Fundadora/CEO |
