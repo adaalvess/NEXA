@@ -4,12 +4,12 @@ import { PermissaoGuard } from '../autorizacao/permissao.guard';
 import { RequirePermissao } from '../autorizacao/require-permissao.decorator';
 import { UtilizadoresService } from './utilizadores.service';
 import { AtribuirPapelDto } from './dto/atribuir-papel.dto';
+import { AtribuirDepartamentoDto } from './dto/atribuir-departamento.dto';
 
 /**
- * Endpoint de negócio do Passo 5 (Blueprint §4; Especificação Técnica do
- * Passo 5, 3.5) — o único construído neste passo, suficiente para
- * demonstrar o DoD do M1 sem depender de email/limites de plano (2.1.B
- * desse documento).
+ * Endpoints de negócio dos Passos 5 (atribuir papel) e 8 (atribuir
+ * Departamento) — Blueprint §4; Especificações Técnicas dos Passos 5 (3.5)
+ * e 8 (3.1).
  */
 @Controller('utilizadores')
 export class UtilizadoresController {
@@ -21,5 +21,13 @@ export class UtilizadoresController {
   async atribuirPapel(@Param('id') id: string, @Body() dto: AtribuirPapelDto) {
     const utilizador = await this.utilizadoresService.atribuirPapel(id, dto.papel);
     return { utilizadorId: utilizador.id, papel: utilizador.papel };
+  }
+
+  @UseGuards(SessionGuard, PermissaoGuard)
+  @RequirePermissao('fundacao', 'atribuir_departamento')
+  @Patch(':id/departamento')
+  async atribuirDepartamento(@Param('id') id: string, @Body() dto: AtribuirDepartamentoDto) {
+    const utilizador = await this.utilizadoresService.atribuirDepartamento(id, dto.departamentoId);
+    return { utilizadorId: utilizador.id, departamentoId: utilizador.departamentoId };
   }
 }

@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**M1 (Fundação) formalmente concluído (2026-07-06) — Passo 7 (Partilha) concluído e aprovado, último passo do Milestone. Ver nota abaixo.**
+**M1 (Fundação) formalmente concluído (2026-07-06). M2 (Módulos Core — Dashboard, Processos, CRM) aprovado e em curso — Passo 8 (Departamento) concluído e aprovado. Ver nota abaixo.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -44,6 +44,22 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 **Definition of Done do M1** (Blueprint, secção 2.2): registo/login funcionais ✅; isolamento multi-tenant verificado por teste ✅; todos os 5 papéis RBAC atribuíveis e a restringir acesso corretamente ✅; Registo de Auditoria a gravar em toda ação de escrita ✅.
 
 **M1 formalmente encerrado (2026-07-06):** o DoD literal (Blueprint §2.2) estava tecnicamente cumprido desde o Passo 6, mas a Fundadora/CEO tinha decidido que o Passo 7 (Partilha/Convidado) — listado como conteúdo do M1 no Blueprint §3 — era pré-requisito para o encerramento formal do Milestone. Com o Passo 7 concluído e aprovado, **o Milestone M1 (Fundação) está formalmente concluído** — todos os passos previstos (0-7) implementados, validados e aprovados.
+
+### M2 (Módulos Core) — Aprovado e em Curso (2026-07-06)
+
+Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências, riscos, DoD, decisões arquitetónicas) apresentada e aprovada pela Fundadora/CEO. Numeração de passos continua a partir do M1.
+
+| Passo | Conteúdo | Estado |
+|---|---|---|
+| Passo 8 | Departamento — CRUD completo + atribuição a Utilizadores | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.8 |
+| Passo 9 | Processos/Tarefas — CRUD, visibilidade RBAC, integração real de `podeAcederViaPartilha` | 🔜 Próximo passo |
+| Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | Por iniciar |
+| Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | Por iniciar |
+| Passo 12 | Dashboard — agregação read-only | Por iniciar |
+| Passo 13 | Design System (frontend) — componentes base (ADR-006) | Por iniciar |
+| Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | Por iniciar |
+
+**Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
 
@@ -120,6 +136,18 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - Todos os testes (40/40: T1-T15 deste passo + regressão completa dos Passos 4-6) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.11 da especificação.
 - **Milestone M1 (Fundação) formalmente concluído** — todos os passos previstos no Blueprint (0-7) implementados, validados e aprovados.
 
+### 3.8 Registo de Conclusão — Passo 8 (2026-07-06) — primeiro passo do M2
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 decisões previamente validadas** — ver [Especificação Técnica do Passo 8](docs/04-implementation-blueprint/07-especificacao-tecnica-passo-8-departamento.md): atribuição de Departamento a Utilizadores incluída no âmbito (sem isto, a visibilidade de Gestor por Departamento ficaria intestável via produto real); endpoints planos (`/departamentos`, `/utilizadores/:id/departamento`), mesmo padrão do Passo 5.
+- **CRUD completo de Departamento** (`apps/api/src/modules/fundacao/departamento/`) — criar, listar, editar, eliminar (soft-delete) — sem alteração de schema, `Departamento` já estava completo desde o Passo 2.
+- **`UtilizadoresService.atribuirDepartamento`** + `PATCH /utilizadores/:id/departamento` — aceita `departamentoId: string | null` (`null` remove a atribuição).
+- **Gestão exclusiva de `admin_empresa`**, exceto `listar_departamentos` (também `gestor`, que precisa de contexto de estrutura para operar).
+- **RD-01 a RD-04**: nunca eliminar um Departamento com Utilizadores ativos atribuídos (mesma cautela de RN-01, Passo 5); `departamentoId` fornecido tem de existir, pertencer à mesma Empresa e não estar eliminado; isolamento de tenant sempre estrutural (Camada 1).
+- **Auditoria integrada** — `criar`/`atualizar`/`eliminar` de `Departamento`, `atribuir_departamento` de `Utilizador`.
+- **Sem descobertas técnicas emergentes** — passo direto, sem correções de arquitetura a meio, ao contrário de vários passos anteriores.
+- Todos os testes (51/51: 11 novos deste passo + regressão completa de 40 testes dos Passos 4-7) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.8 da especificação.
+- **Milestone M2 (Módulos Core) em curso** — Passo 9 (Processos/Tarefas) por iniciar.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -171,8 +199,13 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Estado do M1 e Próxima Ação — A Validar com a Fundadora/CEO
+## 6. Próxima Ação Imediata — Passo 9 (M2)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** — Passos 0-7 implementados, validados e aprovados (ver 3.7 para o Passo 7, o último). Todos os entregáveis do Milestone (Blueprint §2.2/§3) estão cumpridos: registo/login, isolamento multi-tenant, RBAC granular com 5 papéis, Registo de Auditoria append-only, e Partilha como única via de acesso do Convidado.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento) concluído e aprovado (ver 3.8). Próximo: **Passo 9 — Processos/Tarefas**.
 
-**Sem próxima ação decidida.** O Blueprint (§2, Milestones) lista M2 (EP-02/03/04 — módulos core: Dashboard, Processos, CRM) como o Milestone seguinte, dependente só de M1 — mas avançar para M2 sem instrução explícita da Fundadora/CEO seria decidir uma questão de planeamento por conta própria (Método de Trabalho, secção 5). **Antes de iniciar qualquer trabalho de M2:** confirmar com a Fundadora/CEO se M2 é de facto o próximo passo, e se a mesma disciplina de especificação técnica formal por passo se mantém para os seus épicos.
+- Construir CRUD completo de `Processo` (FR-14 a FR-18), com visibilidade RBAC (admin todas; gestor da sua equipa; colaborador as suas; convidado só as explicitamente partilhadas — Functional Specifications §3.3).
+- **Primeiro consumidor real de `AuthorizationService.podeAcederViaPartilha`** (Passo 7) — resolve o Risco R1 desse passo, até agora sem nenhum endpoint de negócio a chamá-lo.
+- **Decisão B do M2 (já aprovada)**: a lógica de visibilidade (admin/gestor/colaborador/convidado) deve ficar centralizada na Fundação como mecanismo reutilizável, não duplicada localmente como o `PartilhaService` fez para P1-P3 — este é o primeiro passo a implementar esse mecanismo partilhado, que o Passo 10 (CRM) também vai consumir.
+- **Decisão C do M2 (já aprovada)**: `Processo.estado` promovido a `enum` (mesmo padrão do `Papel`, Passo 5) — exige nova migração.
+- Associação opcional a `Cliente` (FR-16/18) validada contra a permissão de visualização do criador sobre esse Cliente (UC-03, E1) — mas o CRM (Passo 10) ainda não existe; avaliar se a validação cruzada fica pronta mas não totalmente testável até o Passo 10, ou se a ordem dos passos deve ser revista.
+- Seguir a mesma disciplina de governação: especificação técnica antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação antes de considerar o passo concluído.

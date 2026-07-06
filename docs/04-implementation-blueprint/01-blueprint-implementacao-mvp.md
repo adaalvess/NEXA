@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 1.8 |
-| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, próximos Milestones a validar |
+| **Versão** | 1.9 |
+| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, M2 em curso |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 7 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 8 |
 | **Última atualização** | 2026-07-06 |
 
 ---
@@ -237,11 +237,15 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 | Fundação | POST | `/auth/login` | ADR-004 — ✅ Implementado (Passo 3) |
 | Fundação | POST | `/empresas/:id/utilizadores/convidar` | UC-02, FR-02/03 |
 | Fundação | PATCH | `/utilizadores/:id/papel` | FR-03/04 — ✅ Implementado (Passo 5) |
-| Fundação | POST | `/empresas/:id/departamentos` | FR-05 |
 | Fundação | GET | `/auditoria` | FR-07 — ✅ Implementado (Passo 6) |
 | Fundação | POST | `/partilhas` | FR-35 — ✅ Implementado (Passo 7) |
 | Fundação | DELETE | `/partilhas/:id` | FR-35 — ✅ Implementado (Passo 7) |
 | Fundação | GET | `/partilhas` | FR-35 — ✅ Implementado (Passo 7) |
+| Fundação | POST | `/departamentos` | FR-05 — ✅ Implementado (Passo 8) |
+| Fundação | GET | `/departamentos` | FR-05 — ✅ Implementado (Passo 8) |
+| Fundação | PATCH | `/departamentos/:id` | FR-05 — ✅ Implementado (Passo 8) |
+| Fundação | DELETE | `/departamentos/:id` | FR-05 — ✅ Implementado (Passo 8) |
+| Fundação | PATCH | `/utilizadores/:id/departamento` | FR-05 — ✅ Implementado (Passo 8) |
 | Dashboard | GET | `/dashboard` | FR-11/12 |
 | Processos | POST/GET/PATCH/DELETE | `/processos` | FR-14 a FR-18 |
 | CRM | POST/GET/PATCH | `/clientes` | FR-19 a FR-21 |
@@ -263,6 +267,10 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 **Especificação técnica detalhada do Passo 6 (Registo de Auditoria):** ver [Especificação Técnica do Passo 6](05-especificacao-tecnica-passo-6-auditoria.md) — mecanismo orientado a eventos (`emitAsync`), campo `detalhe` (jsonb), trigger de imutabilidade, role `nexa_auditoria_interna` para a consulta cross-tenant do Super Admin. Definition of Done do M1 tecnicamente completo a partir deste passo.
 
 **Especificação técnica detalhada do Passo 7 (Partilha):** ver [Especificação Técnica do Passo 7](06-especificacao-tecnica-passo-7-partilha.md) — `AuthorizationService.podeAcederViaPartilha`, regras de autoridade P1-P5, campos `nivelAcesso`/`revogadoEm`, endpoints `/partilhas`. **Com este passo aprovado, o Milestone M1 (Fundação) está formalmente concluído** (Fundadora/CEO, 2026-07-06) — todos os passos previstos no Blueprint (0-7) implementados, validados e aprovados.
+
+**Proposta e início do Milestone M2 (Módulos Core):** proposta completa (objetivos, âmbito, sequência de passos 8-14, dependências, riscos, DoD, decisões arquitetónicas A-C) apresentada e aprovada pela Fundadora/CEO em 2026-07-06 — numeração de passos continua a partir do M1.
+
+**Especificação técnica detalhada do Passo 8 (Departamento):** ver [Especificação Técnica do Passo 8](07-especificacao-tecnica-passo-8-departamento.md) — CRUD completo de `Departamento`, atribuição de Utilizador a Departamento, regras RD-01 a RD-04. Endpoints planos (`/departamentos`, `/utilizadores/:id/departamento`), substituindo o literal `/empresas/:id/departamentos` (nunca implementado) — mesma decisão já tomada no Passo 5 para `/utilizadores/:id/papel`.
 
 ---
 
@@ -330,3 +338,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 1.6 | 2026-07-06 | Passo 6 (Registo de Auditoria) concluído e aprovado, com Especificação Técnica própria (docs/04-implementation-blueprint/05-especificacao-tecnica-passo-6-auditoria.md) — mecanismo orientado a eventos com `emitAsync`, campo `detalhe`, trigger de imutabilidade, role `nexa_auditoria_interna`. `GET /auditoria` marcado implementado. **Definition of Done do M1 (§2.2) tecnicamente completo** | CTO (Claude) + Fundadora/CEO |
 | 1.7 | 2026-07-06 | **Passo 6 formalmente aprovado pela Fundadora/CEO.** Resolvida a questão em aberto sobre o encerramento do M1: decisão explícita de que o Passo 7 (Partilha) é pré-requisito para o encerramento formal do Milestone, apesar do DoD literal (§2.2) já estar tecnicamente cumprido — atualizada a referência ao Passo 6 em §4 para refletir esta decisão | CTO (Claude) + Fundadora/CEO |
 | 1.8 | 2026-07-06 | **Passo 7 (Partilha) concluído e formalmente aprovado pela Fundadora/CEO — Milestone M1 (Fundação) formalmente concluído.** `POST/DELETE/GET /partilhas` marcados implementados na Superfície de API (§4); Especificação Técnica própria (docs/04-implementation-blueprint/06-especificacao-tecnica-passo-7-partilha.md) — `AuthorizationService.podeAcederViaPartilha`, regras P1-P5, campos `nivelAcesso`/`revogadoEm`. Todos os passos previstos no Blueprint para o M1 (0-7) estão agora implementados, validados e aprovados; próximo Milestone (M2) por confirmar com a Fundadora/CEO | CTO (Claude) + Fundadora/CEO |
+| 1.9 | 2026-07-06 | **Proposta do Milestone M2 (Módulos Core) apresentada e aprovada pela Fundadora/CEO** — sequência de Passos 8-14, dependências, riscos, DoD e decisões arquitetónicas A-C validadas. **Passo 8 (Departamento) concluído e formalmente aprovado** — CRUD completo + atribuição de Utilizador a Departamento, com Especificação Técnica própria (docs/04-implementation-blueprint/07-especificacao-tecnica-passo-8-departamento.md). Endpoints `/departamentos` e `/utilizadores/:id/departamento` marcados implementados na Superfície de API (§4), substituindo o literal `/empresas/:id/departamentos` (nunca implementado) | CTO (Claude) + Fundadora/CEO |

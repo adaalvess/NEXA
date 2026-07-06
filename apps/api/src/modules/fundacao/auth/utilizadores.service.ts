@@ -94,4 +94,48 @@ export class UtilizadoresService {
 
     return atualizado;
   }
+
+  /**
+   * Atribuir/reatribuir/remover o Departamento de um Utilizador (RD-02,
+   * RD-03; Especificação Técnica do Passo 8, 3.3) — ação exclusiva de
+   * `admin_empresa` (D3 desse documento), verificada pelo `PermissaoGuard`
+   * do controlador; aqui só a validação de instância de RD-03.
+   */
+  async atribuirDepartamento(alvoId: string, departamentoId: string | null) {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const alvo = await this.tenantPrisma.client.utilizador.findUnique({ where: { id: alvoId } });
+    if (!alvo) {
+      throw new NotFoundException();
+    }
+
+    // RD-03 — o Departamento (quando não null) tem de existir, pertencer à
+    // mesma Empresa (estrutural, Camada 1) e não estar eliminado.
+    if (departamentoId !== null) {
+      const departamento = await this.tenantPrisma.client.departamento.findUnique({ where: { id: departamentoId } });
+      if (!departamento || departamento.eliminadoEm) {
+        throw new NotFoundException('Departamento não encontrado.');
+      }
+    }
+
+    const departamentoAnterior = alvo.departamentoId;
+    const atualizado = await this.tenantPrisma.client.utilizador.update({
+      where: { id: alvoId },
+      data: { departamentoId, atualizadoPor: ctx.utilizadorId },
+    });
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: ctx.empresaId,
+      ator: ctx.utilizadorId,
+      acao: 'atribuir_departamento',
+      entidade: 'Utilizador',
+      entidadeId: alvoId,
+      detalhe: { departamentoAnterior, departamentoNovo: departamentoId },
+    } satisfies EventoAuditoria);
+
+    return atualizado;
+  }
 }

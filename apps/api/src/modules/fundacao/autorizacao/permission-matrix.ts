@@ -24,6 +24,12 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       conceder_partilha: true,
       revogar_partilha: true,
       listar_partilhas: true,
+      // Gestão de Departamento (Especificação Técnica do Passo 8, D3) —
+      // exclusiva de admin_empresa, exceto listar (também Gestor, abaixo).
+      listar_departamentos: true,
+      editar_departamento: true,
+      eliminar_departamento: true,
+      atribuir_departamento: true,
     },
   },
   [Papel.gestor]: {
@@ -38,6 +44,12 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       conceder_partilha: true,
       revogar_partilha: true,
       listar_partilhas: true,
+      // Único caso em que Gestor participa na gestão de Departamento —
+      // precisa de contexto de estrutura para operar (Passo 8, D3).
+      listar_departamentos: true,
+      editar_departamento: false,
+      eliminar_departamento: false,
+      atribuir_departamento: false,
     },
   },
   [Papel.colaborador]: {
@@ -51,6 +63,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       conceder_partilha: true,
       revogar_partilha: true,
       listar_partilhas: true,
+      listar_departamentos: false,
+      editar_departamento: false,
+      eliminar_departamento: false,
+      atribuir_departamento: false,
     },
   },
   [Papel.convidado]: {
@@ -65,6 +81,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       conceder_partilha: false,
       revogar_partilha: false,
       listar_partilhas: true,
+      listar_departamentos: false,
+      editar_departamento: false,
+      eliminar_departamento: false,
+      atribuir_departamento: false,
     },
   },
   [Papel.super_admin]: {
