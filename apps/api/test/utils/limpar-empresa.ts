@@ -18,11 +18,22 @@ import { PrismaClient } from '@prisma/client';
  * em paralelo — descoberto por uma falha intermitente real quando o Jest
  * corria ficheiros de teste em simultâneo e um reativava o trigger a meio
  * da limpeza de outro.
+ *
+ * Espera curta antes de eliminar (Passo 11, `NotificacaoListener`): esse
+ * consumidor é fire-and-forget — a sua escrita em `Notificacao` pode ainda
+ * estar em curso quando o teste chama esta função logo a seguir ao pedido
+ * HTTP, e eliminar a Empresa nesse intervalo causa uma violação de chave
+ * estrangeira (a escrita tenta referenciar uma Empresa já apagada). Este
+ * atraso é só um artefacto de limpeza de teste — em produção a Empresa
+ * nunca é eliminada fisicamente logo a seguir a uma ação (PSD-001, ainda
+ * sem decisão de hard-delete).
  */
 export async function limparEmpresasDeTeste(adminClient: PrismaClient, empresaIds: string[]): Promise<void> {
   if (empresaIds.length === 0) {
     return;
   }
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
 
   await adminClient.$executeRawUnsafe('ALTER TABLE "RegistoAuditoria" DISABLE TRIGGER trg_registo_auditoria_imutavel');
   try {

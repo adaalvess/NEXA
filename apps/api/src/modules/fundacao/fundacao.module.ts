@@ -18,11 +18,12 @@ import { PartilhaController } from './partilha/partilha.controller';
 import { PartilhaService } from './partilha/partilha.service';
 import { DepartamentoController } from './departamento/departamento.controller';
 import { DepartamentoService } from './departamento/departamento.service';
+import { NotificacaoListener } from './notificacao/notificacao.listener';
 
 /**
  * Módulo Fundação (Blueprint EP-01) — Passos 3 (Autenticação), 4 (Camada 1),
- * 5 (RBAC granular), 6 (Registo de Auditoria), 7 (Partilha) e 8
- * (Departamento) implementados.
+ * 5 (RBAC granular), 6 (Registo de Auditoria), 7 (Partilha), 8
+ * (Departamento) e 11 (Notification Dispatcher) implementados.
  *
  * `EventEmitterModule.forRoot()` regista-se aqui, não em `AppModule` — a
  * Fundação é o dono natural do mecanismo de eventos que sustenta a auditoria
@@ -53,6 +54,7 @@ import { DepartamentoService } from './departamento/departamento.service';
     AuditoriaListener,
     PartilhaService,
     DepartamentoService,
+    NotificacaoListener,
   ],
   exports: [TenantPrismaService, AuthorizationService, PermissaoGuard, SessionGuard],
 })

@@ -54,8 +54,8 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 | Passo 8 | Departamento — CRUD completo + atribuição a Utilizadores | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.8 |
 | Passo 9 | Processos/Tarefas — CRUD, visibilidade RBAC, integração real de `podeAcederViaPartilha` | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.9 |
 | Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.10 |
-| Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | 🔜 Próximo passo |
-| Passo 12 | Dashboard — agregação read-only | Por iniciar |
+| Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.11 |
+| Passo 12 | Dashboard — agregação read-only | 🔜 Próximo passo |
 | Passo 13 | Design System (frontend) — componentes base (ADR-006) | Por iniciar |
 | Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | Por iniciar |
 
@@ -168,7 +168,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **CR-06**: `contactoPrincipal` obrigatório antes da primeira Interação de um Cliente (Functional Specifications, 3.4) — validado no serviço, `400` se ausente.
 - **IR-01**: Convidado nunca regista Interações, mesmo com Partilha ativa — `nivelAcesso` é sempre só leitura (Especificação Técnica do Passo 7, 2.1.B).
 - Todos os testes (85/85: 17 novos deste passo + regressão completa de 68 testes dos Passos 4-9) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.12 da especificação.
-- **Próximo: Passo 11 — Notification Dispatcher**, primeiro consumidor de eventos fire-and-forget (`emit`, nunca `emitAsync`) do projeto.
+- **Próximo: Passo 11 — Notification Dispatcher**, concluído a seguir (ver 3.11), primeiro consumidor de eventos fire-and-forget do projeto.
+
+### 3.11 Registo de Conclusão — Passo 11 (2026-07-06) — primeiro consumidor de eventos fire-and-forget
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 decisões previamente validadas** — ver [Especificação Técnica do Passo 11](docs/04-implementation-blueprint/10-especificacao-tecnica-passo-11-notification-dispatcher.md): conjunto mínimo de 5 gatilhos (`atribuir_papel`, `atribuir_departamento`, `criar` Partilha, `criar`/`atualizar` Processo com reatribuição); sem endpoints de leitura neste passo — exposição ao Utilizador fica para o Passo 12 (Dashboard).
+- **`NotificacaoListener`** (`apps/api/src/modules/fundacao/notificacao/`) subscreve o **mesmo** `EVENTO_AUDITORIA` já emitido desde os Passos 6/8/9/10 — nenhum novo tipo de evento, nenhuma alteração a pontos de emissão já em produção. A distinção fire-and-forget vem de o `handle` nunca retornar/aguardar a sua própria promessa — o `Promise.all` interno do `emitAsync` (usado por quem emite) só espera pelo que cada listener efetivamente devolve, por isso este consumidor nunca bloqueia a operação original, mesmo partilhando o evento com o `AuditoriaListener` (esse, sim, bloqueante).
+- **Sem verificação de deduplicação/idempotência adicional** — `EventEmitter2` não tem redelivery real (nota técnica honesta, não uma lacuna); revisitar só se o projeto migrar para um broker de mensagens real.
+- **Descoberta real durante os testes (corrida exclusiva do ambiente de testes, sem impacto em produção):** a escrita fire-and-forget do `NotificacaoListener` podia ainda estar em curso quando outros testes (Partilha, RBAC, Departamento, Auditoria) eliminavam a Empresa logo a seguir ao pedido HTTP — causando violações de chave estrangeira (capturadas, não faziam os testes falhar, mas poluíam os logs). Mitigado com uma pequena espera (150ms) em `limparEmpresasDeTeste`, mas uma espera fixa nunca elimina uma corrida, só a torna menos provável — a corrida persistiu ocasionalmente. **Corrigido na raiz** tratando `P2003` (violação de chave estrangeira) como desfecho legítimo e silencioso dentro do próprio `NotificacaoListener` (a entidade referenciada já não existir é um cenário real para um consumidor fire-and-forget, não um erro a alarmar) — confirmado limpo, sem nenhum erro de log, em 3 execuções consecutivas da suite completa. A aplicação em produção nunca elimina uma Empresa fisicamente logo a seguir a uma ação (PSD-001 continua sem decisão de hard-delete).
+- Todos os testes (94/94: 9 novos deste passo + regressão completa de 85 testes dos Passos 4-10) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.7 da especificação.
+- **Próximo: Passo 12 — Dashboard**, agregação read-only sobre Processos/CRM/Notificações, primeiro consumidor real da tabela `Notificacao`.
 
 ---
 
@@ -221,12 +230,13 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 11 (M2)
+## 6. Próxima Ação Imediata — Passo 12 (M2)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento), Passo 9 (Processos/Tarefas) e Passo 10 (CRM) concluídos e aprovados (ver 3.8, 3.9, 3.10). Próximo: **Passo 11 — Notification Dispatcher**.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento), Passo 9 (Processos/Tarefas), Passo 10 (CRM) e Passo 11 (Notification Dispatcher) concluídos e aprovados (ver 3.8-3.11). Próximo: **Passo 12 — Dashboard**.
 
-- Construir o consumidor de eventos para `Notificacao` (FR-36) — ponto único de despacho ("Notification Dispatcher", conceptual, Event & Notification Architecture Rules §3.4), subscrevendo os eventos de negócio relevantes já emitidos desde os Passos 6/9/10 (criar/atualizar de Processo/Cliente, atribuir_papel, atribuir_departamento, etc.) e criando as `Notificacao` correspondentes.
-- **Primeiro consumidor de eventos fire-and-forget (`emit`, nunca `emitAsync`) do projeto** — distinto do `AuditoriaListener` (Passo 6), que é obrigatório/bloqueante. A consistência é eventual, com o mesmo atraso máximo de 30s já fixado em NFR-04 para o Dashboard (Event & Notification Architecture Rules §3.6) — não introduzir uma nova janela de tolerância.
-- **Idempotência obrigatória** (Event & Notification Architecture Rules §3.5) — processar o mesmo evento duas vezes nunca deve criar duas Notificações duplicadas.
-- Decidir, antes da especificação, que eventos de negócio já existentes justificam uma Notificação (nem todos os eventos de auditoria precisam de gerar uma) — não assumir, validar com a Fundadora/CEO.
+- Construir a agregação read-only do Dashboard (FR-11 a FR-13) — sem entidade própria, lê Processos/Tarefas, CRM e Notificações, filtrados pelo escopo RBAC de quem consulta (reutilizar `obterEscopoVisibilidade`, mesma disciplina dos Passos 9/10).
+- **Primeiro consumidor real da tabela `Notificacao`** (Passo 11) — até aqui só escrita, sem nenhuma via de leitura.
+- Estado inicial guiado quando a Empresa não tiver dados suficientes (FR-12, Information Architecture §3.3).
+- Sincronização por polling periódico, atraso máximo 30s (NFR-04, já resolvido — não uma decisão nova).
+- Decidir, antes da especificação, se este passo já inclui `GET /notificacoes`/marcar como lida (adiado do Passo 11 para aqui) ou se fica só agregação de indicadores — não assumir.
 - Seguir a mesma disciplina de governação: especificação técnica antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação antes de considerar o passo concluído.
