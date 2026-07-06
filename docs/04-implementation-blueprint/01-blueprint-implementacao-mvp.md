@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 2.2 |
-| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, M2 em curso |
+| **Versão** | 2.3 |
+| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, backend do M2 concluído |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 11 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 12 |
 | **Última atualização** | 2026-07-06 |
 
 ---
@@ -246,7 +246,9 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 | Fundação | PATCH | `/departamentos/:id` | FR-05 — ✅ Implementado (Passo 8) |
 | Fundação | DELETE | `/departamentos/:id` | FR-05 — ✅ Implementado (Passo 8) |
 | Fundação | PATCH | `/utilizadores/:id/departamento` | FR-05 — ✅ Implementado (Passo 8) |
-| Dashboard | GET | `/dashboard` | FR-11/12 |
+| Dashboard | GET | `/dashboard` | FR-11/12 — ✅ Implementado (Passo 12) |
+| Dashboard | GET | `/notificacoes` | FR-36 — ✅ Implementado (Passo 12) |
+| Dashboard | PATCH | `/notificacoes/:id/lida` | FR-36 — ✅ Implementado (Passo 12) |
 | Processos | POST | `/processos` | FR-14 a FR-16 — ✅ Implementado (Passo 9) |
 | Processos | GET | `/processos` | FR-17 — ✅ Implementado (Passo 9) |
 | Processos | GET | `/processos/:id` | FR-17/18 — ✅ Implementado (Passo 9) |
@@ -285,6 +287,8 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 **Especificação técnica detalhada do Passo 10 (CRM):** ver [Especificação Técnica do Passo 10](09-especificacao-tecnica-passo-10-crm.md) — segundo módulo de negócio (`apps/api/src/modules/crm/`); **zero alterações ao `AuthorizationService`**, confirmando na prática que a Decisão B do M2 (centralização) funciona sem duplicação; `Cliente.estadoOportunidade` promovido a `enum`; sem eliminação de Cliente (decisão deliberada, entidade estrutural do negócio).
 
 **Especificação técnica detalhada do Passo 11 (Notification Dispatcher):** ver [Especificação Técnica do Passo 11](10-especificacao-tecnica-passo-11-notification-dispatcher.md) — `NotificacaoListener` fire-and-forget sobre o mesmo `EVENTO_AUDITORIA` já existente (sem novo tipo de evento); 5 gatilhos mínimos (`atribuir_papel`, `atribuir_departamento`, `criar` Partilha, `criar`/`atualizar` Processo com reatribuição). **Sem nova superfície de API** — exposição de Notificações ao Utilizador fica para o Passo 12 (Dashboard).
+
+**Especificação técnica detalhada do Passo 12 (Dashboard):** ver [Especificação Técnica do Passo 12](11-especificacao-tecnica-passo-12-dashboard.md) — terceiro módulo de negócio (`apps/api/src/modules/dashboard/`), **zero alterações ao `AuthorizationService`** (terceira confirmação prática da Decisão B do M2); indicadores agregados de Processos/Clientes/Notificações, estado inicial guiado (FR-12); `GET /notificacoes`/`PATCH .../lida` (exposição de Notificações herdada do Passo 11). **Backend do M2 concluído** — Passos 8 a 12 implementados, validados e aprovados; próximos passos (13-14) são de frontend (`apps/web`).
 
 ---
 
@@ -356,3 +360,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 2.0 | 2026-07-06 | **Passo 9 (Processos e Tarefas) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro módulo de negócio fora da Fundação, com Especificação Técnica própria (docs/04-implementation-blueprint/08-especificacao-tecnica-passo-9-processos.md): `AuthorizationService` estendido (visibilidade RBAC centralizada, Decisão B do M2), `PartilhaService` refatorado para a consumir, `Processo.estado` como `enum` (Decisão C do M2), regras PR-01 a PR-07. Endpoints `/processos` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
 | 2.1 | 2026-07-06 | **Passo 10 (CRM) concluído e formalmente aprovado pela Fundadora/CEO** — segundo módulo de negócio, com Especificação Técnica própria (docs/04-implementation-blueprint/09-especificacao-tecnica-passo-10-crm.md): zero alterações ao `AuthorizationService` (confirmação prática da Decisão B do M2), `Cliente.estadoOportunidade` como `enum`, regras CR-01 a CR-06 e IR-01 a IR-03, sem eliminação de Cliente (decisão deliberada). Endpoints `/clientes` e `/pipeline` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
 | 2.2 | 2026-07-06 | **Passo 11 (Notification Dispatcher) concluído e formalmente aprovado pela Fundadora/CEO** — com Especificação Técnica própria (docs/04-implementation-blueprint/10-especificacao-tecnica-passo-11-notification-dispatcher.md): `NotificacaoListener` fire-and-forget sobre o `EVENTO_AUDITORIA` já existente, 5 gatilhos mínimos, sem nova superfície de API (exposição fica para o Passo 12) | CTO (Claude) + Fundadora/CEO |
+| 2.3 | 2026-07-07 | **Passo 12 (Dashboard) concluído e formalmente aprovado pela Fundadora/CEO — backend do M2 concluído (Passos 8-12).** Com Especificação Técnica própria (docs/04-implementation-blueprint/11-especificacao-tecnica-passo-12-dashboard.md): terceiro módulo de negócio, zero alterações ao `AuthorizationService` (terceira confirmação da Decisão B do M2), `GET /notificacoes`/`PATCH .../lida` (exposição herdada do Passo 11). Endpoints `/dashboard` e `/notificacoes` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |

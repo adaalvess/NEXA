@@ -6,6 +6,7 @@ import { HealthController } from './health.controller';
 import { FundacaoModule } from './modules/fundacao/fundacao.module';
 import { ProcessosModule } from './modules/processos/processos.module';
 import { CrmModule } from './modules/crm/crm.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 /**
  * Módulo raiz da aplicação NEXA.
@@ -28,7 +29,8 @@ import { CrmModule } from './modules/crm/crm.module';
     FundacaoModule,
     ProcessosModule,
     CrmModule,
-    // Módulos de domínio a adicionar aqui: DashboardModule, etc.
+    DashboardModule,
+    // Módulos de domínio a adicionar aqui: IA, Comercial.
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

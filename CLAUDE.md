@@ -55,8 +55,8 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 | Passo 9 | Processos/Tarefas — CRUD, visibilidade RBAC, integração real de `podeAcederViaPartilha` | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.9 |
 | Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.10 |
 | Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.11 |
-| Passo 12 | Dashboard — agregação read-only | 🔜 Próximo passo |
-| Passo 13 | Design System (frontend) — componentes base (ADR-006) | Por iniciar |
+| Passo 12 | Dashboard — agregação read-only | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.12 |
+| Passo 13 | Design System (frontend) — componentes base (ADR-006) | 🔜 Próximo passo |
 | Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | Por iniciar |
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
@@ -177,7 +177,17 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Sem verificação de deduplicação/idempotência adicional** — `EventEmitter2` não tem redelivery real (nota técnica honesta, não uma lacuna); revisitar só se o projeto migrar para um broker de mensagens real.
 - **Descoberta real durante os testes (corrida exclusiva do ambiente de testes, sem impacto em produção):** a escrita fire-and-forget do `NotificacaoListener` podia ainda estar em curso quando outros testes (Partilha, RBAC, Departamento, Auditoria) eliminavam a Empresa logo a seguir ao pedido HTTP — causando violações de chave estrangeira (capturadas, não faziam os testes falhar, mas poluíam os logs). Mitigado com uma pequena espera (150ms) em `limparEmpresasDeTeste`, mas uma espera fixa nunca elimina uma corrida, só a torna menos provável — a corrida persistiu ocasionalmente. **Corrigido na raiz** tratando `P2003` (violação de chave estrangeira) como desfecho legítimo e silencioso dentro do próprio `NotificacaoListener` (a entidade referenciada já não existir é um cenário real para um consumidor fire-and-forget, não um erro a alarmar) — confirmado limpo, sem nenhum erro de log, em 3 execuções consecutivas da suite completa. A aplicação em produção nunca elimina uma Empresa fisicamente logo a seguir a uma ação (PSD-001 continua sem decisão de hard-delete).
 - Todos os testes (94/94: 9 novos deste passo + regressão completa de 85 testes dos Passos 4-10) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.7 da especificação.
-- **Próximo: Passo 12 — Dashboard**, agregação read-only sobre Processos/CRM/Notificações, primeiro consumidor real da tabela `Notificacao`.
+- **Próximo: Passo 12 — Dashboard**, concluído a seguir (ver 3.12), agregação read-only sobre Processos/CRM/Notificações, primeiro consumidor real da tabela `Notificacao`.
+
+### 3.12 Registo de Conclusão — Passo 12 (2026-07-07) — terceira confirmação da Decisão B do M2, backend do M2 concluído
+
+- **Especificação técnica formal aprovada antes da implementação, com uma decisão herdada do Passo 11** (exposição de Notificações, já ali atribuída a este passo, não uma nova decisão de âmbito) — ver [Especificação Técnica do Passo 12](docs/04-implementation-blueprint/11-especificacao-tecnica-passo-12-dashboard.md).
+- **Terceiro módulo de negócio** (`apps/api/src/modules/dashboard/`) — `GET /dashboard` (indicadores agregados de Processos/Clientes/Notificações + estado inicial guiado, FR-11/FR-12), `GET /notificacoes`, `PATCH /notificacoes/:id/lida` (FR-36).
+- **Zero alterações ao `AuthorizationService`** — terceira reutilização integral de `obterEscopoVisibilidade`, confirmando que a centralização da Decisão B do M2 escala para um terceiro módulo sem duplicação.
+- **Sem migração de schema** — Dashboard confirmado "sem entidade própria" (Functional Specifications, 3.2).
+- **Sem descobertas técnicas emergentes** — passo direto, sem correções de arquitetura a meio.
+- Todos os testes (102/102: 8 novos deste passo + regressão completa de 94 testes dos Passos 4-11) passaram, estáveis e sem erros de log em 3 execuções consecutivas — detalhe em §3.11 da especificação.
+- **Backend do M2 concluído** — Passos 8 a 12 implementados, validados e aprovados. Próximo: Passo 13 — Design System (frontend), primeiro passo de `apps/web` desde o scaffolding do Passo 1.
 
 ---
 
@@ -230,13 +240,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 12 (M2)
+## 6. Próxima Ação Imediata — Passo 13 (M2, primeiro passo de frontend)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento), Passo 9 (Processos/Tarefas), Passo 10 (CRM) e Passo 11 (Notification Dispatcher) concluídos e aprovados (ver 3.8-3.11). Próximo: **Passo 12 — Dashboard**.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso — backend concluído** (Passos 8-12, ver 3.8-3.12). Próximo: **Passo 13 — Design System (frontend)**.
 
-- Construir a agregação read-only do Dashboard (FR-11 a FR-13) — sem entidade própria, lê Processos/Tarefas, CRM e Notificações, filtrados pelo escopo RBAC de quem consulta (reutilizar `obterEscopoVisibilidade`, mesma disciplina dos Passos 9/10).
-- **Primeiro consumidor real da tabela `Notificacao`** (Passo 11) — até aqui só escrita, sem nenhuma via de leitura.
-- Estado inicial guiado quando a Empresa não tiver dados suficientes (FR-12, Information Architecture §3.3).
-- Sincronização por polling periódico, atraso máximo 30s (NFR-04, já resolvido — não uma decisão nova).
-- Decidir, antes da especificação, se este passo já inclui `GET /notificacoes`/marcar como lida (adiado do Passo 11 para aqui) ou se fica só agregação de indicadores — não assumir.
-- Seguir a mesma disciplina de governação: especificação técnica antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação antes de considerar o passo concluído.
+- Primeiro passo em `apps/web` desde o scaffolding do Passo 1 (Next.js mínimo + Tailwind com os tokens do Brand Book já configurados).
+- Construir os componentes base (Blueprint §5.1, ADR-006): Botão, Input, Select, Modal/Dialog, Menu Dropdown, Tabela de Dados, Cartão, Barra Lateral de Navegação, Notificação Toast, Badge de Estado, Avatar, Estado Vazio Guiado — Tailwind + Radix, tokens exatos do Brand Book (cor, tipografia, espaçamento).
+- **Decisão A do M2 (já aprovada)**: API-first — todas as APIs que os Passos 14 (Ecrãs) vão consumir já estão implementadas, testadas e aprovadas (Passos 8-12); nenhuma UI deve anticipar dados/comportamento não coberto pelas APIs já aprovadas.
+- Avaliar, antes de avançar, se a mesma disciplina de "Especificação Técnica formal" se aplica tal e qual a componentes visuais (sem regras RBAC/schema/migração), ou se um formato mais leve (ex: inventário de componentes + critérios de aceitação visuais) é mais adequado — não assumir, validar com a Fundadora/CEO.
+- Seguir a mesma disciplina de governação: proposta/especificação antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação (testável visualmente, não só testes automatizados) antes de considerar o passo concluído.

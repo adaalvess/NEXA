@@ -50,6 +50,13 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar: true,
       ver_pipeline: true,
     },
+    // Dashboard (Especificação Técnica do Passo 12) — tudo pessoal, sem
+    // restrição adicional por papel; o escopo já vem de
+    // obterEscopoVisibilidade/destinatarioId, nunca deste guard sozinho.
+    dashboard: {
+      ver: true,
+      marcar_lida: true,
+    },
   },
   [Papel.gestor]: {
     fundacao: {
@@ -84,6 +91,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar: true,
       ver_pipeline: true,
     },
+    dashboard: {
+      ver: true,
+      marcar_lida: true,
+    },
   },
   [Papel.colaborador]: {
     fundacao: {
@@ -116,6 +127,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar: true,
       // Functional Specifications 3.4 — "Não aplicável" para Colaborador.
       ver_pipeline: false,
+    },
+    dashboard: {
+      ver: true,
+      marcar_lida: true,
     },
   },
   [Papel.convidado]: {
@@ -150,6 +165,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       ver: true,
       editar: false,
       ver_pipeline: false,
+    },
+    dashboard: {
+      ver: true,
+      marcar_lida: true,
     },
   },
   [Papel.super_admin]: {
