@@ -53,8 +53,8 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 |---|---|---|
 | Passo 8 | Departamento — CRUD completo + atribuição a Utilizadores | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.8 |
 | Passo 9 | Processos/Tarefas — CRUD, visibilidade RBAC, integração real de `podeAcederViaPartilha` | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.9 |
-| Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | 🔜 Próximo passo |
-| Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | Por iniciar |
+| Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.10 |
+| Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | 🔜 Próximo passo |
 | Passo 12 | Dashboard — agregação read-only | Por iniciar |
 | Passo 13 | Design System (frontend) — componentes base (ADR-006) | Por iniciar |
 | Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | Por iniciar |
@@ -158,7 +158,17 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **`GET /processos/:id` é o primeiro consumidor real de `AuthorizationService.podeAcederViaPartilha`** (Passo 7) — resolve o Risco R1 desse passo, até aqui sem nenhum endpoint de produto a chamá-lo.
 - **Associação a Cliente (FR-16) validada** via `podeAgirSobreEntidade('cliente', ...)` — funciona mesmo sem o módulo CRM existir como controlador (Passo 10), usando o modelo `Cliente` já existente desde o Passo 2 e entidades mínimas de teste (mesmo padrão do Passo 7).
 - Todos os testes (68/68: 18 novos deste passo + regressão completa de 51 testes dos Passos 4-8) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.12 da especificação.
-- **Próximo: Passo 10 — CRM**, que reutiliza a mesma infraestrutura de visibilidade centralizada (Decisão B), sem a duplicar.
+- **Próximo: Passo 10 — CRM**, concluído a seguir (ver 3.10), reutilizando a mesma infraestrutura de visibilidade centralizada (Decisão B) sem a duplicar.
+
+### 3.10 Registo de Conclusão — Passo 10 (2026-07-06) — segundo módulo de negócio, zero alterações ao AuthorizationService
+
+- **Especificação técnica formal aprovada antes da implementação, com 4 decisões previamente validadas** — ver [Especificação Técnica do Passo 10](docs/04-implementation-blueprint/09-especificacao-tecnica-passo-10-crm.md): campos `Cliente.contactoPrincipal`/`Interacao.descricao` em falta desde o Passo 2 (mesmo tipo de lacuna encontrada em `Processo.descricao` no Passo 9); `Cliente.estadoOportunidade` promovido a `enum EstadoOportunidade`; eliminação de Cliente **deliberadamente fora de âmbito** — Cliente é uma entidade estrutural do negócio (Interações, Oportunidades, Pipeline), sem a linha "Eliminar Cliente" na matriz aprovada do Functional Specifications (ao contrário de Processos), decisão explícita da Fundadora/CEO de não assumir essa lacuna como lapso.
+- **Confirmação prática da Decisão B do M2:** zero alterações ao `AuthorizationService` — `obterEscopoVisibilidade('cliente')`, `obterRelacaoEntidade('cliente', ...)` e `podeAgirSobreEntidade('cliente', ...)` já resolviam `Cliente` desde o Passo 9 (mesma implementação genérica). Segundo módulo de negócio a reutilizar a visibilidade centralizada sem escrever nenhuma lógica nova.
+- **Novo módulo `apps/api/src/modules/crm/`** — CRUD de Cliente (criar/listar/ver/editar, **sem eliminar**), registo de Interações (`POST /clientes/:id/interacoes`, gate `crm.editar` — mesmo âmbito que editar o próprio Cliente, Functional Specifications 3.4), `GET /pipeline` (agregação por `estadoOportunidade`, só Clientes com oportunidade associada, âmbito igual ao de `GET /clientes`; `colaborador`/`convidado` sem acesso — "Não aplicável"/"Não" na matriz aprovada).
+- **CR-06**: `contactoPrincipal` obrigatório antes da primeira Interação de um Cliente (Functional Specifications, 3.4) — validado no serviço, `400` se ausente.
+- **IR-01**: Convidado nunca regista Interações, mesmo com Partilha ativa — `nivelAcesso` é sempre só leitura (Especificação Técnica do Passo 7, 2.1.B).
+- Todos os testes (85/85: 17 novos deste passo + regressão completa de 68 testes dos Passos 4-9) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.12 da especificação.
+- **Próximo: Passo 11 — Notification Dispatcher**, primeiro consumidor de eventos fire-and-forget (`emit`, nunca `emitAsync`) do projeto.
 
 ---
 
@@ -211,12 +221,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 10 (M2)
+## 6. Próxima Ação Imediata — Passo 11 (M2)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento) e Passo 9 (Processos/Tarefas) concluídos e aprovados (ver 3.8, 3.9). Próximo: **Passo 10 — CRM**.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento), Passo 9 (Processos/Tarefas) e Passo 10 (CRM) concluídos e aprovados (ver 3.8, 3.9, 3.10). Próximo: **Passo 11 — Notification Dispatcher**.
 
-- Construir CRUD completo de `Cliente`/`Interacao` (FR-19 a FR-22), com a mesma visibilidade RBAC do Passo 9 (admin todas; gestor da sua equipa via Departamento do `owner`; colaborador os seus, via `ownerId`; convidado só os explicitamente partilhados — Functional Specifications §3.4).
-- **Reutilizar a infraestrutura de visibilidade centralizada do Passo 9** (`AuthorizationService.obterEscopoVisibilidade`/`obterRelacaoEntidade`/`podeAgirSobreEntidade`) — nunca duplicar localmente, mesma disciplina da Decisão B do M2.
-- `GET /pipeline` (FR-22) — agregação de Oportunidades por `estadoOportunidade`; formato exato de resposta fica por definir na Especificação Técnica (risco R2 identificado no Passo 9, ainda não resolvido).
-- Avaliar se `Cliente.estadoOportunidade` (atualmente `String?`) deve seguir o mesmo padrão de `enum` já aplicado a `Papel` (Passo 5) e `Processo.estado` (Passo 9) — decisão de âmbito a validar antes da especificação, não a assumir.
+- Construir o consumidor de eventos para `Notificacao` (FR-36) — ponto único de despacho ("Notification Dispatcher", conceptual, Event & Notification Architecture Rules §3.4), subscrevendo os eventos de negócio relevantes já emitidos desde os Passos 6/9/10 (criar/atualizar de Processo/Cliente, atribuir_papel, atribuir_departamento, etc.) e criando as `Notificacao` correspondentes.
+- **Primeiro consumidor de eventos fire-and-forget (`emit`, nunca `emitAsync`) do projeto** — distinto do `AuditoriaListener` (Passo 6), que é obrigatório/bloqueante. A consistência é eventual, com o mesmo atraso máximo de 30s já fixado em NFR-04 para o Dashboard (Event & Notification Architecture Rules §3.6) — não introduzir uma nova janela de tolerância.
+- **Idempotência obrigatória** (Event & Notification Architecture Rules §3.5) — processar o mesmo evento duas vezes nunca deve criar duas Notificações duplicadas.
+- Decidir, antes da especificação, que eventos de negócio já existentes justificam uma Notificação (nem todos os eventos de auditoria precisam de gerar uma) — não assumir, validar com a Fundadora/CEO.
 - Seguir a mesma disciplina de governação: especificação técnica antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação antes de considerar o passo concluído.

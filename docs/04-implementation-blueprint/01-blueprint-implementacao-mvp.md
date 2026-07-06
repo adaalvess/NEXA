@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 2.0 |
+| **Versão** | 2.1 |
 | **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, M2 em curso |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 9 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 10 |
 | **Última atualização** | 2026-07-06 |
 
 ---
@@ -252,9 +252,13 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 | Processos | GET | `/processos/:id` | FR-17/18 — ✅ Implementado (Passo 9) |
 | Processos | PATCH | `/processos/:id` | FR-14 — ✅ Implementado (Passo 9) |
 | Processos | DELETE | `/processos/:id` | FR-14 — ✅ Implementado (Passo 9) |
-| CRM | POST/GET/PATCH | `/clientes` | FR-19 a FR-21 |
-| CRM | POST | `/clientes/:id/interacoes` | FR-20 |
-| CRM | GET | `/pipeline` | FR-22 |
+| CRM | POST | `/clientes` | FR-19 — ✅ Implementado (Passo 10) |
+| CRM | GET | `/clientes` | FR-21 — ✅ Implementado (Passo 10) |
+| CRM | GET | `/clientes/:id` | FR-21 — ✅ Implementado (Passo 10) |
+| CRM | PATCH | `/clientes/:id` | FR-19 — ✅ Implementado (Passo 10) |
+| CRM | POST | `/clientes/:id/interacoes` | FR-20 — ✅ Implementado (Passo 10) |
+| CRM | GET | `/clientes/:id/interacoes` | FR-20 — ✅ Implementado (Passo 10) |
+| CRM | GET | `/pipeline` | FR-22 — ✅ Implementado (Passo 10) |
 | Assistente de IA | POST | `/ia/perguntar` | FR-23, UC-05 |
 | Assistente de IA | POST | `/ia/sugestoes/:id/confirmar` | FR-25, UC-06 |
 | Assistente de IA | POST | `/ia/sugestoes/:id/rejeitar` | FR-25, UC-06 |
@@ -277,6 +281,8 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 **Especificação técnica detalhada do Passo 8 (Departamento):** ver [Especificação Técnica do Passo 8](07-especificacao-tecnica-passo-8-departamento.md) — CRUD completo de `Departamento`, atribuição de Utilizador a Departamento, regras RD-01 a RD-04. Endpoints planos (`/departamentos`, `/utilizadores/:id/departamento`), substituindo o literal `/empresas/:id/departamentos` (nunca implementado) — mesma decisão já tomada no Passo 5 para `/utilizadores/:id/papel`.
 
 **Especificação técnica detalhada do Passo 9 (Processos e Tarefas):** ver [Especificação Técnica do Passo 9](08-especificacao-tecnica-passo-9-processos.md) — primeiro módulo de negócio fora da Fundação (`apps/api/src/modules/processos/`); `AuthorizationService` estendido com `obterRelacaoEntidade`/`podeAgirSobreEntidade`/`obterEscopoVisibilidade` (visibilidade RBAC centralizada, Decisão B do M2), com o `PartilhaService` (Passo 7) refatorado para os consumir em vez de manter cópia própria; `Processo.estado` promovido a `enum` (Decisão C do M2); primeiro consumidor real de `podeAcederViaPartilha`.
+
+**Especificação técnica detalhada do Passo 10 (CRM):** ver [Especificação Técnica do Passo 10](09-especificacao-tecnica-passo-10-crm.md) — segundo módulo de negócio (`apps/api/src/modules/crm/`); **zero alterações ao `AuthorizationService`**, confirmando na prática que a Decisão B do M2 (centralização) funciona sem duplicação; `Cliente.estadoOportunidade` promovido a `enum`; sem eliminação de Cliente (decisão deliberada, entidade estrutural do negócio).
 
 ---
 
@@ -346,3 +352,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 1.8 | 2026-07-06 | **Passo 7 (Partilha) concluído e formalmente aprovado pela Fundadora/CEO — Milestone M1 (Fundação) formalmente concluído.** `POST/DELETE/GET /partilhas` marcados implementados na Superfície de API (§4); Especificação Técnica própria (docs/04-implementation-blueprint/06-especificacao-tecnica-passo-7-partilha.md) — `AuthorizationService.podeAcederViaPartilha`, regras P1-P5, campos `nivelAcesso`/`revogadoEm`. Todos os passos previstos no Blueprint para o M1 (0-7) estão agora implementados, validados e aprovados; próximo Milestone (M2) por confirmar com a Fundadora/CEO | CTO (Claude) + Fundadora/CEO |
 | 1.9 | 2026-07-06 | **Proposta do Milestone M2 (Módulos Core) apresentada e aprovada pela Fundadora/CEO** — sequência de Passos 8-14, dependências, riscos, DoD e decisões arquitetónicas A-C validadas. **Passo 8 (Departamento) concluído e formalmente aprovado** — CRUD completo + atribuição de Utilizador a Departamento, com Especificação Técnica própria (docs/04-implementation-blueprint/07-especificacao-tecnica-passo-8-departamento.md). Endpoints `/departamentos` e `/utilizadores/:id/departamento` marcados implementados na Superfície de API (§4), substituindo o literal `/empresas/:id/departamentos` (nunca implementado) | CTO (Claude) + Fundadora/CEO |
 | 2.0 | 2026-07-06 | **Passo 9 (Processos e Tarefas) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro módulo de negócio fora da Fundação, com Especificação Técnica própria (docs/04-implementation-blueprint/08-especificacao-tecnica-passo-9-processos.md): `AuthorizationService` estendido (visibilidade RBAC centralizada, Decisão B do M2), `PartilhaService` refatorado para a consumir, `Processo.estado` como `enum` (Decisão C do M2), regras PR-01 a PR-07. Endpoints `/processos` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
+| 2.1 | 2026-07-06 | **Passo 10 (CRM) concluído e formalmente aprovado pela Fundadora/CEO** — segundo módulo de negócio, com Especificação Técnica própria (docs/04-implementation-blueprint/09-especificacao-tecnica-passo-10-crm.md): zero alterações ao `AuthorizationService` (confirmação prática da Decisão B do M2), `Cliente.estadoOportunidade` como `enum`, regras CR-01 a CR-06 e IR-01 a IR-03, sem eliminação de Cliente (decisão deliberada). Endpoints `/clientes` e `/pipeline` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |

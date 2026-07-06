@@ -276,15 +276,26 @@ model Processo {
 // CRM
 // ============================================================================
 
+/// Estado de uma Oportunidade associada a um Cliente (Functional
+/// Specifications, 3.4) — enum desde o Passo 10 (Blueprint D4, ajuste de
+/// tipo, mesmo padrão do `Papel` no Passo 5 e `EstadoProcesso` no Passo 9).
+enum EstadoOportunidade {
+  prospecao
+  negociacao
+  fechada_ganha
+  fechada_perdida
+}
+
 model Cliente {
-  id                 String     @id @default(cuid())
+  id                 String              @id @default(cuid())
   empresaId          String
-  empresa            Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresa            Empresa             @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   nome               String
   tipo               String // empresa_cliente | contacto_individual
+  contactoPrincipal  String? // email ou telefone — Especificação Técnica do Passo 10, 2.1.A
   ownerId            String
-  owner              Utilizador @relation("ClienteOwner", fields: [ownerId, empresaId], references: [id, empresaId])
-  estadoOportunidade String?
+  owner              Utilizador          @relation("ClienteOwner", fields: [ownerId, empresaId], references: [id, empresaId])
+  estadoOportunidade EstadoOportunidade?
 
   eliminadoEm DateTime?
 
@@ -307,6 +318,7 @@ model Interacao {
   clienteId String
   cliente   Cliente  @relation(fields: [clienteId, empresaId], references: [id, empresaId], onDelete: Cascade)
   tipo      String // chamada | reuniao | nota | outro
+  descricao String? // Especificação Técnica do Passo 10, 2.1.B
   data      DateTime @default(now())
 
   criadoPor     String?

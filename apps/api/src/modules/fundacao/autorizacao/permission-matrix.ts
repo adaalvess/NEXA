@@ -41,6 +41,15 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar: true,
       eliminar: true,
     },
+    // CR/IR (Especificação Técnica do Passo 10) — reutiliza obterEscopoVisibilidade/
+    // podeAgirSobreEntidade, mesmo padrão de `processos`. `editar` cobre também
+    // "Registar Interação" (D5 desse documento — mesmo âmbito na matriz aprovada).
+    crm: {
+      criar: true,
+      ver: true,
+      editar: true,
+      ver_pipeline: true,
+    },
   },
   [Papel.gestor]: {
     fundacao: {
@@ -68,6 +77,13 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar: true,
       eliminar: true,
     },
+    crm: {
+      criar: true,
+      ver: true,
+      // CR-02 — âmbito (só o seu Departamento) verificado à parte, não aqui.
+      editar: true,
+      ver_pipeline: true,
+    },
   },
   [Papel.colaborador]: {
     fundacao: {
@@ -92,6 +108,14 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar: true,
       // PR-07 — Colaborador nunca elimina, nem os seus próprios.
       eliminar: false,
+    },
+    crm: {
+      criar: true,
+      ver: true,
+      // CR-03 — só sobre Clientes de que é diretamente owner, verificado à parte.
+      editar: true,
+      // Functional Specifications 3.4 — "Não aplicável" para Colaborador.
+      ver_pipeline: false,
     },
   },
   [Papel.convidado]: {
@@ -119,6 +143,13 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       ver: true,
       editar: false,
       eliminar: false,
+    },
+    crm: {
+      criar: false,
+      // CR-04 — âmbito real vem de podeAcederViaPartilha, não deste guard.
+      ver: true,
+      editar: false,
+      ver_pipeline: false,
     },
   },
   [Papel.super_admin]: {

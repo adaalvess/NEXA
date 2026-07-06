@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { FundacaoModule } from './modules/fundacao/fundacao.module';
 import { ProcessosModule } from './modules/processos/processos.module';
+import { CrmModule } from './modules/crm/crm.module';
 
 /**
  * Módulo raiz da aplicação NEXA.
@@ -26,7 +27,8 @@ import { ProcessosModule } from './modules/processos/processos.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     FundacaoModule,
     ProcessosModule,
-    // Módulos de domínio a adicionar aqui: DashboardModule, CrmModule, etc.
+    CrmModule,
+    // Módulos de domínio a adicionar aqui: DashboardModule, etc.
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
