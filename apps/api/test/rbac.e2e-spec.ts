@@ -5,6 +5,7 @@ import * as argon2 from 'argon2';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { FundacaoModule } from '../src/modules/fundacao/fundacao.module';
+import { limparEmpresasDeTeste } from './utils/limpar-empresa';
 
 const SENHA = 'senha1234';
 
@@ -107,7 +108,7 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
   });
 
   afterEach(async () => {
-    await adminClient.empresa.deleteMany({ where: { id: empresaId } });
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
   });
 
   it('T1 — Admin muda o papel de um Colaborador para Gestor', async () => {
@@ -194,7 +195,7 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
       .send({ papel: 'colaborador' })
       .expect(409);
 
-    await adminClient.empresa.delete({ where: { id: soloEmpresaId } });
+    await limparEmpresasDeTeste(adminClient, [soloEmpresaId]);
   });
 
   it('T8 — não é possível alterar papel de Utilizador de outra Empresa (L6, estrutural)', async () => {
@@ -213,7 +214,7 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
       .send({ papel: 'colaborador' })
       .expect(404);
 
-    await adminClient.empresa.delete({ where: { id: empresaBId } });
+    await limparEmpresasDeTeste(adminClient, [empresaBId]);
   });
 
   it('T9 — RegraPermissao com permitido=false bloqueia ação que o default permitiria', async () => {

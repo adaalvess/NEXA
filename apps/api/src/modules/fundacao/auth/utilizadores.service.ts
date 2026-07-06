@@ -1,7 +1,9 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Papel } from '@prisma/client';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { tenantContext } from '../tenant/tenant-context';
+import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
 
 /**
  * Hierarquia de privilégio dentro de uma Empresa (Especificação Técnica do
@@ -19,7 +21,10 @@ const PRIVILEGIO: Record<Exclude<Papel, 'super_admin'>, number> = {
 
 @Injectable()
 export class UtilizadoresService {
-  constructor(private readonly tenantPrisma: TenantPrismaService) {}
+  constructor(
+    private readonly tenantPrisma: TenantPrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * Implementa a ordem de verificação completa da Especificação Técnica do
@@ -72,9 +77,21 @@ export class UtilizadoresService {
       }
     }
 
-    return this.tenantPrisma.client.utilizador.update({
+    const papelAnterior = alvo.papel;
+    const atualizado = await this.tenantPrisma.client.utilizador.update({
       where: { id: alvoId },
       data: { papel: novoPapel, atualizadoPor: ctx.utilizadorId },
     });
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: ctx.empresaId,
+      ator: ctx.utilizadorId,
+      acao: 'atribuir_papel',
+      entidade: 'Utilizador',
+      entidadeId: alvoId,
+      detalhe: { papelAnterior, papelNovo: novoPapel },
+    } satisfies EventoAuditoria);
+
+    return atualizado;
   }
 }

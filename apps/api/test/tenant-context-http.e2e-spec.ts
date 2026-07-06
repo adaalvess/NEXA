@@ -6,6 +6,7 @@ import request from 'supertest';
 import { FundacaoModule } from '../src/modules/fundacao/fundacao.module';
 import { SessionGuard } from '../src/modules/fundacao/auth/session.guard';
 import { TenantPrismaService } from '../src/modules/fundacao/prisma/tenant-prisma.service';
+import { limparEmpresasDeTeste } from './utils/limpar-empresa';
 
 /**
  * Verificação de que o TenantContext, resolvido pelo `TenantContextMiddleware`,
@@ -95,7 +96,7 @@ describe('Propagação do TenantContext via pedido HTTP real', () => {
       .expect(200);
     expect(respostaB.body).toHaveLength(0);
 
-    await adminClient.empresa.deleteMany({ where: { id: { in: [empresaA.empresaId, empresaB.empresaId] } } });
+    await limparEmpresasDeTeste(adminClient, [empresaA.empresaId, empresaB.empresaId]);
   });
 
   it('devolve 401 sem cookie de sessão', async () => {

@@ -1,10 +1,12 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as argon2 from 'argon2';
 import type { Sessao, Utilizador } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegistarDto } from './dto/registar.dto';
 import { LoginDto } from './dto/login.dto';
 import { DECOY_PASSWORD_HASH, SESSION_DURATION_MS } from './auth.constants';
+import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
 
 /**
  * Autenticação (Passo 3, M1) — ver Especificação Técnica do Passo 3
@@ -18,7 +20,10 @@ import { DECOY_PASSWORD_HASH, SESSION_DURATION_MS } from './auth.constants';
  */
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async registar(dto: RegistarDto): Promise<{ empresaId: string; utilizadorId: string }> {
     const existente = await this.prisma.utilizador.findFirst({
@@ -62,6 +67,26 @@ export class AuthService {
       return { empresa, utilizador };
     });
 
+    // Registo de Auditoria (Especificação Técnica do Passo 6, 3.5) —
+    // aguardado (emitAsync): etapa obrigatória, não fire-and-forget.
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: empresa.id,
+      ator: utilizador.id,
+      acao: 'criar',
+      entidade: 'Empresa',
+      entidadeId: empresa.id,
+      detalhe: { dados: { nome: empresa.nome, pais: empresa.pais, setor: empresa.setor } },
+    } satisfies EventoAuditoria);
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: empresa.id,
+      ator: utilizador.id,
+      acao: 'criar',
+      entidade: 'Utilizador',
+      entidadeId: utilizador.id,
+      detalhe: { dados: { nome: utilizador.nome, email: utilizador.email, papel: utilizador.papel } },
+    } satisfies EventoAuditoria);
+
     return { empresaId: empresa.id, utilizadorId: utilizador.id };
   }
 
@@ -89,6 +114,14 @@ export class AuthService {
         expiraEm: new Date(Date.now() + SESSION_DURATION_MS),
       },
     });
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: utilizador.empresaId,
+      ator: utilizador.id,
+      acao: 'login',
+      entidade: 'Sessao',
+      entidadeId: sessao.id,
+    } satisfies EventoAuditoria);
 
     return { utilizador, sessao };
   }

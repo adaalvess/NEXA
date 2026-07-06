@@ -7,9 +7,11 @@ import { Papel } from '@prisma/client';
  * pode sobrepor qualquer entrada aqui via `RegraPermissao` (Especificação
  * Técnica do Passo 5, 3.2/3.3).
  *
- * `super_admin` não tem entradas — não atua dentro de uma Empresa cliente
- * (Especificação Técnica do Passo 5, 2.1.A); a sua capacidade cross-tenant
- * fica para o Passo 6 (Registo de Auditoria), fora deste mecanismo.
+ * `super_admin` só tem a entrada `consultar_auditoria` (Especificação
+ * Técnica do Passo 6, 3.6) — não atua dentro de uma Empresa cliente para o
+ * resto (Especificação Técnica do Passo 5, 2.1.A). A capacidade cross-tenant
+ * real desta ação não vem desta matriz (que só decide "pode ou não"), vem do
+ * `AuditoriaInternaService` (Passo 6, 3.4).
  */
 export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Record<string, boolean>>>> = {
   [Papel.admin_empresa]: {
@@ -17,6 +19,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       criar_departamento: true,
       editar_permissoes: true,
       atribuir_papel: true,
+      consultar_auditoria: true,
     },
   },
   [Papel.gestor]: {
@@ -26,6 +29,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       // RN-03 — âmbito (só a sua equipa) verificado à parte, não aqui
       // (Especificação Técnica do Passo 5, 3.4, L3).
       atribuir_papel: true,
+      consultar_auditoria: false,
     },
   },
   [Papel.colaborador]: {
@@ -33,6 +37,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       criar_departamento: false,
       editar_permissoes: false,
       atribuir_papel: false,
+      consultar_auditoria: false,
     },
   },
   [Papel.convidado]: {
@@ -40,6 +45,12 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       criar_departamento: false,
       editar_permissoes: false,
       atribuir_papel: false,
+      consultar_auditoria: false,
+    },
+  },
+  [Papel.super_admin]: {
+    fundacao: {
+      consultar_auditoria: true,
     },
   },
 };

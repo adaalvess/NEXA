@@ -164,6 +164,11 @@ model RegistoAuditoria {
   acao       String
   entidade   String
   entidadeId String
+  /// "A alteração efetuada" (FR-07) — Especificação Técnica do Passo 6, §3.3.
+  /// jsonb, formato por categoria de ação, nunca segredos. Imutável como o
+  /// resto da linha — reforçado a nível de BD por trigger (§3.4 desse
+  /// documento), não só por convenção.
+  detalhe    Json?
   timestamp  DateTime @default(now())
 
   @@index([empresaId, timestamp])

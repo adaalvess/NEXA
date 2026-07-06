@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import { TenantPrismaService } from '../src/modules/fundacao/prisma/tenant-prisma.service';
 import { tenantContext } from '../src/modules/fundacao/tenant/tenant-context';
+import { limparEmpresasDeTeste } from './utils/limpar-empresa';
 
 /**
  * Isolamento Multi-Tenant — Camada 1 (Passo 4, NFR-17).
@@ -51,7 +52,7 @@ describe('Isolamento Multi-Tenant — Camada 1 (Passo 4)', () => {
   });
 
   afterEach(async () => {
-    await adminClient.empresa.deleteMany({ where: { id: { in: [empresaA, empresaB] } } });
+    await limparEmpresasDeTeste(adminClient, [empresaA, empresaB]);
   });
 
   function comoTenant<T>(empresaId: string, fn: () => Promise<T>): Promise<T> {

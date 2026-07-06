@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**Estamos no M1 (Fundação) — Passo 5 concluído e aprovado, Passo 6 por iniciar.**
+**Estamos no M1 (Fundação) — Passo 6 concluído e aprovado. Definition of Done do M1 tecnicamente completo — ver nota abaixo. Passo 7 por iniciar.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -38,10 +38,12 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 | Passo 3 | Autenticação (registo + login) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.2 |
 | Passo 4 | Camada 1 — middleware de tenant + serviço de autorização único | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.4 |
 | Passo 5 | RBAC — papéis e permissões granulares | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.5 |
-| **Passo 6** | **Registo de Auditoria (append-only)** | 🔜 **Próximo passo** |
-| Passo 7 | Partilha (Convidado) | Por iniciar |
+| Passo 6 | Registo de Auditoria (append-only) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.6 |
+| **Passo 7** | **Partilha (Convidado)** | 🔜 **Próximo passo** |
 
-**Definition of Done do M1** (Blueprint, secção 2.2): registo/login funcionais; isolamento multi-tenant verificado por teste; todos os 5 papéis RBAC atribuíveis e a restringir acesso corretamente; Registo de Auditoria a gravar em toda ação de escrita.
+**Definition of Done do M1** (Blueprint, secção 2.2): registo/login funcionais ✅; isolamento multi-tenant verificado por teste ✅; todos os 5 papéis RBAC atribuíveis e a restringir acesso corretamente ✅; Registo de Auditoria a gravar em toda ação de escrita ✅.
+
+**Nota a validar com a Fundadora/CEO:** o texto literal do DoD do M1 (Blueprint §2.2) está agora tecnicamente completo, e não menciona Partilha — mas o Passo 7 (Partilha/Convidado) continua listado como conteúdo do M1 no próprio Blueprint (§3, Milestones). Não decidido unilateralmente se o M1 só fica "concluído" depois do Passo 7, ou se o DoD já é suficiente e o Passo 7 pode ficar para depois — a confirmar antes de declarar o M1 encerrado.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
 
@@ -92,6 +94,19 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Renovação deslizante da sessão** (pendente desde o Passo 4) implementada no `TenantContextMiddleware` — só escreve à BD quando `expiraEm` está a menos de 6 dias, evitando escrita em todos os pedidos.
 - **Correção encontrada durante os testes (não arquitetural):** os testes Jest deste passo e do Passo 4 nunca tinham o `ValidationPipe` do `main.ts` real — nenhum DTO era de facto validado nesses testes. Revelado pelo teste que tentava atribuir `super_admin` (devolvia `200` em vez de `400`). Corrigido em ambos os ficheiros de teste.
 - Todos os testes (19/19: T1-T13 deste passo + regressão completa do Passo 4) passaram, mais demonstração manual contra `nexa_dev` — detalhe em §3.11 da especificação.
+
+### 3.6 Registo de Conclusão — Passo 6 (2026-07-06) — último requisito em falta do DoD do M1
+
+- **Especificação técnica formal aprovada antes da implementação, com 3 decisões previamente validadas** — ver [Especificação Técnica do Passo 6](docs/04-implementation-blueprint/05-especificacao-tecnica-passo-6-auditoria.md): auditoria via mecanismo de eventos já existente (`EventEmitterModule`), usando `emitAsync` (aguardado, nunca fire-and-forget) para cumprir consistência forte (Data & Consistency Rules 3.1) sem contradizer o desenho orientado a eventos já aprovado (Event & Notification Architecture Rules 3.3); role de BD `nexa_auditoria_interna` (`BYPASSRLS`, só `SELECT`, só nesta tabela) para a capacidade cross-tenant do Super Admin, deixada em aberto no Passo 5; campo `detalhe` (jsonb) com especificação completa por categoria de ação (criação/atualização/eliminação/login/atribuição de papel).
+- **`AuditoriaListener`** escreve sempre via `PrismaService` bruto (nunca `TenantPrismaService`) — o `empresaId` vem do payload do evento, resolvendo também o caso de bootstrap do registo (sem `TenantContext` ainda).
+- **Trigger de imutabilidade a nível de BD** (`BEFORE UPDATE OR DELETE`) — aplica-se a todos os roles, incluindo o owner `nexa_dev`, ao contrário do RLS.
+- **Instrumentação retroativa** dos Passos 3 (registo, login) e 5 (atribuição de papel) — agora todos emitem eventos de auditoria.
+- **A própria consulta cross-tenant do Super Admin é auditada** — na Empresa do próprio Super Admin, pelo mecanismo normal, nunca pelo role só-leitura (que nunca escreve).
+- **Descoberta real durante os testes:** o trigger bloqueia `DELETE` mesmo via `CASCADE` a partir de `Empresa` — uma vez que uma Empresa tenha qualquer entrada de auditoria (agora desde o primeiro registo), deixa de ser possível eliminá-la por cascade normal. Propriedade correta e desejada (protege o rasto de auditoria), mas com consequência prática real para testes e para um futuro hard-delete (PSD-001) — registada como nova Questão em Aberto nesse documento.
+- **`EventEmitterModule.forRoot()` movido de `AppModule` para `FundacaoModule`** — correção estrutural encontrada ao escrever os testes (precisavam de `EventEmitter2` disponível ao importar só `FundacaoModule`); também mais correto arquiteturalmente, já que a Fundação já é a dona do mecanismo de eventos.
+- **Falha intermitente real encontrada e corrigida:** a limpeza de dados de teste desativa/reativa o trigger de imutabilidade via `ALTER TABLE` — uma alteração de catálogo **global**, não scoped à sessão. Como o Jest corre ficheiros em paralelo por defeito, isto causava corridas reais entre ficheiros. Tentativa de correção com `SET LOCAL session_replication_role` falhou (exige superuser, que `nexa_dev` não tem por Least Privilege); corrigido fazendo os testes e2e correrem sempre em série (`--runInBand`).
+- Todos os testes (27/27: T1-T9 deste passo + regressão completa dos Passos 4-5) passaram, mais demonstração manual contra `nexa_dev` — detalhe em §3.9 da especificação.
+- **Definition of Done do M1 (Blueprint §2.2) tecnicamente completo** — ver nota na secção 3 acima sobre a posição do Passo 7 (Partilha) face ao DoD.
 
 ---
 
@@ -144,15 +159,14 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 6
+## 6. Próxima Ação Imediata — Passo 7
 
-Construir o **Registo de Auditoria** (append-only) — consistente com FR-07, Data & Consistency Rules §3.3 ("nunca UPDATE nem DELETE") e Security & Access Principles §3.7 (toda verificação de autorização, incluindo negações, é auditável).
+Construir **Partilha (Convidado)** — FR-35, Data Model Conceptual §3.3 (entidade já existe desde o Passo 2, sem uso ainda), Security & Access Principles §3.4 ("Partilha é uma extensão do RBAC, não um sistema de acesso paralelo — verificada pelo mesmo mecanismo de autorização de sempre").
 
-- O modelo `RegistoAuditoria` já existe desde o Passo 2 (`empresaId`, `ator`, `acao`, `entidade`, `entidadeId`, `timestamp`) — sem escritas ainda. Este passo constrói o mecanismo que grava, não o schema.
-- **Imutabilidade a reforçar ao nível da BD** (não só por convenção): considerar trigger/regra Postgres que rejeite `UPDATE`/`DELETE` nesta tabela mesmo por engano de aplicação — avaliado e conscientemente adiado nos Passos 2-4 por não ser ainda necessário; agora que a tabela vai começar a ter escrita real, decidir se este é o momento de o implementar.
-- **Retroativo:** as ações já escritas nos Passos 3-5 (registo, login, atribuição de papel) não têm auditoria — decidir se o Passo 6 deve instrumentar essas ações já existentes (retroativamente) ou só as daqui em diante.
-- **É agora que o Super Admin ganha a sua capacidade cross-tenant estrutural** (deixada deliberadamente de fora no Passo 5, Especificação Técnica desse passo, 2.1.A) — consultar Registo de Auditoria "interno" (todas as Empresas). Decidir e especificar este mecanismo com o mesmo rigor já aplicado às exceções transversais anteriores (`nexa_fundacao`, Passo 4).
-- **Não antecipar Partilha** (Passo 7).
-- Seguir a mesma disciplina de governação já aplicada nos Passos 2-5: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
+- O modelo `Partilha` já existe desde o Passo 2 (`empresaId`, `entidadeTipo`, `entidadeId`, `convidadoId`, `concedidoPorId`) — polimórfico (`entidadeId` aponta para `Cliente` ou `Processo`, sem FK direta, tal como `RegistoAuditoria`). Este passo constrói o mecanismo que a consulta e a usa para conceder acesso, não o schema.
+- **Sem módulos de negócio ainda** (Processos, CRM) — não há nenhuma entidade real de `Cliente`/`Processo` para partilhar. Decidir como demonstrar este passo de forma significativa sem antecipar esses módulos (ex: criar as entidades mínimas necessárias só para o teste, ou considerar se faz sentido adiar este passo para depois de EP-03/EP-04 existirem — **decisão a validar antes de avançar, não a assumir**).
+- **Integração com o `AuthorizationService`** (Passo 5): a consulta a `Partilha` passa a ser mais uma fonte que o serviço único de autorização verifica (ADR-004 §3.3, ponto 3) — nunca um caminho de acesso paralelo.
+- **Papel Convidado** já existe no `enum Papel` (Passo 5) — atualmente sem nenhuma ação permitida em lado nenhum da matriz; este passo é onde ganha a sua única via de acesso (via `Partilha`, nunca diretamente).
+- Seguir a mesma disciplina de governação já aplicada nos Passos 2-6: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
 
-Ao terminar, demonstrar o Registo de Auditoria a gravar em toda ação de escrita (Definition of Done do M1 — o último requisito em falta) antes de propor o Passo 7.
+**Antes de começar:** validar com a Fundadora/CEO se o M1 já está "concluído" (o DoD literal do Blueprint §2.2 está tecnicamente completo desde o Passo 6) ou se o Passo 7 é condição para encerrar o M1 — ver nota na secção 3.

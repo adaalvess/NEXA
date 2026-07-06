@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { FundacaoModule } from './modules/fundacao/fundacao.module';
@@ -21,10 +20,6 @@ import { FundacaoModule } from './modules/fundacao/fundacao.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Mecanismo de eventos in-process (ADR-002, 3.3) — atrás da interface
-    // nativa do NestJS, consistente com a Substituibilidade Controlada
-    // (System Design Principles, 3.8).
-    EventEmitterModule.forRoot(),
     // Rate limiting de base (Especificação Técnica do Passo 3, 3.2.4) —
     // valores por rota via @Throttle, este é só o limite por defeito global.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
