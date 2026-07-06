@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 1.6 |
+| **Versão** | 1.7 |
 | **Estado** | ✅ Aprovado — vivo, atualizado à medida que o M1 avança |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3, 4 e 5 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3, 4, 5 e 6 |
 | **Última atualização** | 2026-07-06 |
 
 ---
@@ -257,7 +257,7 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 **Especificação técnica detalhada do Passo 5 (RBAC granular):** ver [Especificação Técnica do Passo 5](04-especificacao-tecnica-passo-5-rbac.md) — modelo `RegraPermissao`, serviço único de autorização, definição inequívoca da autoridade para alterar papéis (6 limites explícitos), renovação deslizante de sessão.
 
-**Especificação técnica detalhada do Passo 6 (Registo de Auditoria):** ver [Especificação Técnica do Passo 6](05-especificacao-tecnica-passo-6-auditoria.md) — mecanismo orientado a eventos (`emitAsync`), campo `detalhe` (jsonb), trigger de imutabilidade, role `nexa_auditoria_interna` para a consulta cross-tenant do Super Admin. **Definition of Done do M1 tecnicamente completo a partir deste passo.**
+**Especificação técnica detalhada do Passo 6 (Registo de Auditoria):** ver [Especificação Técnica do Passo 6](05-especificacao-tecnica-passo-6-auditoria.md) — mecanismo orientado a eventos (`emitAsync`), campo `detalhe` (jsonb), trigger de imutabilidade, role `nexa_auditoria_interna` para a consulta cross-tenant do Super Admin. **Definition of Done do M1 tecnicamente completo a partir deste passo — mas decisão formal da Fundadora/CEO (2026-07-06): o M1 permanece formalmente aberto até à conclusão e validação do Passo 7 (Partilha), que é pré-requisito para o encerramento oficial do Milestone (ver Milestones, §2.2, e CLAUDE.md §3).**
 
 ---
 
@@ -323,3 +323,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 1.4 | 2026-07-06 | Passo 4 (Camada 1 — middleware de tenant + RLS + serviço único de autorização, o mais crítico do M1) concluído e aprovado, com Especificação Técnica própria (docs/04-implementation-blueprint/03-especificacao-tecnica-passo-4-camada1-autorizacao.md), incluindo duas correções técnicas identificadas e aprovadas durante a implementação (TenantContextMiddleware em vez de SessionGuard; role de BD `nexa_fundacao` com BYPASSRLS) | CTO (Claude) + Fundadora/CEO |
 | 1.5 | 2026-07-06 | Passo 5 (RBAC granular) concluído e aprovado, com Especificação Técnica própria (docs/04-implementation-blueprint/04-especificacao-tecnica-passo-5-rbac.md), incluindo revisão exigida pela Fundadora/CEO a meio (definição inequívoca de autoridade para alterar papéis, 6 limites L1-L6) e correção de teste retroativa ao Passo 4 (ValidationPipe em falta nos harnesses Jest). `PATCH /utilizadores/:id/papel` marcado implementado na Superfície de API | CTO (Claude) + Fundadora/CEO |
 | 1.6 | 2026-07-06 | Passo 6 (Registo de Auditoria) concluído e aprovado, com Especificação Técnica própria (docs/04-implementation-blueprint/05-especificacao-tecnica-passo-6-auditoria.md) — mecanismo orientado a eventos com `emitAsync`, campo `detalhe`, trigger de imutabilidade, role `nexa_auditoria_interna`. `GET /auditoria` marcado implementado. **Definition of Done do M1 (§2.2) tecnicamente completo** | CTO (Claude) + Fundadora/CEO |
+| 1.7 | 2026-07-06 | **Passo 6 formalmente aprovado pela Fundadora/CEO.** Resolvida a questão em aberto sobre o encerramento do M1: decisão explícita de que o Passo 7 (Partilha) é pré-requisito para o encerramento formal do Milestone, apesar do DoD literal (§2.2) já estar tecnicamente cumprido — atualizada a referência ao Passo 6 em §4 para refletir esta decisão | CTO (Claude) + Fundadora/CEO |

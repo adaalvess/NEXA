@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**Estamos no M1 (Fundação) — Passo 6 concluído e aprovado. Definition of Done do M1 tecnicamente completo — ver nota abaixo. Passo 7 por iniciar.**
+**Estamos no M1 (Fundação) — Passo 6 concluído e aprovado. Definition of Done do M1 tecnicamente completo, mas o Milestone permanece formalmente aberto até à conclusão do Passo 7 — decisão da Fundadora/CEO, ver nota abaixo. Passo 7 por iniciar.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -43,7 +43,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 **Definition of Done do M1** (Blueprint, secção 2.2): registo/login funcionais ✅; isolamento multi-tenant verificado por teste ✅; todos os 5 papéis RBAC atribuíveis e a restringir acesso corretamente ✅; Registo de Auditoria a gravar em toda ação de escrita ✅.
 
-**Nota a validar com a Fundadora/CEO:** o texto literal do DoD do M1 (Blueprint §2.2) está agora tecnicamente completo, e não menciona Partilha — mas o Passo 7 (Partilha/Convidado) continua listado como conteúdo do M1 no próprio Blueprint (§3, Milestones). Não decidido unilateralmente se o M1 só fica "concluído" depois do Passo 7, ou se o DoD já é suficiente e o Passo 7 pode ficar para depois — a confirmar antes de declarar o M1 encerrado.
+**Decisão da Fundadora/CEO sobre o encerramento do M1 (2026-07-06):** o texto literal do DoD do M1 (Blueprint §2.2) está tecnicamente cumprido desde o Passo 6, mas o Passo 7 (Partilha/Convidado) continua listado como conteúdo do M1 no próprio Blueprint (§3, Milestones). Decisão formal: **o M1 permanece tecnicamente concluído mas formalmente aberto até à conclusão e validação do Passo 7** — só nesse momento o Milestone é encerrado oficialmente, por consistência com o Blueprint e por disciplina de governação do projeto.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
 
@@ -169,4 +169,6 @@ Construir **Partilha (Convidado)** — FR-35, Data Model Conceptual §3.3 (entid
 - **Papel Convidado** já existe no `enum Papel` (Passo 5) — atualmente sem nenhuma ação permitida em lado nenhum da matriz; este passo é onde ganha a sua única via de acesso (via `Partilha`, nunca diretamente).
 - Seguir a mesma disciplina de governação já aplicada nos Passos 2-6: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
 
-**Antes de começar:** validar com a Fundadora/CEO se o M1 já está "concluído" (o DoD literal do Blueprint §2.2 está tecnicamente completo desde o Passo 6) ou se o Passo 7 é condição para encerrar o M1 — ver nota na secção 3.
+**Resolvido (2026-07-06):** a Fundadora/CEO confirmou que o Passo 7 é condição para o encerramento formal do M1 — ver decisão na secção 3.
+
+**Antes de começar a implementação:** ainda por decidir com a Fundadora/CEO — como demonstrar este passo de forma significativa sem módulos de negócio (Processos, CRM) ainda existentes: criar entidades mínimas só para o teste, ou adiar o Passo 7 para depois de EP-03/EP-04 existirem. Esta decisão de âmbito deve ser validada antes da Especificação Técnica, seguindo a mesma disciplina dos Passos 5 e 6.
