@@ -64,6 +64,12 @@ O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettie
 - **Rate limiting conservador aplicado** (`@nestjs/throttler`, 10/min login, 5/min registo) — valores provisórios, a rever no ADR-007 (já registado como questão em aberto nesse ADR).
 - Todos os testes funcionais e de segurança da especificação (T1-T10, S1-S4) passaram — detalhe em §3.5 do documento da especificação.
 
+### 3.3 Controlo de Versões — Git Inicializado (2026-07-06)
+
+Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1), identifiquei que este repositório nunca teve git — um plano de rollback sem controlo de versões é descritivo, não executável. Aprovado pela Fundadora/CEO: repositório git local inicializado, **sem remoto associado, sem push** — fica só local nesta fase. `.gitignore` revisto e reforçado (segredos, credenciais, bases de dados locais, `.claude/` excluído por ser configuração de ferramenta, não estado do projeto). Commit inicial `8f047cb` — `chore: baseline approved - implementation steps 0-3` — captura o estado aprovado dos Passos 0-3 (74 ficheiros). Árvore de trabalho confirmada limpa, sem remotes configurados. Detalhe completo em [Especificação Técnica do Passo 4](docs/04-implementation-blueprint/03-especificacao-tecnica-passo-4-camada1-autorizacao.md), §3.8.
+
+**A partir de agora, todo commit segue Conventional Commits** (regra não-negociável #23, já fixada), e cada passo aprovado deve corresponder a um commit — para que o plano de rollback de qualquer passo futuro seja sempre `git revert`/`git reset` executável, nunca apenas descritivo.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar

@@ -4,8 +4,8 @@
 |---|---|
 | **Documento** | Especificação Técnica do Passo 4 — Camada 1 (Middleware de Tenant + Serviço Único de Autorização) |
 | **Fase** | 7 — Desenvolvimento da Plataforma, M1 (Fundação), Passo 4 — **o mais crítico de todo o M1** |
-| **Versão** | 1.0 |
-| **Estado** | 🕓 Aguarda aprovação formal da Fundadora/CEO |
+| **Versão** | 1.1 |
+| **Estado** | 🕓 Especificação aguarda aprovação; pré-requisito de rollback (git) já cumprido |
 | **Owner** | CTO / Arquiteto Principal |
 | **Documentos de referência** | ADR-001 (Multi-Tenancy) · ADR-003 (Base de Dados e ORM) · ADR-004 (Autenticação, Sessão, Autorização) · System Design Principles v1.6 (3.2, 3.6, 3.8) · Security & Access Principles v1.1 (3.1-3.3, 3.9) · Coding Standards v1.0 (3.3, 3.4) · Especificação Técnica do Passo 3 (Autenticação) · Blueprint de Implementação do MVP v1.3 |
 | **Última atualização** | 2026-07-06 |
@@ -180,7 +180,7 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 
 **Código:** aqui identifico uma lacuna que afeta a qualidade de qualquer plano de rollback deste ponto em diante — **este repositório não tem controlo de versões (git)**. Sem histórico de commits, reverter código significa restaurar manualmente ficheiros a partir de cópias, um processo frágil e sujeito a erro humano, incompatível com o rigor de rollback que este passo (o mais crítico do M1) exige.
 
-> **Decisão a validar antes de avançar (não decidida unilateralmente, consistente com a tua instrução de identificar decisões emergentes antes de implementar):** recomendo inicializar um repositório git local **antes** de iniciar a implementação deste passo, com um commit inicial que capture o estado atual (Passos 0-3, aprovados), para que este e todos os passos seguintes tenham um plano de rollback real (`git revert`/`git reset` a um commit conhecido), em vez de um plano apenas descritivo. Não commito nem inicializo nada sem a tua aprovação explícita — ver Questão em Aberto 1.
+> **Resolvido — aprovado pela Fundadora/CEO.** Repositório git local inicializado (sem remoto associado, sem push). `.gitignore` revisto e reforçado (segredos, credenciais, bases de dados locais, `.claude/` como configuração de ferramenta, não estado do projeto). Commit inicial `8f047cb` — `chore: baseline approved - implementation steps 0-3` — 74 ficheiros, árvore de trabalho confirmada limpa (`git status` → "nothing to commit, working tree clean") e sem remotes configurados (`git remote -v` → vazio). **A partir de agora, o plano de rollback deste e de todos os passos seguintes é executável** (`git revert`/`git reset --hard 8f047cb`), não apenas descritivo.
 
 ---
 
@@ -194,7 +194,7 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 | D4 | `AuthService` mantém-se no `PrismaService` bruto (não migra para `TenantPrismaService`) | A verificação de email global do registo e a resolução de sessão acontecem antes de existir `TenantContext` — consistente com a exceção já documentada no Passo 3 e com o reconhecimento da Fundação como camada transversal (System Design Principles, 3.2, D3) |
 | D5 | `nexa_app` como novo role de BD dedicado, sem privilégio de DDL nem ownership | Least Privilege (Security & Access Principles, 3.9) — a aplicação nunca precisa de alterar schema em runtime |
 | D6 | Base de dados de teste dedicada (`nexa_test`) para os testes automatizados deste passo | Evita misturar dados de teste automatizado com dados de exploração manual em `nexa_dev`; primeiro passo do M1 com cobertura automatizada real de um dos 4 fluxos críticos (NFR-17) |
-| D7 | Recomendação de inicializar git antes deste passo, não decidida unilateralmente | Um plano de rollback sem controlo de versões é descritivo, não executável — identificado como lacuna real ao preparar este documento, registado como questão a validar, não implementado sem aprovação |
+| D7 | Recomendação de inicializar git antes deste passo, não decidida unilateralmente — **aprovada pela Fundadora/CEO e executada** (commit `8f047cb`) | Um plano de rollback sem controlo de versões é descritivo, não executável — identificado como lacuna real ao preparar este documento; resolvido antes de qualquer implementação deste passo, conforme exigido |
 
 ---
 
@@ -202,7 +202,7 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 
 | # | Questão | Impacto | Responsável pela decisão |
 |---|---|---|---|
-| 1 | Inicializar git antes de avançar com o Passo 4? (D7/3.8) | Determina se o plano de rollback deste e dos próximos passos é executável ou apenas descritivo | Fundadora/CEO |
+| 1 | ~~Inicializar git antes de avançar com o Passo 4?~~ | **Resolvida.** Aprovado pela Fundadora/CEO; git inicializado, commit `8f047cb`, sem remoto — ver 3.8 e D7 | Fundadora/CEO — decidido |
 | 2 | Nome exato da base de dados de teste (`nexa_test` proposto) e se deve ser recriada a cada execução de testes ou persistente | Detalhe operacional, não bloqueia a decisão de arquitetura | CTO, pode decidir ao implementar, sem nova validação formal |
 | 3 | Overhead real de performance da abordagem `$transaction` por operação | Já registado como Q3 do ADR-003 (Fase 8) — não é novo, só reafirmado aqui | CTO, com testes de carga reais |
 
@@ -213,3 +213,4 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 | Versão | Data | Alteração | Autor |
 |---|---|---|---|
 | 1.0 | 2026-07-06 | Criação da especificação técnica do Passo 4, a pedido explícito da Fundadora/CEO antes de qualquer implementação: delimitação de responsabilidades entre Autenticação/Camada 1/RBAC/RLS/Auditoria (sem duplicação), arquitetura completa (TenantContext, TenantPrismaService, ativação de RLS com role dedicado), dependências, impacto arquitetural (nenhum novo ADR necessário), critérios de aceitação/Exit Criteria, estratégia de testes (primeira cobertura automatizada de um fluxo crítico, NFR-17), riscos, e plano de rollback (identificando a ausência de git como lacuna a validar) | CTO / Arquiteto Principal (Claude) |
+| 1.1 | 2026-07-06 | **Pré-requisito de rollback resolvido.** Fundadora/CEO aprovou a inicialização de git local (sem remoto); `.gitignore` reforçado e revisto; commit inicial `8f047cb` ("chore: baseline approved - implementation steps 0-3", 74 ficheiros) criado; árvore de trabalho confirmada limpa. Questão em Aberto 1 e Decisão D7 atualizadas para refletir a resolução. A especificação em si (arquitetura, critérios, testes) permanece por aprovar antes de iniciar a implementação | CTO (Claude) + Fundadora/CEO |
