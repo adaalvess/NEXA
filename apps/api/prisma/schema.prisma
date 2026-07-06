@@ -1,0 +1,310 @@
+// NEXA — Schema Prisma
+//
+// Fonte: Blueprint de Implementação do MVP, secção 3 (schema inicial), refinado
+// mantendo rastreabilidade explícita com:
+//   - ADR-001 (Multi-Tenancy e Isolamento de Dados)
+//   - ADR-003 (Base de Dados e ORM)
+//   - ADR-004 (Autenticação, Sessão e Autorização)
+//   - Data Model Conceptual v1.1
+//   - Data & Consistency Rules v1.1
+//
+// NOTA DE DEPENDÊNCIA EXPLÍCITA — Row-Level Security (Camada 2, ADR-001 3.3):
+// Este schema prepara a estrutura para RLS (tenant_id em toda a tabela de negócio,
+// indexado) mas NÃO ativa políticas RLS nesta migração. RLS só é uma segunda camada
+// real (não meramente simbólica) quando a aplicação se liga com um utilizador de
+// base de dados dedicado, não-owner/não-superuser — por defeito, o Postgres não
+// aplica RLS ao dono da tabela — e quando o middleware de tenant (Camada 1) injeta
+// a variável de sessão tenant_id em cada transação. Ambas as condições só existem a
+// partir do Passo 4 (middleware de tenant + serviço único de autorização). Ativar
+// políticas RLS antes disso daria falsa sensação de segurança. Decisão confirmada
+// explicitamente com a Fundadora/CEO durante o Passo 2 — as políticas RLS
+// (ENABLE ROW LEVEL SECURITY + CREATE POLICY por tabela) ficam para o Passo 4.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// FUNDAÇÃO
+// ============================================================================
+
+/// A Empresa é o Workspace Context — a unidade de isolamento multi-tenant
+/// (ADR-001, Data Model Conceptual 3.1/3.2). Toda a restante informação de
+/// negócio existe dentro de uma Empresa e referencia o seu id como tenant_id.
+model Empresa {
+  id               String   @id @default(cuid())
+  nome             String
+  pais             String
+  setor            String?
+  estadoSubscricao String   @default("trial") // trial | ativa | limitada | cancelada
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  utilizadores      Utilizador[]
+  departamentos     Departamento[]
+  sessoes           Sessao[]
+  processos         Processo[]
+  clientes          Cliente[]
+  interacoes        Interacao[]
+  sugestoesIA       SugestaoIA[]
+  notificacoes      Notificacao[]
+  partilhas         Partilha[]
+  registosAuditoria RegistoAuditoria[]
+  subscricaoPlano   SubscricaoPlano?
+}
+
+model Utilizador {
+  id             String        @id @default(cuid())
+  empresaId      String
+  empresa        Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  nome           String
+  email          String
+  passwordHash   String // Argon2id (ADR-004, 3.4) — nunca texto plano, nunca bcrypt
+  papel          String // super_admin | admin_empresa | gestor | colaborador | convidado
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId, empresaId], references: [id, empresaId])
+
+  // Soft-delete por defeito (Data & Consistency Rules, 3.4) — null = ativo
+  eliminadoEm DateTime?
+
+  // Metadados de auditoria resumida por entidade (Data & Consistency Rules, 3.7)
+  // — resumo rápido; o histórico completo e imutável vive em RegistoAuditoria.
+  criadoPor     String?
+  atualizadoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessoes              Sessao[]
+  processosResponsavel Processo[]    @relation("ProcessoResponsavel")
+  clientesOwner        Cliente[]     @relation("ClienteOwner")
+  sugestoesIA          SugestaoIA[]
+  notificacoes         Notificacao[]
+  partilhasRecebidas   Partilha[]    @relation("PartilhaConvidado")
+  partilhasConcedidas  Partilha[]    @relation("PartilhaConcedidaPor")
+
+  // Unicidade de email com escopo de tenant — o mesmo email pode existir em
+  // Empresas diferentes (Data & Consistency Rules, 3.2), nunca duplicado dentro
+  // da mesma Empresa.
+  @@unique([empresaId, email])
+  // Chave composta que permite às entidades relacionadas (Processo, Cliente, ...)
+  // aplicar constraints de FK com escopo de tenant (ADR-003, 3.3 — Camada 3 de
+  // Defense in Depth: estruturalmente impossível referenciar um Utilizador de
+  // outra Empresa).
+  @@unique([id, empresaId])
+  @@index([empresaId])
+}
+
+/// Sessão do lado do servidor (ADR-004, 3.2) — nunca JWT. Herda o isolamento por
+/// tenant_id (ADR-004, Validação Arquitetural 5): uma sessão nunca é visível a
+/// partir do contexto de outra Empresa.
+model Sessao {
+  id           String     @id @default(cuid())
+  empresaId    String
+  empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  utilizadorId String
+  utilizador   Utilizador @relation(fields: [utilizadorId, empresaId], references: [id, empresaId], onDelete: Cascade)
+  criadaEm     DateTime   @default(now())
+  expiraEm     DateTime // renovação deslizante, 7 dias (ADR-007, 3.5)
+
+  @@index([empresaId])
+  @@index([utilizadorId])
+}
+
+model Departamento {
+  id        String  @id @default(cuid())
+  empresaId String
+  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  nome      String
+
+  eliminadoEm DateTime?
+
+  criadoPor     String?
+  atualizadoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  utilizadores Utilizador[]
+  processos    Processo[]
+
+  @@unique([id, empresaId])
+  @@index([empresaId])
+}
+
+/// Registo de Auditoria — append-only (Data & Consistency Rules, 3.3; regra
+/// não-negociável #9): nunca UPDATE nem DELETE, só INSERT. Entidade transversal
+/// (Data Model Conceptual, 3.3) — relaciona-se com qualquer entidade
+/// referenciável via (entidade, entidadeId), por isso não tem FK direta à
+/// entidade referenciada (o alvo varia por tipo).
+model RegistoAuditoria {
+  id         String   @id @default(cuid())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  ator       String // utilizadorId ou "ia"
+  acao       String
+  entidade   String
+  entidadeId String
+  timestamp  DateTime @default(now())
+
+  @@index([empresaId, timestamp])
+}
+
+/// Concessão explícita de acesso a uma entidade específica a um Utilizador com
+/// papel Convidado (Data Model Conceptual, 3.3). entidadeId é polimórfico
+/// (aponta para Cliente ou Processo conforme entidadeTipo) — sem FK direta pela
+/// mesma razão estrutural do Registo de Auditoria; a validação de que
+/// entidadeId pertence à mesma Empresa é responsabilidade da camada de acesso a
+/// dados única (Camada 1).
+model Partilha {
+  id             String     @id @default(cuid())
+  empresaId      String
+  empresa        Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  entidadeTipo   String // "cliente" | "processo"
+  entidadeId     String
+  convidadoId    String
+  convidado      Utilizador @relation("PartilhaConvidado", fields: [convidadoId, empresaId], references: [id, empresaId], onDelete: Cascade)
+  concedidoPorId String
+  concedidoPor   Utilizador @relation("PartilhaConcedidaPor", fields: [concedidoPorId, empresaId], references: [id, empresaId])
+  createdAt      DateTime   @default(now())
+
+  @@index([empresaId, entidadeTipo, entidadeId])
+}
+
+// ============================================================================
+// PROCESSOS E TAREFAS
+// ============================================================================
+
+model Processo {
+  id             String        @id @default(cuid())
+  empresaId      String
+  empresa        Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  titulo         String
+  responsavelId  String
+  responsavel    Utilizador    @relation("ProcessoResponsavel", fields: [responsavelId, empresaId], references: [id, empresaId])
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId, empresaId], references: [id, empresaId])
+  clienteId      String?
+  cliente        Cliente?      @relation(fields: [clienteId, empresaId], references: [id, empresaId])
+  estado         String        @default("por_fazer") // por_fazer | em_curso | concluida
+  prazo          DateTime?
+
+  eliminadoEm DateTime?
+
+  criadoPor     String?
+  atualizadoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([id, empresaId])
+  @@index([empresaId])
+}
+
+// ============================================================================
+// CRM
+// ============================================================================
+
+model Cliente {
+  id                 String     @id @default(cuid())
+  empresaId          String
+  empresa            Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  nome               String
+  tipo               String // empresa_cliente | contacto_individual
+  ownerId            String
+  owner              Utilizador @relation("ClienteOwner", fields: [ownerId, empresaId], references: [id, empresaId])
+  estadoOportunidade String?
+
+  eliminadoEm DateTime?
+
+  criadoPor     String?
+  atualizadoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  interacoes Interacao[]
+  processos  Processo[]
+
+  @@unique([id, empresaId])
+  @@index([empresaId])
+}
+
+model Interacao {
+  id        String   @id @default(cuid())
+  empresaId String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId, empresaId], references: [id, empresaId], onDelete: Cascade)
+  tipo      String // chamada | reuniao | nota | outro
+  data      DateTime @default(now())
+
+  criadoPor     String?
+  atualizadoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([empresaId, clienteId])
+}
+
+// ============================================================================
+// ASSISTENTE DE IA
+// ============================================================================
+
+/// Sugestão/Conversa de IA (Data Model Conceptual, 3.2). Estado nunca inclui
+/// "executada automaticamente" — a IA nunca executa uma ação sem confirmação
+/// humana explícita (regra não-negociável #16, ADR-005). entidadeRef é
+/// polimórfico pela mesma razão estrutural de Partilha.entidadeId.
+model SugestaoIA {
+  id              String     @id @default(cuid())
+  empresaId       String
+  empresa         Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  utilizadorId    String
+  utilizador      Utilizador @relation(fields: [utilizadorId, empresaId], references: [id, empresaId], onDelete: Cascade)
+  tipo            String // pergunta | sugestao_acao
+  entidadeRef     String?
+  estado          String     @default("pendente") // pendente | aceite | rejeitada
+  fornecedorUsado String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([empresaId])
+}
+
+// ============================================================================
+// DASHBOARD / TRANSVERSAL
+// ============================================================================
+
+model Notificacao {
+  id               String     @id @default(cuid())
+  empresaId        String
+  empresa          Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  destinatarioId   String
+  destinatario     Utilizador @relation(fields: [destinatarioId, empresaId], references: [id, empresaId], onDelete: Cascade)
+  tipoEvento       String
+  entidadeOrigemId String
+  lida             Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+
+  @@index([empresaId, destinatarioId])
+}
+
+// ============================================================================
+// COMERCIAL
+// ============================================================================
+
+model SubscricaoPlano {
+  id                    String   @id @default(cuid())
+  empresaId             String   @unique
+  empresa               Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  plano                 String // starter | professional | enterprise
+  estado                String   @default("trial")
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  limiteUtilizadores    Int
+  limiteArmazenamentoMb Int
+  limiteUsoIA           Int
+  trialIniciadoEm       DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}

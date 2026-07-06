@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.next/
+*.log
+.env
+.env.local
+.env.*.local
+coverage/
+.DS_Store
+*.tsbuildinfo
+
+# Segredos e credenciais (Coding Standards, 3.6; Security & Access Principles, 3.8)
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*
+*secret*
+
+# Bases de dados locais / dumps (nunca commitar dados de tenants, mesmo de teste)
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.dump
+
+# Editores / IDE
+.vscode/
+.idea/
+
+# Configuração local do Claude Code (sessão/ferramenta, não é estado do projeto)
+.claude/

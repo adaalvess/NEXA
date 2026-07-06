@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark Tech Premium — Brand Book v1.3, secção 3.1 */
+body {
+  @apply bg-nexa-black text-nexa-white font-body;
+}
