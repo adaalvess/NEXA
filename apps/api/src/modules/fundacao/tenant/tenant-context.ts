@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import type { Papel } from '@prisma/client';
 
 /**
  * Contexto de tenant ativo para o pedido em curso (Especificação Técnica do
@@ -9,7 +10,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export interface TenantContextValue {
   utilizadorId: string;
   empresaId: string;
-  papel: string;
+  papel: Papel;
 }
 
 export const tenantContext = new AsyncLocalStorage<TenantContextValue>();

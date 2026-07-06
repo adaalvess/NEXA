@@ -1,10 +1,16 @@
 /** Nome do cookie de sessão (ADR-004, 3.2). */
 export const SESSION_COOKIE_NAME = 'nexa_session';
 
-/** Duração da sessão — renovação deslizante, 7 dias (ADR-007, 3.5).
- * Nota (Especificação Técnica do Passo 3, 3.2.3): a renovação por atividade
- * fica para o Passo 4 — aqui a sessão expira sempre 7 dias após o login. */
+/** Duração da sessão — renovação deslizante, 7 dias (ADR-007, 3.5). */
 export const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Limiar de renovação deslizante (Especificação Técnica do Passo 5, 3.6):
+ * só renova quando faltam menos de 6 dias para `expiraEm` (i.e., já passou
+ * mais de 1 dia desde a última renovação) — evita escrever à BD em todos os
+ * pedidos.
+ */
+export const SESSION_RENEWAL_THRESHOLD_MS = 6 * 24 * 60 * 60 * 1000;
 
 /**
  * Hash de referência fixo, usado para mitigar ataques de temporização

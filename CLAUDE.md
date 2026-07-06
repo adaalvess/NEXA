@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**Estamos no M1 (Fundação) — Passo 4 concluído e aprovado (o mais crítico do M1), Passo 5 por iniciar.**
+**Estamos no M1 (Fundação) — Passo 5 concluído e aprovado, Passo 6 por iniciar.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -37,8 +37,8 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 | Passo 2 | Schema Prisma + primeira migração | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.1 |
 | Passo 3 | Autenticação (registo + login) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.2 |
 | Passo 4 | Camada 1 — middleware de tenant + serviço de autorização único | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.4 |
-| **Passo 5** | **RBAC — papéis e permissões granulares** | 🔜 **Próximo passo** |
-| Passo 6 | Registo de Auditoria (append-only) | Por iniciar |
+| Passo 5 | RBAC — papéis e permissões granulares | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.5 |
+| **Passo 6** | **Registo de Auditoria (append-only)** | 🔜 **Próximo passo** |
 | Passo 7 | Partilha (Convidado) | Por iniciar |
 
 **Definition of Done do M1** (Blueprint, secção 2.2): registo/login funcionais; isolamento multi-tenant verificado por teste; todos os 5 papéis RBAC atribuíveis e a restringir acesso corretamente; Registo de Auditoria a gravar em toda ação de escrita.
@@ -81,6 +81,17 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Renovação deslizante da sessão continua NÃO implementada** — dependência que tinha sido registada para este passo acabou por não ser resolvida ainda; **fica explicitamente para o Passo 5 ou seguinte**, a avaliar quando o hook por pedido for revisitado.
 - Todos os testes (T1-T5, S1-S5, mais a verificação HTTP adicional) passaram — detalhe em §3.10 da especificação.
 - **Verificação final de consistência** (pedida antes do encerramento formal): encontradas e corrigidas 5 divergências reais — cabeçalho stale do `schema.prisma`; `npm run prisma:migrate` silenciosamente quebrado pela troca de `DATABASE_URL` (corrigido com `apps/api/.env.migrate`, git-ignored); comentário desatualizado em `.env`; `fundacao/README.md` desatualizado; 4 menções obsoletas no Master Roadmap ("Passo 3 a decorrer" → "Passo 5 a decorrer"). Detalhe completo em Especificação Técnica do Passo 4, §3.11. **Passo 4 formalmente encerrado.**
+
+### 3.5 Registo de Conclusão — Passo 5 (2026-07-06)
+
+- **Especificação técnica formal aprovada antes da implementação, com uma revisão exigida a meio** — ver [Especificação Técnica do Passo 5](docs/04-implementation-blueprint/04-especificacao-tecnica-passo-5-rbac.md). A Fundadora/CEO rejeitou a primeira versão da decisão sobre "quem pode alterar o papel de um utilizador existente" (assumia equivalência automática com "quem pode convidar") e exigiu definição inequívoca — resultado em §3.4 desse documento: 6 limites explícitos (L1-L6): nunca auto-alteração, nunca escalada de privilégio (hierarquia `admin_empresa > gestor > colaborador > convidado`), Gestor só no seu Departamento (RN-03), nunca `super_admin` (RN-04), nunca zero admins (RN-01), isolamento de tenant sempre estrutural (Camada 1).
+- **3 decisões de âmbito validadas antes da especificação:** Super Admin só estrutural (sem bypass cross-tenant, fica para o Passo 6); UC-02 (convite por email) fora de âmbito (sem fornecedor de email decidido); nova entidade `RegraPermissao` aprovada.
+- **`RegraPermissao`** (novo modelo Prisma, tenant-scoped, RLS ativa) — override explícito por Empresa sobre uma `DEFAULT_PERMISSION_MATRIX` em configuração de código (nunca hardcoding disperso). `Utilizador.papel` passou de `String` para `enum Papel` (ajuste de tipo, Blueprint D4).
+- **`AuthorizationService`** (serviço único, ADR-004 §3.3) + `PermissaoGuard`/`@RequirePermissao` — nenhum controlador verifica permissões diretamente.
+- **`PATCH /utilizadores/:id/papel`** implementado — único endpoint de negócio deste passo, suficiente para demonstrar o DoD do M1 ("5 papéis atribuíveis e a restringir acesso corretamente") sem depender de email/limites de plano.
+- **Renovação deslizante da sessão** (pendente desde o Passo 4) implementada no `TenantContextMiddleware` — só escreve à BD quando `expiraEm` está a menos de 6 dias, evitando escrita em todos os pedidos.
+- **Correção encontrada durante os testes (não arquitetural):** os testes Jest deste passo e do Passo 4 nunca tinham o `ValidationPipe` do `main.ts` real — nenhum DTO era de facto validado nesses testes. Revelado pelo teste que tentava atribuir `super_admin` (devolvia `200` em vez de `400`). Corrigido em ambos os ficheiros de teste.
+- Todos os testes (19/19: T1-T13 deste passo + regressão completa do Passo 4) passaram, mais demonstração manual contra `nexa_dev` — detalhe em §3.11 da especificação.
 
 ---
 
@@ -133,15 +144,15 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 5
+## 6. Próxima Ação Imediata — Passo 6
 
-Construir o **RBAC granular** — papéis e permissões, consistente com o Vision Document (RBAC), Functional Specifications §3.1 (Matriz de Permissões — Fundação) e Security & Access Principles §3.1/3.3/3.4. Este é o passo onde o modelo de permissões granulares por Empresa é finalmente decidido — deliberadamente adiado até aqui (método de trabalho, §5).
+Construir o **Registo de Auditoria** (append-only) — consistente com FR-07, Data & Consistency Rules §3.3 ("nunca UPDATE nem DELETE") e Security & Access Principles §3.7 (toda verificação de autorização, incluindo negações, é auditável).
 
-- Consultar o `TenantContext` já estabelecido no Passo 4 (`utilizadorId`, `empresaId`, `papel`) — não reimplementar a resolução de sessão/tenant, que já existe.
-- Implementar o **serviço único de autorização** que o ADR-004 (3.3) já antecipa na íntegra: resolve sessão (feito), carrega papel + regras granulares da Empresa (a decidir/construir agora), consulta `Partilha` quando aplicável (ainda não existe — Passo 7, tratar como "sem partilhas" por agora), aplica negação por defeito.
-- **Nenhum controlador deve verificar permissões diretamente** (regra não-negociável #13) — todos consultam este serviço único.
-- **Não antecipar Registo de Auditoria** (Passo 6) nem Partilha (Passo 7).
-- Pendente do Passo 4 e ainda por resolver: renovação deslizante da sessão (extensão de `expiraEm` por atividade) — decidir se entra neste passo ou fica para depois, sem bloquear o RBAC.
-- Seguir a mesma disciplina de governação já aplicada nos Passos 2-4: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
+- O modelo `RegistoAuditoria` já existe desde o Passo 2 (`empresaId`, `ator`, `acao`, `entidade`, `entidadeId`, `timestamp`) — sem escritas ainda. Este passo constrói o mecanismo que grava, não o schema.
+- **Imutabilidade a reforçar ao nível da BD** (não só por convenção): considerar trigger/regra Postgres que rejeite `UPDATE`/`DELETE` nesta tabela mesmo por engano de aplicação — avaliado e conscientemente adiado nos Passos 2-4 por não ser ainda necessário; agora que a tabela vai começar a ter escrita real, decidir se este é o momento de o implementar.
+- **Retroativo:** as ações já escritas nos Passos 3-5 (registo, login, atribuição de papel) não têm auditoria — decidir se o Passo 6 deve instrumentar essas ações já existentes (retroativamente) ou só as daqui em diante.
+- **É agora que o Super Admin ganha a sua capacidade cross-tenant estrutural** (deixada deliberadamente de fora no Passo 5, Especificação Técnica desse passo, 2.1.A) — consultar Registo de Auditoria "interno" (todas as Empresas). Decidir e especificar este mecanismo com o mesmo rigor já aplicado às exceções transversais anteriores (`nexa_fundacao`, Passo 4).
+- **Não antecipar Partilha** (Passo 7).
+- Seguir a mesma disciplina de governação já aplicada nos Passos 2-5: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
 
-Ao terminar, demonstrar os 5 papéis RBAC atribuíveis e a restringir acesso corretamente (Definition of Done do M1) antes de propor o Passo 6.
+Ao terminar, demonstrar o Registo de Auditoria a gravar em toda ação de escrita (Definition of Done do M1 — o último requisito em falta) antes de propor o Passo 7.

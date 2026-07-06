@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
-import { SESSION_COOKIE_NAME } from '../auth/auth.constants';
+import { SESSION_COOKIE_NAME, SESSION_DURATION_MS, SESSION_RENEWAL_THRESHOLD_MS } from '../auth/auth.constants';
 import { tenantContext, TenantContextValue } from './tenant-context';
 
 /**
@@ -33,6 +33,17 @@ export class TenantContextMiddleware implements NestMiddleware {
     if (!sessao || sessao.expiraEm.getTime() < Date.now()) {
       next();
       return;
+    }
+
+    // Renovação deslizante (ADR-007, 3.5; pendente desde o Passo 4, resolvida
+    // na Especificação Técnica do Passo 5, 3.6) — só escreve à BD quando já
+    // passou mais de 1 dia desde a última renovação (expiraEm a menos de 6
+    // dias), evitando uma escrita em todos os pedidos.
+    if (sessao.expiraEm.getTime() - Date.now() < SESSION_RENEWAL_THRESHOLD_MS) {
+      await this.prisma.sessao.update({
+        where: { id: sessao.id },
+        data: { expiraEm: new Date(Date.now() + SESSION_DURATION_MS) },
+      });
     }
 
     const utilizador = await this.prisma.utilizador.findFirst({

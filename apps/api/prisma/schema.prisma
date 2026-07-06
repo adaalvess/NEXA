@@ -56,7 +56,22 @@ model Empresa {
   notificacoes      Notificacao[]
   partilhas         Partilha[]
   registosAuditoria RegistoAuditoria[]
+  regrasPermissao   RegraPermissao[]
   subscricaoPlano   SubscricaoPlano?
+}
+
+/// Papel RBAC predefinido (Vision Document, RBAC; Passo 5) — enum, não String
+/// (Blueprint D4, ajuste de tipo): reforça a fronteira única de validação ao
+/// nível da própria base de dados. `super_admin` nunca é atribuível através de
+/// nenhum fluxo de uma Empresa cliente (RN-04, UC-02) — só estrutural neste
+/// passo, sem lógica de bypass cross-tenant (Especificação Técnica do Passo 5,
+/// 2.1.A) — essa lógica fica para o Passo 6 (Registo de Auditoria).
+enum Papel {
+  super_admin
+  admin_empresa
+  gestor
+  colaborador
+  convidado
 }
 
 model Utilizador {
@@ -66,7 +81,7 @@ model Utilizador {
   nome           String
   email          String
   passwordHash   String // Argon2id (ADR-004, 3.4) — nunca texto plano, nunca bcrypt
-  papel          String // super_admin | admin_empresa | gestor | colaborador | convidado
+  papel          Papel
   departamentoId String?
   departamento   Departamento? @relation(fields: [departamentoId, empresaId], references: [id, empresaId])
 
@@ -173,6 +188,31 @@ model Partilha {
   createdAt      DateTime   @default(now())
 
   @@index([empresaId, entidadeTipo, entidadeId])
+}
+
+/// Regras de permissão granulares por Empresa (FR-04; Data Model Conceptual,
+/// 3.2, "Papel e Regras de Permissão"; Especificação Técnica do Passo 5, 3.2).
+/// Override explícito sobre a matriz de papéis predefinida (configuração de
+/// código, System Design Principles 3.5): a ausência de linha para
+/// (papel, modulo, acao) usa o default do papel; a presença de uma linha
+/// sobrepõe-se sempre, em qualquer sentido (concede ou revoga).
+model RegraPermissao {
+  id        String  @id @default(cuid())
+  empresaId String
+  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  papel     Papel // nunca super_admin — validado na fronteira única (RN-04)
+  modulo    String // "fundacao" | "dashboard" | "processos" | "crm" | "ia" | "comercial"
+  acao      String // vocabulário próprio por módulo
+
+  permitido Boolean
+
+  criadoPor     String?
+  atualizadoPor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([empresaId, papel, modulo, acao])
+  @@index([empresaId])
 }
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import { Controller, Get, INestApplication, UseGuards } from '@nestjs/common';
+import { Controller, Get, INestApplication, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import cookieParser from 'cookie-parser';
@@ -44,6 +44,10 @@ describe('Propagação do TenantContext via pedido HTTP real', () => {
 
     app = moduleRef.createNestApplication();
     app.use(cookieParser());
+    // Fidelidade ao main.ts real (ver Especificação Técnica do Passo 5, correção
+    // encontrada ao escrever os testes desse passo — este ficheiro nunca
+    // exercitou input inválido, por isso a lacuna não tinha sido revelada aqui).
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
 
     adminClient = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_ADMIN_URL } } });

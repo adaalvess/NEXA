@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 1.4 |
+| **Versão** | 1.5 |
 | **Estado** | ✅ Aprovado — vivo, atualizado à medida que o M1 avança |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 e 4 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3, 4 e 5 |
 | **Última atualização** | 2026-07-06 |
 
 ---
@@ -236,7 +236,7 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 | Fundação | POST | `/auth/registar` | UC-01 — ✅ Implementado (Passo 3) |
 | Fundação | POST | `/auth/login` | ADR-004 — ✅ Implementado (Passo 3) |
 | Fundação | POST | `/empresas/:id/utilizadores/convidar` | UC-02, FR-02/03 |
-| Fundação | PATCH | `/utilizadores/:id/papel` | FR-03/04 |
+| Fundação | PATCH | `/utilizadores/:id/papel` | FR-03/04 — ✅ Implementado (Passo 5) |
 | Fundação | POST | `/empresas/:id/departamentos` | FR-05 |
 | Fundação | GET | `/auditoria` | FR-07 |
 | Dashboard | GET | `/dashboard` | FR-11/12 |
@@ -252,6 +252,10 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 | Comercial | POST | `/webhooks/stripe` *(sem sessão — verificado por assinatura)* | ADR-008, 3.4 |
 
 **Especificação técnica detalhada do Passo 3 (Autenticação):** ver [Especificação Técnica do Passo 3](02-especificacao-tecnica-passo-3-autenticacao.md) — fluxo completo, arquitetura de segurança, e evidências de validação (T1-T10, S1-S4). O módulo real está implementado em `apps/api/src/modules/fundacao/`, incluindo um endpoint adicional de verificação técnica (`GET /auth/eu`, não listado acima por não pertencer à superfície mínima do produto — ver Questão 4 desse documento).
+
+**Especificação técnica detalhada do Passo 4 (Camada 1):** ver [Especificação Técnica do Passo 4](03-especificacao-tecnica-passo-4-camada1-autorizacao.md) — middleware de tenant, `TenantPrismaService`, ativação de RLS, três roles de BD.
+
+**Especificação técnica detalhada do Passo 5 (RBAC granular):** ver [Especificação Técnica do Passo 5](04-especificacao-tecnica-passo-5-rbac.md) — modelo `RegraPermissao`, serviço único de autorização, definição inequívoca da autoridade para alterar papéis (6 limites explícitos), renovação deslizante de sessão.
 
 ---
 
@@ -315,3 +319,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 1.2 | 2026-07-06 | **Passo 2 aprovado pela Fundadora/CEO.** Implementação validada, incluindo verificação empírica do isolamento multi-tenant por constraint de chave estrangeira | Fundadora/CEO |
 | 1.3 | 2026-07-06 | Passo 3 (Autenticação) marcado como implementado na Superfície de API (§4), com referência à nova Especificação Técnica do Passo 3 (documento próprio, aprovado formalmente antes da implementação); adicionada a decisão D9 | CTO (Claude) + Fundadora/CEO |
 | 1.4 | 2026-07-06 | Passo 4 (Camada 1 — middleware de tenant + RLS + serviço único de autorização, o mais crítico do M1) concluído e aprovado, com Especificação Técnica própria (docs/04-implementation-blueprint/03-especificacao-tecnica-passo-4-camada1-autorizacao.md), incluindo duas correções técnicas identificadas e aprovadas durante a implementação (TenantContextMiddleware em vez de SessionGuard; role de BD `nexa_fundacao` com BYPASSRLS) | CTO (Claude) + Fundadora/CEO |
+| 1.5 | 2026-07-06 | Passo 5 (RBAC granular) concluído e aprovado, com Especificação Técnica própria (docs/04-implementation-blueprint/04-especificacao-tecnica-passo-5-rbac.md), incluindo revisão exigida pela Fundadora/CEO a meio (definição inequívoca de autoridade para alterar papéis, 6 limites L1-L6) e correção de teste retroativa ao Passo 4 (ValidationPipe em falta nos harnesses Jest). `PATCH /utilizadores/:id/papel` marcado implementado na Superfície de API | CTO (Claude) + Fundadora/CEO |
