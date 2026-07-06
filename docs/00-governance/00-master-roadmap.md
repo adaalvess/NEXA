@@ -4,7 +4,7 @@
 |---|---|
 | **Documento** | Resumo Executivo e Roadmap (Master Roadmap) |
 | **Fase** | Transversal — documento de acompanhamento permanente do projeto |
-| **Versão** | 2.0 |
+| **Versão** | 2.1 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | Fundadora / CEO |
 | **Documentos de referência** | Todos os documentos produzidos até à data (38 documentos) |
@@ -29,7 +29,7 @@ A NEXA está, à data deste documento, em fase 100% de documentação — nenhum
 
 ### 3.1 Estado Atual do Projeto
 
-> **A NEXA concluiu toda a Fase 3 (3a Engineering Principles, 3b ADRs de Tecnologia — 8 aprovados, 3c Coding Standards, 3d AI Principles). As Fases 4 (Planeamento), 5 (Arquitetura Técnica Detalhada) e 6 (UI/UX) foram compactadas num único documento — o Blueprint de Implementação do MVP (decisão D1 desse documento) — que cobre parcialmente os seus Exit Criteria originais (ver 3.2a). Dentro da Fase 7 (Desenvolvimento da Plataforma), **o Milestone M1 (Fundação) do Blueprint está formalmente concluído (2026-07-06)** — Passos 0-7 implementados, validados e aprovados. **O Milestone M2 (Módulos Core — Dashboard, Processos, CRM) está aprovado e em curso**, com o Passo 8 (Departamento) já concluído e formalmente aprovado.**
+> **A NEXA concluiu toda a Fase 3 (3a Engineering Principles, 3b ADRs de Tecnologia — 8 aprovados, 3c Coding Standards, 3d AI Principles). As Fases 4 (Planeamento), 5 (Arquitetura Técnica Detalhada) e 6 (UI/UX) foram compactadas num único documento — o Blueprint de Implementação do MVP (decisão D1 desse documento) — que cobre parcialmente os seus Exit Criteria originais (ver 3.2a). Dentro da Fase 7 (Desenvolvimento da Plataforma), **o Milestone M1 (Fundação) do Blueprint está formalmente concluído (2026-07-06)** — Passos 0-7 implementados, validados e aprovados. **O Milestone M2 (Módulos Core — Dashboard, Processos, CRM) está aprovado e em curso**, com o Passo 8 (Departamento) e o Passo 9 (Processos/Tarefas — primeiro módulo de negócio fora da Fundação) já concluídos e formalmente aprovados.**
 
 Tecnologia escolhida e documentada nos 8 ADRs (PostgreSQL/Prisma, NestJS, Next.js, sessões server-side, AI Gateway multi-fornecedor, Stripe). Código já existe (scaffolding do monorepo + schema de base de dados real e migrado) — a afirmação anterior desta secção ("nenhum código foi escrito") ficou desatualizada e foi corrigida nesta revisão.
 
@@ -46,7 +46,7 @@ Tecnologia escolhida e documentada nos 8 ADRs (PostgreSQL/Prisma, NestJS, Next.j
 | 4 | Planeamento (Épicos, Features, Milestones, Sprints, Release Strategy, Risk Register, Technical Debt Register) | 🔶 Parcialmente coberta — Épicos/Milestones/DoD no Blueprint (D1); Sprints, Release Strategy, Risk Register e Technical Debt Register formais ainda não produzidos |
 | 5 | Arquitetura Técnica Detalhada (esquema de base de dados real, especificação de API, Design System de componentes) | 🔶 Parcialmente coberta — esquema real já implementado e migrado (Blueprint §3a); superfície de API mínima definida; Design System só como inventário de componentes, sem especificação visual ao detalhe |
 | 6 | UI/UX Design (protótipos, ecrãs) | 🔶 Parcialmente coberta — só inventário de ecrãs por prioridade (Blueprint §5.2); nenhum protótipo real produzido |
-| 7 | Desenvolvimento da Plataforma (código) | 🔄 Em curso — M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) em curso, Passo 8 (Departamento) concluído |
+| 7 | Desenvolvimento da Plataforma (código) | 🔄 Em curso — M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) em curso, Passos 8-9 concluídos |
 | 8 | Testes e Garantia de Qualidade (funcional, integração, performance, segurança, aceitação) | ⬜ Por iniciar |
 | 9 | Preparação para Produção (infraestrutura, observabilidade, monitorização, backups, continuidade, CI/CD) | ⬜ Por iniciar |
 | 10 | Lançamento e Evolução Contínua (piloto → lançamento público → Arcos 2-4 do Product Roadmap) | ⬜ Por iniciar — fase contínua, sem estado final |
@@ -68,7 +68,7 @@ Cada fase só é considerada concluída quando os seus critérios objetivos est�
 | 4 — Planeamento | 🔶 **Parcial** — Épicos e Milestones mapeados no Blueprint, com Definition of Done por Milestone; Sprints, Release Strategy, Risk Register e Technical Debt Register formais **ainda não produzidos**. Decisão deliberada (Blueprint D1) de compactar em vez de produzir os 3 documentos completos — o desenvolvimento avançou sobre esta base parcial, não bloqueou por causa dela |
 | 5 — Arquitetura Técnica Detalhada | 🔶 **Parcial** — esquema de base de dados real aprovado **e já implementado/migrado** (Blueprint §3a); especificação de API mínima definida (Blueprint §4), mas não confirmada como cobrindo 1:1 todos os FR-XX; Design System listado como inventário de componentes, sem especificação visual ao detalhe |
 | 6 — UI/UX | 🔶 **Parcial** — inventário de ecrãs por prioridade definido (Blueprint §5.2); nenhum protótipo visual real produzido ainda |
-| 7 — Desenvolvimento | 🔄 **Em curso** — M1 (Fundação) do Blueprint **formalmente concluído** (Passos 0-7: scaffolding, schema Prisma + migração, Autenticação, Camada 1/RLS, RBAC granular, Registo de Auditoria, Partilha/Convidado). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento) concluído, Passo 9 (Processos/Tarefas) por iniciar. Exit criteria da Fase 7 como um todo (todos os FR/US/UC do MVP implementados, testes dos 4 fluxos críticos) continua por cumprir — o M1 é só o primeiro de vários milestones do Blueprint dentro desta fase |
+| 7 — Desenvolvimento | 🔄 **Em curso** — M1 (Fundação) do Blueprint **formalmente concluído** (Passos 0-7: scaffolding, schema Prisma + migração, Autenticação, Camada 1/RLS, RBAC granular, Registo de Auditoria, Partilha/Convidado). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento) e Passo 9 (Processos/Tarefas, primeiro módulo de negócio fora da Fundação) concluídos; Passo 10 (CRM) por iniciar. Exit criteria da Fase 7 como um todo (todos os FR/US/UC do MVP implementados, testes dos 4 fluxos críticos) continua por cumprir — o M1 é só o primeiro de vários milestones do Blueprint dentro desta fase |
 | 8 — Testes e QA | Plano de testes executado (funcional, integração, performance, segurança, aceitação); zero defeitos de severidade crítica em aberto |
 | 9 — Preparação para Produção | Infraestrutura, observabilidade, monitorização, backups e CI/CD operacionais; disponibilidade validada contra NFR-01 (99,9%) em ambiente real |
 | 10 — Lançamento e Evolução | *(sem exit criteria — fase contínua por desenho; ver nota acima)*. O "sucesso" do piloto é medido pelos critérios já definidos no Success Metrics, não por um critério de conclusão de fase |
@@ -305,7 +305,7 @@ Cálculo: (30+0+0) / 3 = 30/3 = **10%**
 | **M5** | Fase 4 — Planeamento (Épicos, Sprints, Release Strategy) | 🔶 Parcial — Épicos/Milestones/DoD no Blueprint; Sprints/Release Strategy/Risk Register/Technical Debt Register por fazer |
 | **M6** | Fase 5 — Arquitetura Técnica Detalhada (esquema real, API, Design System) | 🔶 Parcial — esquema real implementado e migrado (Blueprint M1/Passo 2); API mínima definida; Design System só como inventário |
 | **M7** | Fase 6 — UI/UX (protótipos) | 🔶 Parcial — só inventário de ecrãs por prioridade, sem protótipos |
-| **M8** | Início do desenvolvimento (Fase 7, Claude Code) | 🔄 Em curso — Blueprint M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) em curso, Passo 8 (Departamento) concluído |
+| **M8** | Início do desenvolvimento (Fase 7, Claude Code) | 🔄 Em curso — Blueprint M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) em curso, Passos 8-9 concluídos |
 | **M9** | Fase 8 — Testes e Garantia de Qualidade (funcional, integração, performance, segurança, aceitação) | ⬜ Pendente |
 | **M10** | Fase 9 — Preparação para Produção (infraestrutura, observabilidade, backups, CI/CD) | ⬜ Pendente |
 | **M11** | Lançamento com empresas piloto (Fase 10, Horizonte 1 do Product Roadmap) | ⬜ Pendente |
@@ -340,7 +340,7 @@ O diagrama seguinte mostra como as fases convergem para uma especificação úni
 
 ### 3.10 Recomendação Fundamentada — Próxima Fase
 
-**Milestone M1 (Fundação) formalmente concluído (2026-07-06, Passo 7). Proposta completa do Milestone M2 (Módulos Core) apresentada e aprovada pela Fundadora/CEO — ver 3.8 do CLAUDE.md e a Especificação Técnica do Passo 8. Passo 8 (Departamento) concluído e formalmente aprovado — pré-requisito funcional para a visibilidade RBAC de Processos e CRM. Próximo: Passo 9 (Processos/Tarefas), primeiro consumidor real de `AuthorizationService.podeAcederViaPartilha` (Passo 7).**
+**Milestone M1 (Fundação) formalmente concluído (2026-07-06, Passo 7). Milestone M2 (Módulos Core) aprovado e em curso — Passo 8 (Departamento) e Passo 9 (Processos/Tarefas) concluídos e formalmente aprovados, ver 3.8/3.9 do CLAUDE.md e as respetivas Especificações Técnicas. Passo 9 foi o primeiro módulo de negócio fora da Fundação, o primeiro consumidor real de `AuthorizationService.podeAcederViaPartilha` (Passo 7), e centralizou a lógica de visibilidade RBAC no `AuthorizationService` (Decisão B do M2), com o `PartilhaService` refatorado para a consumir. Próximo: Passo 10 (CRM), que reutiliza essa infraestrutura sem a duplicar.**
 
 **Porquê esta é a sequência mais lógica agora:**
 
@@ -404,3 +404,4 @@ Toda atualização é registada no Histórico de Alterações (secção 7), com 
 | 1.8 | 2026-07-06 | **Aprovação formal do Passo 6** pela Fundadora/CEO, e resolução da questão em aberto sobre o encerramento do M1: decisão explícita de que o Passo 7 (Partilha) é pré-requisito para o encerramento formal do Milestone, apesar do DoD literal (Blueprint §2.2) já estar tecnicamente cumprido — atualizadas todas as menções à questão em aberto (3.1 topo, 3.10) para refletir a decisão | CTO (Claude) + Fundadora/CEO |
 | 1.9 | 2026-07-06 | **Passo 7 (Partilha) concluído e formalmente aprovado pela Fundadora/CEO — Milestone M1 (Fundação) formalmente concluído.** Estado da Fase 7 atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) para "M1 formalmente concluído (Passos 0-7); M2 por confirmar" — sem recomendação de próximo Milestone, por não haver ainda confirmação explícita da Fundadora/CEO | CTO (Claude) + Fundadora/CEO |
 | 2.0 | 2026-07-06 | **Proposta do Milestone M2 (Módulos Core) aprovada pela Fundadora/CEO; Passo 8 (Departamento) concluído e formalmente aprovado.** Estado da Fase 7 atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) para refletir o M2 em curso | CTO (Claude) + Fundadora/CEO |
+| 2.1 | 2026-07-06 | **Passo 9 (Processos e Tarefas) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro módulo de negócio fora da Fundação; `AuthorizationService` estendido e `PartilhaService` refatorado para eliminar duplicação de visibilidade RBAC (Decisão B do M2). Estado da Fase 7 atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) | CTO (Claude) + Fundadora/CEO |

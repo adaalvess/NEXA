@@ -237,18 +237,28 @@ model RegraPermissao {
 // PROCESSOS E TAREFAS
 // ============================================================================
 
+/// Estado de um Processo/Tarefa (Functional Specifications, 3.3) — enum desde
+/// o Passo 9 (Blueprint D4, ajuste de tipo, mesmo padrão do `Papel` no
+/// Passo 5), antes `String` com os mesmos 3 valores literais.
+enum EstadoProcesso {
+  por_fazer
+  em_curso
+  concluida
+}
+
 model Processo {
-  id             String        @id @default(cuid())
+  id             String         @id @default(cuid())
   empresaId      String
-  empresa        Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresa        Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   titulo         String
+  descricao      String? // Especificação Técnica do Passo 9, 2.2 — em falta desde o Passo 2
   responsavelId  String
-  responsavel    Utilizador    @relation("ProcessoResponsavel", fields: [responsavelId, empresaId], references: [id, empresaId])
+  responsavel    Utilizador     @relation("ProcessoResponsavel", fields: [responsavelId, empresaId], references: [id, empresaId])
   departamentoId String?
-  departamento   Departamento? @relation(fields: [departamentoId, empresaId], references: [id, empresaId])
+  departamento   Departamento?  @relation(fields: [departamentoId, empresaId], references: [id, empresaId])
   clienteId      String?
-  cliente        Cliente?      @relation(fields: [clienteId, empresaId], references: [id, empresaId])
-  estado         String        @default("por_fazer") // por_fazer | em_curso | concluida
+  cliente        Cliente?       @relation(fields: [clienteId, empresaId], references: [id, empresaId])
+  estado         EstadoProcesso @default(por_fazer)
   prazo          DateTime?
 
   eliminadoEm DateTime?

@@ -52,8 +52,8 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 | Passo | Conteúdo | Estado |
 |---|---|---|
 | Passo 8 | Departamento — CRUD completo + atribuição a Utilizadores | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.8 |
-| Passo 9 | Processos/Tarefas — CRUD, visibilidade RBAC, integração real de `podeAcederViaPartilha` | 🔜 Próximo passo |
-| Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | Por iniciar |
+| Passo 9 | Processos/Tarefas — CRUD, visibilidade RBAC, integração real de `podeAcederViaPartilha` | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.9 |
+| Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | 🔜 Próximo passo |
 | Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | Por iniciar |
 | Passo 12 | Dashboard — agregação read-only | Por iniciar |
 | Passo 13 | Design System (frontend) — componentes base (ADR-006) | Por iniciar |
@@ -146,7 +146,19 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Auditoria integrada** — `criar`/`atualizar`/`eliminar` de `Departamento`, `atribuir_departamento` de `Utilizador`.
 - **Sem descobertas técnicas emergentes** — passo direto, sem correções de arquitetura a meio, ao contrário de vários passos anteriores.
 - Todos os testes (51/51: 11 novos deste passo + regressão completa de 40 testes dos Passos 4-7) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.8 da especificação.
-- **Milestone M2 (Módulos Core) em curso** — Passo 9 (Processos/Tarefas) por iniciar.
+- **Milestone M2 (Módulos Core) em curso** — Passo 9 (Processos/Tarefas) concluído a seguir (ver 3.9).
+
+### 3.9 Registo de Conclusão — Passo 9 (2026-07-06) — primeiro módulo de negócio fora da Fundação
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 decisões previamente validadas na Proposta de M2** — ver [Especificação Técnica do Passo 9](docs/04-implementation-blueprint/08-especificacao-tecnica-passo-9-processos.md): centralização da visibilidade RBAC (Decisão B do M2); `Processo.estado` promovido a `enum EstadoProcesso` (Decisão C do M2).
+- **Decisão emergente identificada e validada durante o desenho (antes de implementar):** a lógica de visibilidade que a Decisão B exige centralizar já existia — de forma privada — no `PartilhaService` (Passo 7). Em vez de a duplicar num terceiro sítio, foi **movida para o `AuthorizationService`** (`obterRelacaoEntidade`, `podeAgirSobreEntidade`, e a nova `obterEscopoVisibilidade` para listagens) e o **`PartilhaService` foi refatorado para a consumir daí** — os 40 testes de Partilha passaram sem qualquer alteração ao ficheiro de teste, confirmando zero impacto de comportamento.
+- **Segunda descoberta, validada antes de codificar:** `Processo.descricao` estava em falta desde o Passo 2, apesar de exigido pelo Functional Specifications (3.3) — adicionado ao schema na mesma migração da promoção de `estado`.
+- **`FundacaoModule` passa a exportar `AuthorizationService`, `PermissaoGuard`, `SessionGuard`** — necessário para qualquer módulo de negócio (agora Processos, e os seguintes CRM/Dashboard) os consumir sem duplicar.
+- **Novo módulo `apps/api/src/modules/processos/`** — primeiro módulo de negócio fora da Fundação (regra não-negociável #1). CRUD completo com regras PR-01 a PR-07: `admin_empresa` sem restrição; `gestor` por Departamento (do Processo, não do responsável — nota de modelação explícita); `colaborador` só sobre o que é responsável, nunca pode eliminar; `convidado` nunca cria/edita/elimina, só vê via Partilha.
+- **`GET /processos/:id` é o primeiro consumidor real de `AuthorizationService.podeAcederViaPartilha`** (Passo 7) — resolve o Risco R1 desse passo, até aqui sem nenhum endpoint de produto a chamá-lo.
+- **Associação a Cliente (FR-16) validada** via `podeAgirSobreEntidade('cliente', ...)` — funciona mesmo sem o módulo CRM existir como controlador (Passo 10), usando o modelo `Cliente` já existente desde o Passo 2 e entidades mínimas de teste (mesmo padrão do Passo 7).
+- Todos os testes (68/68: 18 novos deste passo + regressão completa de 51 testes dos Passos 4-8) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.12 da especificação.
+- **Próximo: Passo 10 — CRM**, que reutiliza a mesma infraestrutura de visibilidade centralizada (Decisão B), sem a duplicar.
 
 ---
 
@@ -199,13 +211,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 9 (M2)
+## 6. Próxima Ação Imediata — Passo 10 (M2)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento) concluído e aprovado (ver 3.8). Próximo: **Passo 9 — Processos/Tarefas**.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso** — Passo 8 (Departamento) e Passo 9 (Processos/Tarefas) concluídos e aprovados (ver 3.8, 3.9). Próximo: **Passo 10 — CRM**.
 
-- Construir CRUD completo de `Processo` (FR-14 a FR-18), com visibilidade RBAC (admin todas; gestor da sua equipa; colaborador as suas; convidado só as explicitamente partilhadas — Functional Specifications §3.3).
-- **Primeiro consumidor real de `AuthorizationService.podeAcederViaPartilha`** (Passo 7) — resolve o Risco R1 desse passo, até agora sem nenhum endpoint de negócio a chamá-lo.
-- **Decisão B do M2 (já aprovada)**: a lógica de visibilidade (admin/gestor/colaborador/convidado) deve ficar centralizada na Fundação como mecanismo reutilizável, não duplicada localmente como o `PartilhaService` fez para P1-P3 — este é o primeiro passo a implementar esse mecanismo partilhado, que o Passo 10 (CRM) também vai consumir.
-- **Decisão C do M2 (já aprovada)**: `Processo.estado` promovido a `enum` (mesmo padrão do `Papel`, Passo 5) — exige nova migração.
-- Associação opcional a `Cliente` (FR-16/18) validada contra a permissão de visualização do criador sobre esse Cliente (UC-03, E1) — mas o CRM (Passo 10) ainda não existe; avaliar se a validação cruzada fica pronta mas não totalmente testável até o Passo 10, ou se a ordem dos passos deve ser revista.
+- Construir CRUD completo de `Cliente`/`Interacao` (FR-19 a FR-22), com a mesma visibilidade RBAC do Passo 9 (admin todas; gestor da sua equipa via Departamento do `owner`; colaborador os seus, via `ownerId`; convidado só os explicitamente partilhados — Functional Specifications §3.4).
+- **Reutilizar a infraestrutura de visibilidade centralizada do Passo 9** (`AuthorizationService.obterEscopoVisibilidade`/`obterRelacaoEntidade`/`podeAgirSobreEntidade`) — nunca duplicar localmente, mesma disciplina da Decisão B do M2.
+- `GET /pipeline` (FR-22) — agregação de Oportunidades por `estadoOportunidade`; formato exato de resposta fica por definir na Especificação Técnica (risco R2 identificado no Passo 9, ainda não resolvido).
+- Avaliar se `Cliente.estadoOportunidade` (atualmente `String?`) deve seguir o mesmo padrão de `enum` já aplicado a `Papel` (Passo 5) e `Processo.estado` (Passo 9) — decisão de âmbito a validar antes da especificação, não a assumir.
 - Seguir a mesma disciplina de governação: especificação técnica antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação antes de considerar o passo concluído.

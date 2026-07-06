@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health.controller';
 import { FundacaoModule } from './modules/fundacao/fundacao.module';
+import { ProcessosModule } from './modules/processos/processos.module';
 
 /**
  * Módulo raiz da aplicação NEXA.
@@ -24,7 +25,8 @@ import { FundacaoModule } from './modules/fundacao/fundacao.module';
     // valores por rota via @Throttle, este é só o limite por defeito global.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     FundacaoModule,
-    // Módulos de domínio a adicionar aqui: DashboardModule, ProcessosModule, etc.
+    ProcessosModule,
+    // Módulos de domínio a adicionar aqui: DashboardModule, CrmModule, etc.
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

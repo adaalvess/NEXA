@@ -31,8 +31,10 @@ import { DepartamentoService } from './departamento/departamento.service';
  * precise de emitir eventos, sem os importar explicitamente.
  *
  * `PrismaService` (bruto) fica privado a este módulo — não é exportado.
- * `TenantPrismaService` é o único ponto de acesso a dados de negócio a
- * exportar para módulos futuros (Processos, CRM, Dashboard, IA, Comercial).
+ * `TenantPrismaService`, `AuthorizationService`, `PermissaoGuard` e
+ * `SessionGuard` são o ponto de acesso a dados de negócio e a autorização
+ * exportado para módulos de negócio (Especificação Técnica do Passo 9, 3.4
+ * — necessário a partir do primeiro módulo fora da Fundação: Processos).
  */
 @Module({
   imports: [EventEmitterModule.forRoot()],
@@ -52,7 +54,7 @@ import { DepartamentoService } from './departamento/departamento.service';
     PartilhaService,
     DepartamentoService,
   ],
-  exports: [TenantPrismaService],
+  exports: [TenantPrismaService, AuthorizationService, PermissaoGuard, SessionGuard],
 })
 export class FundacaoModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

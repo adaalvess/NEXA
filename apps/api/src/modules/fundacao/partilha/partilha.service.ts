@@ -4,14 +4,8 @@ import { Papel } from '@prisma/client';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { tenantContext } from '../tenant/tenant-context';
 import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
+import { AuthorizationService } from '../autorizacao/authorization.service';
 import { EntidadePartilhavel } from './dto/conceder-partilha.dto';
-
-interface RelacaoEntidade {
-  /** owner (Cliente) ou responsavel (Processo) — quem tem relação direta (P3). */
-  responsavelId: string;
-  /** Departamento da entidade (Processo) ou do owner (Cliente) — para P2. */
-  departamentoId: string | null;
-}
 
 /**
  * Mecanismo de Partilha (FR-35; Especificação Técnica do Passo 7) — concede
@@ -19,14 +13,16 @@ interface RelacaoEntidade {
  * Autoridade de conceder/revogar segue as regras P1-P5 (3.4 desse
  * documento): o `PermissaoGuard` do controlador só verifica a permissão de
  * papel (ação `fundacao.conceder_partilha`/`revogar_partilha`); a
- * verificação de instância (P1-P3) acontece aqui, mesmo padrão já
- * estabelecido em `UtilizadoresService.atribuirPapel` (Passo 5).
+ * verificação de instância (P1-P3) usa `AuthorizationService.obterRelacaoEntidade`/
+ * `podeAgirSobreEntidade` (centralizados no Passo 9, 3.2/3.3 — antes uma
+ * cópia privada deste serviço, movida para evitar duplicação com Processos/CRM).
  */
 @Injectable()
 export class PartilhaService {
   constructor(
     private readonly tenantPrisma: TenantPrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async conceder(entidadeTipo: EntidadePartilhavel, entidadeId: string, convidadoId: string) {
@@ -35,7 +31,7 @@ export class PartilhaService {
       throw new ForbiddenException();
     }
 
-    const relacao = await this.buscarRelacaoEntidade(entidadeTipo, entidadeId);
+    const relacao = await this.authorizationService.obterRelacaoEntidade(entidadeTipo, entidadeId);
     if (!relacao) {
       throw new NotFoundException('Entidade a partilhar não encontrada.');
     }
@@ -47,7 +43,9 @@ export class PartilhaService {
     }
 
     // P1-P3 — relação direta do concedente com a entidade concreta.
-    await this.verificarAutoridadeSobreEntidade(ctx.papel, ctx.utilizadorId, relacao);
+    if (!(await this.authorizationService.podeAgirSobreEntidade(entidadeTipo, entidadeId))) {
+      throw new ForbiddenException('Não tens autoridade sobre esta entidade para conceder Partilha.');
+    }
 
     // `empresaId` é sempre reescrito pela Camada 1 (TenantPrismaService) com
     // o valor real do TenantContext — indicado aqui só para satisfazer o
@@ -81,11 +79,13 @@ export class PartilhaService {
 
     // P1-P3 avaliadas contra o estado ATUAL da entidade, não contra quem a
     // concedeu originalmente (Especificação Técnica do Passo 7, 3.4).
-    const relacao = await this.buscarRelacaoEntidade(partilha.entidadeTipo as EntidadePartilhavel, partilha.entidadeId);
+    const relacao = await this.authorizationService.obterRelacaoEntidade(partilha.entidadeTipo, partilha.entidadeId);
     if (!relacao) {
       throw new NotFoundException('Entidade partilhada já não existe.');
     }
-    await this.verificarAutoridadeSobreEntidade(ctx.papel, ctx.utilizadorId, relacao);
+    if (!(await this.authorizationService.podeAgirSobreEntidade(partilha.entidadeTipo, partilha.entidadeId))) {
+      throw new ForbiddenException('Não tens autoridade sobre esta entidade para revogar a Partilha.');
+    }
 
     const revogadoEm = new Date();
     const atualizada = await this.tenantPrisma.client.partilha.update({
@@ -159,52 +159,5 @@ export class PartilhaService {
       skip,
       orderBy: { createdAt: 'desc' },
     });
-  }
-
-  private async buscarRelacaoEntidade(entidadeTipo: EntidadePartilhavel, entidadeId: string): Promise<RelacaoEntidade | null> {
-    if (entidadeTipo === 'cliente') {
-      const cliente = await this.tenantPrisma.client.cliente.findUnique({
-        where: { id: entidadeId },
-        include: { owner: true },
-      });
-      if (!cliente || cliente.eliminadoEm) {
-        return null;
-      }
-      return { responsavelId: cliente.ownerId, departamentoId: cliente.owner.departamentoId };
-    }
-
-    const processo = await this.tenantPrisma.client.processo.findUnique({ where: { id: entidadeId } });
-    if (!processo || processo.eliminadoEm) {
-      return null;
-    }
-    return { responsavelId: processo.responsavelId, departamentoId: processo.departamentoId };
-  }
-
-  /** P1 (admin_empresa) / P2 (gestor, RN-03) / P3 (colaborador) — Especificação Técnica do Passo 7, 3.4. */
-  private async verificarAutoridadeSobreEntidade(papel: Papel, utilizadorId: string, relacao: RelacaoEntidade): Promise<void> {
-    if (papel === Papel.admin_empresa) {
-      return;
-    }
-
-    if (papel === Papel.gestor) {
-      return this.verificarGestorNoDepartamento(utilizadorId, relacao);
-    }
-
-    if (papel === Papel.colaborador) {
-      if (relacao.responsavelId !== utilizadorId) {
-        throw new ForbiddenException('Só podes partilhar entidades de que és owner/responsável.');
-      }
-      return;
-    }
-
-    // Convidado nunca chega aqui — bloqueado pelo PermissaoGuard (P4).
-    throw new ForbiddenException();
-  }
-
-  private async verificarGestorNoDepartamento(gestorId: string, relacao: RelacaoEntidade): Promise<void> {
-    const gestor = await this.tenantPrisma.client.utilizador.findUnique({ where: { id: gestorId } });
-    if (!gestor?.departamentoId || relacao.departamentoId !== gestor.departamentoId) {
-      throw new ForbiddenException('Só podes partilhar entidades do teu próprio Departamento/Equipa.');
-    }
   }
 }

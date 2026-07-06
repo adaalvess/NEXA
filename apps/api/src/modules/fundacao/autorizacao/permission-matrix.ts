@@ -31,6 +31,16 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       eliminar_departamento: true,
       atribuir_departamento: true,
     },
+    // Módulo de negócio próprio (Especificação Técnica do Passo 9, D4) —
+    // distinto de `fundacao` (capacidades transversais). `ver` é o gate
+    // estático; o âmbito real vem de `obterEscopoVisibilidade` (3.2 desse
+    // documento), nunca só do guard.
+    processos: {
+      criar: true,
+      ver: true,
+      editar: true,
+      eliminar: true,
+    },
   },
   [Papel.gestor]: {
     fundacao: {
@@ -51,6 +61,13 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       eliminar_departamento: false,
       atribuir_departamento: false,
     },
+    processos: {
+      criar: true,
+      ver: true,
+      // PR-02 — âmbito (só o seu Departamento) verificado à parte, não aqui.
+      editar: true,
+      eliminar: true,
+    },
   },
   [Papel.colaborador]: {
     fundacao: {
@@ -68,6 +85,14 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       eliminar_departamento: false,
       atribuir_departamento: false,
     },
+    processos: {
+      criar: true,
+      ver: true,
+      // PR-03 — só sobre entidades de que é diretamente responsável, verificado à parte.
+      editar: true,
+      // PR-07 — Colaborador nunca elimina, nem os seus próprios.
+      eliminar: false,
+    },
   },
   [Papel.convidado]: {
     fundacao: {
@@ -75,9 +100,11 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_permissoes: false,
       atribuir_papel: false,
       consultar_auditoria: false,
-      // P4 — nunca pode conceder/revogar. `listar_partilhas: true` é a única
-      // entrada `true` do Convidado em toda a matriz — só vê as que lhe foram
-      // concedidas a ele (Especificação Técnica do Passo 7, 3.6).
+      // P4 — nunca pode conceder/revogar. `listar_partilhas: true` só concede
+      // ver as que lhe foram concedidas a ele (Especificação Técnica do
+      // Passo 7, 3.6); `processos.ver` (abaixo) segue o mesmo padrão — a
+      // única entidade de negócio que o Convidado vê é via Partilha
+      // (`obterEscopoVisibilidade`/`podeAcederViaPartilha`, Passo 9).
       conceder_partilha: false,
       revogar_partilha: false,
       listar_partilhas: true,
@@ -85,6 +112,13 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_departamento: false,
       eliminar_departamento: false,
       atribuir_departamento: false,
+    },
+    processos: {
+      criar: false,
+      // PR-04 — âmbito real vem de podeAcederViaPartilha, não deste guard.
+      ver: true,
+      editar: false,
+      eliminar: false,
     },
   },
   [Papel.super_admin]: {
