@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**Estamos no M1 (Fundação) — Passo 3 concluído e aprovado, Passo 4 por iniciar.**
+**Estamos no M1 (Fundação) — Passo 4 concluído e aprovado (o mais crítico do M1), Passo 5 por iniciar.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -36,8 +36,8 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 | Passo 1 | Scaffolding do monorepo (`apps/api` NestJS, `apps/web` Next.js) | ✅ Concluído — validação local em curso |
 | Passo 2 | Schema Prisma + primeira migração | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.1 |
 | Passo 3 | Autenticação (registo + login) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.2 |
-| **Passo 4** | **Camada 1 — middleware de tenant + serviço de autorização único** | 🔜 **Próximo passo — o mais crítico de todo o M1** |
-| Passo 5 | RBAC — papéis e permissões granulares | Por iniciar (decisão sobre modelo de permissões granulares fica para este passo, não antes) |
+| Passo 4 | Camada 1 — middleware de tenant + serviço de autorização único | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.4 |
+| **Passo 5** | **RBAC — papéis e permissões granulares** | 🔜 **Próximo passo** |
 | Passo 6 | Registo de Auditoria (append-only) | Por iniciar |
 | Passo 7 | Partilha (Convidado) | Por iniciar |
 
@@ -69,6 +69,17 @@ O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettie
 Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1), identifiquei que este repositório nunca teve git — um plano de rollback sem controlo de versões é descritivo, não executável. Aprovado pela Fundadora/CEO: repositório git local inicializado, **sem remoto associado, sem push** — fica só local nesta fase. `.gitignore` revisto e reforçado (segredos, credenciais, bases de dados locais, `.claude/` excluído por ser configuração de ferramenta, não estado do projeto). Commit inicial `8f047cb` — `chore: baseline approved - implementation steps 0-3` — captura o estado aprovado dos Passos 0-3 (74 ficheiros). Árvore de trabalho confirmada limpa, sem remotes configurados. Detalhe completo em [Especificação Técnica do Passo 4](docs/04-implementation-blueprint/03-especificacao-tecnica-passo-4-camada1-autorizacao.md), §3.8.
 
 **A partir de agora, todo commit segue Conventional Commits** (regra não-negociável #23, já fixada), e cada passo aprovado deve corresponder a um commit — para que o plano de rollback de qualquer passo futuro seja sempre `git revert`/`git reset` executável, nunca apenas descritivo.
+
+### 3.4 Registo de Conclusão — Passo 4 (2026-07-06) — o mais crítico do M1
+
+- **Especificação técnica formal aprovada antes da implementação** — ver [Especificação Técnica do Passo 4](docs/04-implementation-blueprint/03-especificacao-tecnica-passo-4-camada1-autorizacao.md) (delimitação de responsabilidades Autenticação/Camada 1/RBAC/RLS/Auditoria sem duplicação, arquitetura completa, Exit Criteria — resultados reais em §3.10).
+- **`TenantContextMiddleware`** (`apps/api/src/modules/fundacao/tenant/`) resolve a sessão uma única vez por pedido e populariza o `TenantContext` (AsyncLocalStorage) para toda a cadeia do pedido. `SessionGuard` ficou reduzido a uma verificação leve — **correção técnica face ao plano original**, aprovada antes de implementar: um Guard não envolve a continuação do pedido no seu próprio call stack, só um Middleware consegue.
+- **`TenantPrismaService`** (Prisma Client Extension) é a Camada 1 concreta — injeta `empresaId` automaticamente em toda operação sobre modelos de negócio; é o único ponto de acesso a dados de negócio a partir de agora (exportado por `FundacaoModule`; `PrismaService` bruto fica privado).
+- **RLS ativada** (migração `20260706105932_enable_row_level_security`) — política por tabela, `current_setting('app.current_empresa_id', true)` (negação por defeito quando não definido).
+- **Três roles de BD, com responsabilidades distintas:** `nexa_dev` (owner, só migrações), `nexa_app` (runtime de negócio, sujeito a RLS, sem DDL), `nexa_fundacao` (runtime da Fundação — registo/sessão, `BYPASSRLS`, sem DDL) — **o terceiro role foi uma correção técnica descoberta durante a implementação** (o registo de uma Empresa nova é bloqueado por RLS se o role usado estiver sujeito a ela, já que não há `empresaId`/`id` de sessão a definir nesse bootstrap), aprovada antes de implementar. Detalhe completo em Especificação Técnica do Passo 4, §3.9.
+- **Base de dados de teste dedicada** `nexa_test` — primeiro passo do M1 com cobertura automatizada real (Jest) de um dos 4 fluxos críticos (NFR-17): `apps/api/test/tenant-isolation.e2e-spec.ts` (isolamento artificial) e `tenant-context-http.e2e-spec.ts` (propagação via pedido HTTP real — foi este teste que revelou a necessidade do role `nexa_fundacao`).
+- **Renovação deslizante da sessão continua NÃO implementada** — dependência que tinha sido registada para este passo acabou por não ser resolvida ainda; **fica explicitamente para o Passo 5 ou seguinte**, a avaliar quando o hook por pedido for revisitado.
+- Todos os testes (T1-T5, S1-S5, mais a verificação HTTP adicional) passaram — detalhe em §3.10 da especificação.
 
 ---
 
@@ -121,14 +132,15 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 4
+## 6. Próxima Ação Imediata — Passo 5
 
-Construir a **Camada 1** — middleware de tenant + serviço único de autorização — consistente com ADR-001 §3.3, ADR-003 §3.2 e Security & Access Principles §3.1-3.3. **O passo mais crítico de todo o M1.**
+Construir o **RBAC granular** — papéis e permissões, consistente com o Vision Document (RBAC), Functional Specifications §3.1 (Matriz de Permissões — Fundação) e Security & Access Principles §3.1/3.3/3.4. Este é o passo onde o modelo de permissões granulares por Empresa é finalmente decidido — deliberadamente adiado até aqui (método de trabalho, §5).
 
-- Substituir/estender o `SessionGuard` do Passo 3 (`apps/api/src/modules/fundacao/auth/session.guard.ts`) pelo serviço único de autorização — nenhum controlador deve verificar permissões diretamente (regra não-negociável #13).
-- Configurar o **utilizador de base de dados dedicado, não-owner**, e só então **ativar as políticas RLS** deixadas deliberadamente por ativar no Passo 2 (ver Blueprint §3a e `schema.prisma`, cabeçalho) — as duas condições têm de existir juntas, RLS sem o utilizador dedicado não é uma proteção real.
-- Implementar a **renovação deslizante da sessão** (extensão de `expiraEm` por atividade, ADR-007 §3.5) — deixada pendente no Passo 3 por depender exatamente deste hook por pedido.
-- **Não antecipar RBAC granular** (papéis/regras por Empresa ficam para o Passo 5) nem Registo de Auditoria (Passo 6) — o Passo 4 estabelece o mecanismo de autorização e o isolamento de tenant, não ainda as regras granulares nem a auditoria.
-- Seguir a mesma disciplina de governação já aplicada nos Passos 2 e 3: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
+- Consultar o `TenantContext` já estabelecido no Passo 4 (`utilizadorId`, `empresaId`, `papel`) — não reimplementar a resolução de sessão/tenant, que já existe.
+- Implementar o **serviço único de autorização** que o ADR-004 (3.3) já antecipa na íntegra: resolve sessão (feito), carrega papel + regras granulares da Empresa (a decidir/construir agora), consulta `Partilha` quando aplicável (ainda não existe — Passo 7, tratar como "sem partilhas" por agora), aplica negação por defeito.
+- **Nenhum controlador deve verificar permissões diretamente** (regra não-negociável #13) — todos consultam este serviço único.
+- **Não antecipar Registo de Auditoria** (Passo 6) nem Partilha (Passo 7).
+- Pendente do Passo 4 e ainda por resolver: renovação deslizante da sessão (extensão de `expiraEm` por atividade) — decidir se entra neste passo ou fica para depois, sem bloquear o RBAC.
+- Seguir a mesma disciplina de governação já aplicada nos Passos 2-4: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
 
-Ao terminar, demonstrar registo + login funcionais localmente (contra o PostgreSQL local já configurado) antes de propor o Passo 4.
+Ao terminar, demonstrar os 5 papéis RBAC atribuíveis e a restringir acesso corretamente (Definition of Done do M1) antes de propor o Passo 6.

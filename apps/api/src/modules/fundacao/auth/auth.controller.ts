@@ -4,7 +4,8 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegistarDto } from './dto/registar.dto';
 import { LoginDto } from './dto/login.dto';
-import { SessionGuard, UtilizadorAutenticado } from './session.guard';
+import { SessionGuard } from './session.guard';
+import { TenantContextValue } from '../tenant/tenant-context';
 import { SESSION_COOKIE_NAME } from './auth.constants';
 
 /**
@@ -48,7 +49,7 @@ export class AuthController {
   // e Q4) — não é endpoint de produto, só demonstra o SessionGuard end-to-end.
   @UseGuards(SessionGuard)
   @Get('eu')
-  async eu(@Req() req: Request & { utilizador?: UtilizadorAutenticado }) {
+  async eu(@Req() req: Request & { utilizador?: TenantContextValue }) {
     return req.utilizador;
   }
 }

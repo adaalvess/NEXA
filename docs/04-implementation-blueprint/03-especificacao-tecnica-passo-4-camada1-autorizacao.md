@@ -4,8 +4,8 @@
 |---|---|
 | **Documento** | Especificação Técnica do Passo 4 — Camada 1 (Middleware de Tenant + Serviço Único de Autorização) |
 | **Fase** | 7 — Desenvolvimento da Plataforma, M1 (Fundação), Passo 4 — **o mais crítico de todo o M1** |
-| **Versão** | 1.1 |
-| **Estado** | 🕓 Especificação aguarda aprovação; pré-requisito de rollback (git) já cumprido |
+| **Versão** | 1.2 |
+| **Estado** | ✅ Aprovado e implementado |
 | **Owner** | CTO / Arquiteto Principal |
 | **Documentos de referência** | ADR-001 (Multi-Tenancy) · ADR-003 (Base de Dados e ORM) · ADR-004 (Autenticação, Sessão, Autorização) · System Design Principles v1.6 (3.2, 3.6, 3.8) · Security & Access Principles v1.1 (3.1-3.3, 3.9) · Coding Standards v1.0 (3.3, 3.4) · Especificação Técnica do Passo 3 (Autenticação) · Blueprint de Implementação do MVP v1.3 |
 | **Última atualização** | 2026-07-06 |
@@ -50,17 +50,17 @@ Duas camadas independentes implementam esta garantia (ADR-001, 3.3 — Defense i
 
 ```
 Pedido HTTP (cookie nexa_session)
-  → SessionGuard (Passo 3, estendido): resolve Sessao + Utilizador
-    → grava { utilizadorId, empresaId, papel } no TenantContext (AsyncLocalStorage)
-      → Handler do controlador executa
-        → Serviço de negócio chama TenantPrismaService (nunca o PrismaClient bruto)
-          → Prisma Client Extension lê o TenantContext ativo
-            → injeta empresaId no where (leitura) / data (escrita) de toda a operação
-              → executa a operação dentro de uma transação que primeiro corre
-                `SET LOCAL app.current_empresa_id = <empresaId>`
-                → PostgreSQL avalia a política de RLS, independentemente do Prisma
-                  → linha só é devolvida/aceite se empresaId (ou id, para Empresa)
-                    corresponder à sessão de BD atual
+  → TenantContextMiddleware (aplicado a '*', antes de Guards/Interceptors): resolve Sessao + Utilizador
+    → grava req.utilizador e corre o resto do pedido dentro de tenantContext.run(valor, () => next())
+      → SessionGuard (por rota, @UseGuards): só verifica se req.utilizador já foi populado
+        → Handler do controlador executa (await em toda chamada Prisma)
+          → Serviço de negócio chama TenantPrismaService (nunca o PrismaClient bruto)
+            → Prisma Client Extension lê o TenantContext ativo
+              → injeta empresaId no where (leitura) / data (escrita) de toda a operação
+                → executa a operação dentro de $transaction([set_config(...), query(...)])
+                  → PostgreSQL avalia a política de RLS, independentemente do Prisma
+                    → linha só é devolvida/aceite se empresaId (ou id, para Empresa)
+                      corresponder à sessão de BD atual
 ```
 
 **3.2.2 `TenantContext` — propagação do tenant ativo**
@@ -77,7 +77,7 @@ export interface TenantContextValue {
 export const tenantContext = new AsyncLocalStorage<TenantContextValue>();
 ```
 
-O `SessionGuard` (Passo 3) é estendido — não duplicado — para, depois de resolver `req.utilizador`, executar o resto do pedido dentro de `tenantContext.run(valor, () => next())`.
+> **Correção técnica face à v1.0/v1.1 desta especificação — aprovada antes da implementação (ver 3.9).** Não é o `SessionGuard` que populariza o `TenantContext` — um Guard do NestJS não envolve a continuação do pedido (Interceptors → Controller → Handler) dentro do seu próprio call stack, o que é necessário para o `AsyncLocalStorage` propagar corretamente. Quem faz isso é o novo `TenantContextMiddleware` (aplicado a todas as rotas), que resolve a sessão uma única vez por pedido e corre o resto do pedido dentro de `tenantContext.run(valor, () => next())`. O `SessionGuard` fica reduzido a uma verificação leve — "`req.utilizador` já foi populado?" — sem duplicar a resolução de sessão. Detalhe completo em 3.9.
 
 **3.2.3 `TenantPrismaService` — a Camada 1 concreta (implementação do "middleware que injeta tenant_id", ADR-003, 3.2)**
 
@@ -89,7 +89,7 @@ Prisma Client Extension (`$extends`, mecanismo atual do Prisma 5, sucessor do `$
 - **Se não existir `TenantContext` ativo** (ex: um pedido não autenticado tentasse, por engano, chamar este serviço): a operação **falha explicitamente** (erro, nunca prossegue sem filtro) — Fail Secure (Security & Access Principles, 3.9).
 - **Integridade referencial entre entidades de negócio** (ex: `Processo.responsavelId` tem de pertencer à mesma Empresa) **não é verificada aqui** — já está garantida pelas constraints de chave estrangeira compostas do Passo 2 (Camada 3, ADR-003 3.3). A Camada 1 só garante a própria coluna `empresaId`; a consistência entre colunas já é da base de dados.
 
-**Exceção documentada, não uma lacuna:** `AuthService` (Passo 3) continua a usar o `PrismaService` bruto (não o `TenantPrismaService`), porque a verificação de email duplicado no registo é deliberadamente global, e a resolução da sessão (`SessionGuard`) acontece **antes** de existir um `TenantContext` — não pode depender dele. Isto é consistente com System Design Principles (3.2, D3): a Fundação já é reconhecida como a única camada com acesso transversal. `PrismaService` (bruto) fica **privado ao módulo Fundação** — não é exportado para nenhum módulo de negócio futuro, que só recebe `TenantPrismaService`.
+**Exceção documentada, não uma lacuna:** `AuthService` e `TenantContextMiddleware` continuam a usar o `PrismaService` bruto (não o `TenantPrismaService`), porque a verificação de email duplicado no registo é deliberadamente global, e a resolução da sessão acontece **antes** de existir um `TenantContext` — não pode depender dele. Isto é consistente com System Design Principles (3.2, D3): a Fundação já é reconhecida como a única camada com acesso transversal. `PrismaService` (bruto) fica **privado ao módulo Fundação** — não é exportado para nenhum módulo de negócio futuro, que só recebe `TenantPrismaService`. **Correção adicional (ver 3.9):** `PrismaService` liga-se com o role `nexa_fundacao` (BYPASSRLS), não `nexa_app` — descoberto durante a implementação que o próprio registo (criação da Empresa) é bloqueado pela política RLS de `Empresa` se o role usado estiver sujeito a RLS, já que não existe `empresaId`/`id` de sessão a definir nesse bootstrap.
 
 **3.2.4 Row-Level Security (Camada 2) — ativação**
 
@@ -102,7 +102,7 @@ Prisma Client Extension (`$extends`, mecanismo atual do Prisma 5, sucessor do `$
      WITH CHECK ("empresaId" = current_setting('app.current_empresa_id', true));
    ```
    `current_setting(..., true)` (modo "missing_ok") devolve `NULL` quando a variável não está definida — `NULL = qualquer coisa` é sempre falso, logo **negação por defeito** (regra não-negociável #14) quando ninguém definiu o tenant, sem exigir tratamento especial.
-3. **`SET LOCAL` por transação:** o `TenantPrismaService` (3.2.3) executa toda a operação dentro de `prisma.$transaction(async (tx) => { await tx.$executeRaw\`SET LOCAL app.current_empresa_id = ${ctx.empresaId}\`; return query(tx); })` — `SET LOCAL` garante que o valor só vive dentro dessa transação, nunca vaza para outra ligação do pool (risco já identificado e teoricamente coberto, agora implementado concretamente).
+3. **`SET LOCAL` por transação:** o `TenantPrismaService` (3.2.3) executa toda a operação dentro de `prisma.$transaction([prisma.$executeRaw`SELECT set_config('app.current_empresa_id', ${ctx.empresaId}, TRUE)`, query(scopedArgs)])` — a forma "array" do `$transaction` do Prisma (recomendada pela própria documentação do Prisma para este padrão de RLS), que corre ambas as operações na mesma transação/ligação. `set_config(..., TRUE)` com o terceiro argumento `TRUE` é equivalente a `SET LOCAL` — o valor só vive dentro dessa transação, nunca vaza para outra ligação do pool.
 4. **Custo de performance** (uma transação por operação, em vez de uma query solta): risco já identificado e aceite em ADR-003 (3.7) — "a validar com testes de carga reais na Fase 8, não motivo para reverter a decisão agora". Não é reavaliado neste passo.
 
 ### 3.3 Dependências
@@ -182,6 +182,47 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 
 > **Resolvido — aprovado pela Fundadora/CEO.** Repositório git local inicializado (sem remoto associado, sem push). `.gitignore` revisto e reforçado (segredos, credenciais, bases de dados locais, `.claude/` como configuração de ferramenta, não estado do projeto). Commit inicial `8f047cb` — `chore: baseline approved - implementation steps 0-3` — 74 ficheiros, árvore de trabalho confirmada limpa (`git status` → "nothing to commit, working tree clean") e sem remotes configurados (`git remote -v` → vazio). **A partir de agora, o plano de rollback deste e de todos os passos seguintes é executável** (`git revert`/`git reset --hard 8f047cb`), não apenas descritivo.
 
+**Role `nexa_fundacao` (correção 3.9):** reverter `apps/api/.env`/`.env.test` para remover `FUNDACAO_DATABASE_URL` e `nexa_fundacao` com `REVOKE ALL ...; DROP ROLE nexa_fundacao;` — o `PrismaService` voltaria a precisar de um role sem RLS para o `AuthService` funcionar (equivalente a reverter também a ativação de RLS, 3.8 acima).
+
+### 3.9 Correções Técnicas Durante a Implementação
+
+*Duas correções identificadas ao implementar, ambas documentadas e submetidas à aprovação da Fundadora/CEO antes de serem aplicadas, consistente com a exigência de que nenhum desvio avance sem validação prévia.*
+
+**Correção 1 — Resolução de sessão movida do `SessionGuard` para um novo `TenantContextMiddleware`.** A v1.0/v1.1 desta especificação previa que o `SessionGuard` (Passo 3) fosse estendido para popular o `TenantContext`. Ao detalhar a implementação, confirmei que isto não funciona: um Guard do NestJS só devolve `true`/`false` ao próprio NestJS — não envolve a continuação do pedido (Interceptors → Controller → Handler) dentro do seu próprio call stack, que é exatamente o que o `AsyncLocalStorage` precisa para propagar o contexto corretamente. Corrigido: a resolução de sessão (ler cookie, validar `Sessao`/`Utilizador`) passou para um `TenantContextMiddleware` (`apps/api/src/modules/fundacao/tenant/tenant-context.middleware.ts`), aplicado a todas as rotas (`forRoutes('*')`, `FundacaoModule.configure()`), que resolve o contexto **uma única vez por pedido** e corre o resto do pedido dentro de `tenantContext.run(...)`. O `SessionGuard` (`session.guard.ts`) ficou reduzido a uma verificação leve — `request.utilizador` existe? — sem duplicar nenhuma lógica de resolução. Aprovada explicitamente antes da implementação.
+
+**Correção 2 — Novo role `nexa_fundacao` (BYPASSRLS) para o `PrismaService` bruto.** Ao correr o teste HTTP real (3.10), o registo (`POST /auth/registar`) falhou com `new row violates row-level security policy for table "Empresa"`. Causa: o `PrismaService` (usado por `AuthService` e, inicialmente, também pelo `TenantContextMiddleware`) ligava-se com `nexa_app` — mas criar uma Empresa nova é, por natureza, uma operação sem `empresaId`/`id` de sessão a definir ainda (o próprio bootstrap do registo), pelo que a política RLS de `Empresa` bloqueia sempre este `INSERT`, mesmo sendo legítimo. Corrigido: criado um terceiro role, `nexa_fundacao`, com o atributo `BYPASSRLS` do PostgreSQL (ignora RLS em todas as tabelas) e **exatamente os mesmos privilégios DML de `nexa_app`** (sem DDL) — usado exclusivamente pelo `PrismaService` bruto (Auth + resolução de sessão), nunca pelo `TenantPrismaService`. Reflete tecnicamente o que já estava documentado desde o Passo 3 e o System Design Principles (3.2, D3): a Fundação é a única camada com acesso transversal reconhecido — `BYPASSRLS` sem DDL mantém Least Privilege (só ignora RLS, não ganha privilégio de schema). Aprovada explicitamente antes da implementação, com confirmação verificada empiricamente (3.10) de que `nexa_fundacao` vê dados sem `current_setting` (BYPASSRLS ativo) mas continua sem conseguir `CREATE TABLE` (sem DDL).
+
+### 3.10 Resultado da Implementação e Evidências de Validação
+
+**Entregáveis:** `apps/api/src/modules/fundacao/tenant/` (`tenant-context.ts`, `tenant-context.middleware.ts`); `apps/api/src/modules/fundacao/prisma/tenant-prisma.service.ts`; `session.guard.ts` reescrito (verificação leve); `prisma.service.ts` atualizado (role `nexa_fundacao`); `fundacao.module.ts` atualizado (regista o middleware, exporta só `TenantPrismaService`); migração `20260706105932_enable_row_level_security`; roles de BD `nexa_app` e `nexa_fundacao`; base de dados de teste `nexa_test`; suite de testes automatizados (`apps/api/test/`).
+
+**Resultados dos testes funcionais (Jest, automatizados, `nexa_test`):**
+
+| # | Resultado |
+|---|---|
+| T1 | ✅ `findMany` só devolve linhas da própria Empresa |
+| T2 | ✅ `create` sobrescreve `empresaId` fornecido pelo chamador |
+| T3 | ✅ `update` sobre `id` de outra Empresa não afeta a linha |
+| T4 | ✅ Operação sem `TenantContext` falha explicitamente |
+| T5 (regressão Passo 3) | ✅ Confirmado manualmente contra `nexa_dev` (registo, login, `GET /auth/eu`, password errada — sem alteração de comportamento) |
+
+**Verificação adicional, além do exigido pela especificação original:** escrito também um teste HTTP real (`tenant-context-http.e2e-spec.ts`, com `supertest`) que prova a propagação do `TenantContext` através do pedido HTTP completo (Middleware → Guard → Controller), não apenas do isolamento artificial dos testes T1-T4. Foi precisamente este teste que revelou a Correção 2 (3.9) — sem ele, o bloqueio do registo por RLS só seria descoberto em uso real.
+
+**Resultados dos testes de segurança (verificação direta via `psql`, sem passar pela aplicação):**
+
+| # | Resultado |
+|---|---|
+| S1 | ✅ `nexa_app` sem `current_setting` → 0 linhas |
+| S2 | ✅ `nexa_app` com `current_setting` = Empresa A → só linhas de A |
+| S3 | ✅ `nexa_app` tenta `INSERT` com `empresaId` diferente do `current_setting` → rejeitado pelo `WITH CHECK` |
+| S4 | ✅ `nexa_app` tenta `CREATE TABLE` → "permission denied" |
+| S5 | ✅ `nexa_dev` (owner) continua a funcionar sem restrição |
+| Verificação adicional — `nexa_fundacao` | ✅ Vê dados sem `current_setting` definido (BYPASSRLS confirmado empiricamente), mas continua sem conseguir `CREATE TABLE` (sem DDL, Least Privilege confirmado) |
+
+**`npm run build --workspace=apps/api`:** ✅ sem erros de TypeScript (`strict` mode). **`eslint`:** ✅ sem avisos.
+
+**Exit Criteria do Passo 4: cumprido integralmente**, incluindo as duas correções técnicas devidamente documentadas e aprovadas antes de implementadas. Dados de teste removidos de `nexa_dev`/`nexa_test` após validação.
+
 ---
 
 ## 4. Decisões Tomadas
@@ -195,6 +236,9 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 | D5 | `nexa_app` como novo role de BD dedicado, sem privilégio de DDL nem ownership | Least Privilege (Security & Access Principles, 3.9) — a aplicação nunca precisa de alterar schema em runtime |
 | D6 | Base de dados de teste dedicada (`nexa_test`) para os testes automatizados deste passo | Evita misturar dados de teste automatizado com dados de exploração manual em `nexa_dev`; primeiro passo do M1 com cobertura automatizada real de um dos 4 fluxos críticos (NFR-17) |
 | D7 | Recomendação de inicializar git antes deste passo, não decidida unilateralmente — **aprovada pela Fundadora/CEO e executada** (commit `8f047cb`) | Um plano de rollback sem controlo de versões é descritivo, não executável — identificado como lacuna real ao preparar este documento; resolvido antes de qualquer implementação deste passo, conforme exigido |
+| D8 | Resolução de sessão movida do `SessionGuard` para um novo `TenantContextMiddleware` — **aprovada pela Fundadora/CEO antes da implementação** (3.9, Correção 1) | Um Guard do NestJS não envolve a continuação do pedido no seu próprio call stack — necessário para o `AsyncLocalStorage` propagar; só um Middleware consegue. Sem duplicação: a resolução de sessão vive só no Middleware, o Guard só a consulta |
+| D9 | Novo role `nexa_fundacao` (BYPASSRLS, sem DDL) para o `PrismaService` bruto — **aprovada pela Fundadora/CEO antes da implementação** (3.9, Correção 2) | O registo cria uma Empresa sem `empresaId`/`id` de sessão ainda definido (bootstrap) — um role sujeito a RLS bloquearia sempre esta operação legítima. `nexa_fundacao` reflete tecnicamente o acesso transversal da Fundação já documentado (System Design Principles, 3.2, D3), sem alargar privilégios além do estritamente necessário |
+| D10 | Teste HTTP real adicional (`tenant-context-http.e2e-spec.ts`, com `supertest`), além do exigido pela especificação original | Provou a propagação do TenantContext através do pedido HTTP completo, não só do isolamento artificial dos testes T1-T4 — foi este teste que revelou a necessidade de D9 |
 
 ---
 
@@ -214,3 +258,5 @@ DROP POLICY IF EXISTS tenant_isolation ON "Utilizador";
 |---|---|---|---|
 | 1.0 | 2026-07-06 | Criação da especificação técnica do Passo 4, a pedido explícito da Fundadora/CEO antes de qualquer implementação: delimitação de responsabilidades entre Autenticação/Camada 1/RBAC/RLS/Auditoria (sem duplicação), arquitetura completa (TenantContext, TenantPrismaService, ativação de RLS com role dedicado), dependências, impacto arquitetural (nenhum novo ADR necessário), critérios de aceitação/Exit Criteria, estratégia de testes (primeira cobertura automatizada de um fluxo crítico, NFR-17), riscos, e plano de rollback (identificando a ausência de git como lacuna a validar) | CTO / Arquiteto Principal (Claude) |
 | 1.1 | 2026-07-06 | **Pré-requisito de rollback resolvido.** Fundadora/CEO aprovou a inicialização de git local (sem remoto); `.gitignore` reforçado e revisto; commit inicial `8f047cb` ("chore: baseline approved - implementation steps 0-3", 74 ficheiros) criado; árvore de trabalho confirmada limpa. Questão em Aberto 1 e Decisão D7 atualizadas para refletir a resolução. A especificação em si (arquitetura, critérios, testes) permanece por aprovar antes de iniciar a implementação | CTO (Claude) + Fundadora/CEO |
+| 1.1 | 2026-07-06 | **Aprovação formal da especificação.** Fundadora/CEO autoriza a implementação, condicionada a: baseline git antes de iniciar (concluído), conformidade integral com Blueprint/ADRs/Security & Access Principles/Coding Standards/Data & Consistency Rules, documentação prévia de qualquer desvio, e relatório técnico completo no fecho | Fundadora/CEO |
+| 1.2 | 2026-07-06 | Registadas as duas correções técnicas identificadas e aprovadas durante a implementação (3.9: TenantContextMiddleware substitui a resolução de sessão no SessionGuard; role `nexa_fundacao` com BYPASSRLS para o PrismaService bruto), adicionada a secção 3.10 com os resultados reais de T1-T5/S1-S5 e da verificação HTTP end-to-end adicional, novas Decisões D8-D10. Exit Criteria do Passo 4 cumprido integralmente | CTO (Claude) + Fundadora/CEO |

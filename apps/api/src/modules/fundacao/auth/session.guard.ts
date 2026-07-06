@@ -1,58 +1,27 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
-import { PrismaService } from '../prisma/prisma.service';
-import { SESSION_COOKIE_NAME } from './auth.constants';
-
-export interface UtilizadorAutenticado {
-  utilizadorId: string;
-  empresaId: string;
-  papel: string;
-}
+import { TenantContextValue } from '../tenant/tenant-context';
 
 /**
- * Resolução de sessão (autenticação) — Passo 3.
+ * Exigência de autenticação por rota (`@UseGuards(SessionGuard)`).
  *
- * Nota de arquitetura (Especificação Técnica do Passo 3, 3.1.3 e Security &
- * Access Principles 3.2): este guard responde apenas a "o pedido está
- * autenticado?", nunca a "o que pode fazer?". Não verifica papel RBAC, não
- * aplica escopo de tenant a queries de negócio, não consulta Partilha — essas
- * responsabilidades pertencem ao serviço único de autorização do Passo 4 e ao
- * RBAC granular do Passo 5, que substituem/estendem este guard.
+ * Nota de arquitetura (Especificação Técnica do Passo 4, correção técnica
+ * aprovada): este guard **não resolve sessão** — isso é responsabilidade
+ * única do `TenantContextMiddleware`, aplicado a todas as rotas antes deste
+ * guard correr. Este guard só verifica se essa resolução já aconteceu
+ * (`request.utilizador` populado); nenhuma lógica de sessão é duplicada
+ * aqui. Continua a ser apenas autenticação ("quem é"), nunca autorização
+ * RBAC/tenant (Security & Access Principles, 3.2) — essa distinção,
+ * estabelecida no Passo 3, mantém-se inalterada.
  */
 @Injectable()
 export class SessionGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<Request & { utilizador?: TenantContextValue }>();
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request & { utilizador?: UtilizadorAutenticado }>();
-    const sessaoId: string | undefined = request.cookies?.[SESSION_COOKIE_NAME];
-
-    if (!sessaoId) {
+    if (!request.utilizador) {
       throw new UnauthorizedException();
     }
-
-    const sessao = await this.prisma.sessao.findUnique({ where: { id: sessaoId } });
-
-    // Fail Secure (Security & Access Principles, 3.9): qualquer estado
-    // inesperado (sessão inexistente, expirada, utilizador desativado)
-    // resulta em negação, nunca em acesso concedido por defeito.
-    if (!sessao || sessao.expiraEm.getTime() < Date.now()) {
-      throw new UnauthorizedException();
-    }
-
-    const utilizador = await this.prisma.utilizador.findFirst({
-      where: { id: sessao.utilizadorId, empresaId: sessao.empresaId },
-    });
-
-    if (!utilizador || utilizador.eliminadoEm) {
-      throw new UnauthorizedException();
-    }
-
-    request.utilizador = {
-      utilizadorId: utilizador.id,
-      empresaId: utilizador.empresaId,
-      papel: utilizador.papel,
-    };
 
     return true;
   }
