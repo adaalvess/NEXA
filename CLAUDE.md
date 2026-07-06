@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**Estamos no M1 (Fundação) — Passo 6 concluído e aprovado. Definition of Done do M1 tecnicamente completo, mas o Milestone permanece formalmente aberto até à conclusão do Passo 7 — decisão da Fundadora/CEO, ver nota abaixo. Passo 7 por iniciar.**
+**M1 (Fundação) formalmente concluído (2026-07-06) — Passo 7 (Partilha) concluído e aprovado, último passo do Milestone. Ver nota abaixo.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -39,11 +39,11 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 | Passo 4 | Camada 1 — middleware de tenant + serviço de autorização único | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.4 |
 | Passo 5 | RBAC — papéis e permissões granulares | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.5 |
 | Passo 6 | Registo de Auditoria (append-only) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.6 |
-| **Passo 7** | **Partilha (Convidado)** | 🔜 **Próximo passo** |
+| Passo 7 | Partilha (Convidado) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.7 |
 
 **Definition of Done do M1** (Blueprint, secção 2.2): registo/login funcionais ✅; isolamento multi-tenant verificado por teste ✅; todos os 5 papéis RBAC atribuíveis e a restringir acesso corretamente ✅; Registo de Auditoria a gravar em toda ação de escrita ✅.
 
-**Decisão da Fundadora/CEO sobre o encerramento do M1 (2026-07-06):** o texto literal do DoD do M1 (Blueprint §2.2) está tecnicamente cumprido desde o Passo 6, mas o Passo 7 (Partilha/Convidado) continua listado como conteúdo do M1 no próprio Blueprint (§3, Milestones). Decisão formal: **o M1 permanece tecnicamente concluído mas formalmente aberto até à conclusão e validação do Passo 7** — só nesse momento o Milestone é encerrado oficialmente, por consistência com o Blueprint e por disciplina de governação do projeto.
+**M1 formalmente encerrado (2026-07-06):** o DoD literal (Blueprint §2.2) estava tecnicamente cumprido desde o Passo 6, mas a Fundadora/CEO tinha decidido que o Passo 7 (Partilha/Convidado) — listado como conteúdo do M1 no Blueprint §3 — era pré-requisito para o encerramento formal do Milestone. Com o Passo 7 concluído e aprovado, **o Milestone M1 (Fundação) está formalmente concluído** — todos os passos previstos (0-7) implementados, validados e aprovados.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
 
@@ -108,6 +108,18 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - Todos os testes (27/27: T1-T9 deste passo + regressão completa dos Passos 4-5) passaram, mais demonstração manual contra `nexa_dev` — detalhe em §3.9 da especificação.
 - **Definition of Done do M1 (Blueprint §2.2) tecnicamente completo** — ver nota na secção 3 acima sobre a posição do Passo 7 (Partilha) face ao DoD.
 
+### 3.7 Registo de Conclusão — Passo 7 (2026-07-06) — último passo do M1, Milestone formalmente encerrado
+
+- **Especificação técnica formal aprovada antes da implementação, com 4 decisões previamente validadas** — ver [Especificação Técnica do Passo 7](docs/04-implementation-blueprint/06-especificacao-tecnica-passo-7-partilha.md): demonstração com entidades mínimas de `Cliente`/`Processo` só para teste (sem CRUD/módulo, EP-03/EP-04 ficam para depois); campo `nivelAcesso` (enum, só `leitura` no MVP) adicionado ao schema; revogação por soft-delete (`revogadoEm`, mesmo padrão de outras entidades); autoridade de conceder/revogar por papel + relação direta com a entidade (regras P1-P5).
+- **`AuthorizationService.podeAcederViaPartilha(entidadeTipo, entidadeId)`** — terceira pergunta do serviço único de autorização (Passo 5), implementando literalmente ADR-004 §3.3 ponto 3 ("consulta a entidade Partilha quando aplicável"). Semântica pura: só responde se uma Partilha ativa concede acesso; não decide sozinho a visibilidade — fica pronto para EP-03/EP-04 consumirem quando existirem.
+- **Regras P1-P5** (mesmo rigor do L1-L6 do Passo 5): `admin_empresa` sempre; `gestor` só sobre entidades do seu Departamento (Cliente via Departamento do `owner`, Processo via `departamentoId` direto); `colaborador` só sobre o que é `owner`/`responsavel`; `convidado` nunca; o convidado-alvo tem de ser Utilizador da mesma Empresa com papel Convidado.
+- **`PartilhaService`** (`apps/api/src/modules/fundacao/partilha/`) faz a verificação de instância (P1-P3); o `PermissaoGuard` do controlador só verifica a permissão de papel (`fundacao.conceder_partilha`/`revogar_partilha`/`listar_partilhas`) — mesmo padrão já estabelecido em `UtilizadoresService.atribuirPapel` (Passo 5). Partilha é ação do módulo `fundacao`, não `crm`/`processos` — capacidade transversal da Fundação (regra não-negociável #2), não de um módulo de negócio ainda inexistente.
+- **`POST /partilhas`, `DELETE /partilhas/:id`, `GET /partilhas`** implementados — listagem com âmbito por papel (`admin_empresa` vê tudo; `gestor` o que concedeu + o do seu Departamento; `colaborador` só o que concedeu; `convidado` só o que lhe foi concedido a ele).
+- **Auditoria integrada** — `criar`/`Partilha` e `eliminar`/`Partilha`, mesma convenção do Passo 6.
+- **Descoberta real durante a aplicação da migração (não um bug de código):** `prisma migrate deploy` contra `nexa_test` falhava com `permission denied for schema public`. Diagnóstico revisto e corrigido: `nexa_dev` já era o dono real de `nexa_test` — nunca foi necessário nenhum `GRANT`. A causa real era `.env.test`'s `DATABASE_URL` apontar para `nexa_app` (sem DDL, por desenho) — o Prisma lê sempre essa variável, nunca `DATABASE_ADMIN_URL`. Corrigido usando `DATABASE_ADMIN_URL` só para o comando de migração, documentado como D9 na especificação para não se repetir.
+- Todos os testes (40/40: T1-T15 deste passo + regressão completa dos Passos 4-6) passaram, estáveis em 2 execuções consecutivas — detalhe em §3.11 da especificação.
+- **Milestone M1 (Fundação) formalmente concluído** — todos os passos previstos no Blueprint (0-7) implementados, validados e aprovados.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -159,16 +171,8 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 7
+## 6. Estado do M1 e Próxima Ação — A Validar com a Fundadora/CEO
 
-Construir **Partilha (Convidado)** — FR-35, Data Model Conceptual §3.3 (entidade já existe desde o Passo 2, sem uso ainda), Security & Access Principles §3.4 ("Partilha é uma extensão do RBAC, não um sistema de acesso paralelo — verificada pelo mesmo mecanismo de autorização de sempre").
+**M1 (Fundação) formalmente concluído em 2026-07-06** — Passos 0-7 implementados, validados e aprovados (ver 3.7 para o Passo 7, o último). Todos os entregáveis do Milestone (Blueprint §2.2/§3) estão cumpridos: registo/login, isolamento multi-tenant, RBAC granular com 5 papéis, Registo de Auditoria append-only, e Partilha como única via de acesso do Convidado.
 
-- O modelo `Partilha` já existe desde o Passo 2 (`empresaId`, `entidadeTipo`, `entidadeId`, `convidadoId`, `concedidoPorId`) — polimórfico (`entidadeId` aponta para `Cliente` ou `Processo`, sem FK direta, tal como `RegistoAuditoria`). Este passo constrói o mecanismo que a consulta e a usa para conceder acesso, não o schema.
-- **Sem módulos de negócio ainda** (Processos, CRM) — não há nenhuma entidade real de `Cliente`/`Processo` para partilhar. **Decisão de âmbito validada com a Fundadora/CEO (2026-07-06):** demonstrar o mecanismo com entidades mínimas só para teste (`Cliente`/`Processo` já existentes no schema, populados com dados reduzidos apenas para exercitar Partilha/permissões/auditoria/isolamento entre tenants) — sem construir CRUD nem lógica de negócio desses módulos. Quando EP-03/EP-04 (M2) forem construídos, reutilizam a infraestrutura de Partilha já validada, em vez de a duplicar.
-- **Integração com o `AuthorizationService`** (Passo 5): a consulta a `Partilha` passa a ser mais uma fonte que o serviço único de autorização verifica (ADR-004 §3.3, ponto 3) — nunca um caminho de acesso paralelo.
-- **Papel Convidado** já existe no `enum Papel` (Passo 5) — atualmente sem nenhuma ação permitida em lado nenhum da matriz; este passo é onde ganha a sua única via de acesso (via `Partilha`, nunca diretamente).
-- Seguir a mesma disciplina de governação já aplicada nos Passos 2-6: apresentar especificação técnica antes de implementar, identificar decisões técnicas emergentes antes de as tomar, e produzir evidências objetivas de validação (testes reais, não apenas afirmação) antes de considerar o passo concluído.
-
-**Resolvido (2026-07-06):** a Fundadora/CEO confirmou que o Passo 7 é condição para o encerramento formal do M1 — ver decisão na secção 3.
-
-**Próximo passo:** apresentar a Especificação Técnica formal do Passo 7 (estrutura completa do mecanismo de verificação de Partilha, integração com `AuthorizationService`, superfície de API, plano de testes) para aprovação, antes de qualquer implementação — mesma disciplina dos Passos 3-6.
+**Sem próxima ação decidida.** O Blueprint (§2, Milestones) lista M2 (EP-02/03/04 — módulos core: Dashboard, Processos, CRM) como o Milestone seguinte, dependente só de M1 — mas avançar para M2 sem instrução explícita da Fundadora/CEO seria decidir uma questão de planeamento por conta própria (Método de Trabalho, secção 5). **Antes de iniciar qualquer trabalho de M2:** confirmar com a Fundadora/CEO se M2 é de facto o próximo passo, e se a mesma disciplina de especificação técnica formal por passo se mantém para os seus épicos.

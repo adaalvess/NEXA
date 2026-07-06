@@ -20,6 +20,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_permissoes: true,
       atribuir_papel: true,
       consultar_auditoria: true,
+      // P1 (Especificação Técnica do Passo 7, 3.4) — sem restrição de instância.
+      conceder_partilha: true,
+      revogar_partilha: true,
+      listar_partilhas: true,
     },
   },
   [Papel.gestor]: {
@@ -30,6 +34,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       // (Especificação Técnica do Passo 5, 3.4, L3).
       atribuir_papel: true,
       consultar_auditoria: false,
+      // P2 — âmbito (só o seu Departamento) verificado à parte, não aqui.
+      conceder_partilha: true,
+      revogar_partilha: true,
+      listar_partilhas: true,
     },
   },
   [Papel.colaborador]: {
@@ -38,6 +46,11 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_permissoes: false,
       atribuir_papel: false,
       consultar_auditoria: false,
+      // P3 — só sobre entidades de que é diretamente owner/responsável,
+      // verificado à parte, não aqui.
+      conceder_partilha: true,
+      revogar_partilha: true,
+      listar_partilhas: true,
     },
   },
   [Papel.convidado]: {
@@ -46,6 +59,12 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_permissoes: false,
       atribuir_papel: false,
       consultar_auditoria: false,
+      // P4 — nunca pode conceder/revogar. `listar_partilhas: true` é a única
+      // entrada `true` do Convidado em toda a matriz — só vê as que lhe foram
+      // concedidas a ele (Especificação Técnica do Passo 7, 3.6).
+      conceder_partilha: false,
+      revogar_partilha: false,
+      listar_partilhas: true,
     },
   },
   [Papel.super_admin]: {

@@ -33,4 +33,30 @@ export class AuthorizationService {
 
     return DEFAULT_PERMISSION_MATRIX[ctx.papel]?.[modulo]?.[acao] ?? false;
   }
+
+  /**
+   * Terceira pergunta que este serviço único responde (ADR-004, 3.3, ponto
+   * 3; Especificação Técnica do Passo 7, 3.3) — "uma Partilha ativa concede
+   * acesso a ESTA entidade ao utilizador ATUAL?". Semântica pura: não decide
+   * sozinho se o pedido deve ser aceite — módulos futuros (Processos, CRM)
+   * que definirem a sua própria visibilidade por RBAC chamam este método
+   * como fallback, especificamente para o papel Convidado.
+   */
+  async podeAcederViaPartilha(entidadeTipo: string, entidadeId: string): Promise<boolean> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      return false; // Fail Secure — mesmo padrão de podeExecutar.
+    }
+
+    const partilha = await this.tenantPrisma.client.partilha.findFirst({
+      where: {
+        entidadeTipo,
+        entidadeId,
+        convidadoId: ctx.utilizadorId,
+        revogadoEm: null,
+      },
+    });
+
+    return partilha !== null;
+  }
 }

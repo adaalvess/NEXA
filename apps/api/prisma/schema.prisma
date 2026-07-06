@@ -174,25 +174,38 @@ model RegistoAuditoria {
   @@index([empresaId, timestamp])
 }
 
+/// Nível de acesso concedido por uma Partilha (Functional Specifications,
+/// 3.1) — só "leitura" possível no MVP; edição por Convidado fora de âmbito
+/// (Vision Document, RBAC). Enum pronto para uma futura extensão sem
+/// redesenho (Especificação Técnica do Passo 7, 2.1.B).
+enum NivelAcessoPartilha {
+  leitura
+}
+
 /// Concessão explícita de acesso a uma entidade específica a um Utilizador com
 /// papel Convidado (Data Model Conceptual, 3.3). entidadeId é polimórfico
 /// (aponta para Cliente ou Processo conforme entidadeTipo) — sem FK direta pela
 /// mesma razão estrutural do Registo de Auditoria; a validação de que
 /// entidadeId pertence à mesma Empresa é responsabilidade da camada de acesso a
-/// dados única (Camada 1).
+/// dados única (Camada 1). Revogação por soft-delete (revogadoEm), mesmo
+/// padrão das restantes entidades de negócio (Data & Consistency Rules, 3.4)
+/// — Especificação Técnica do Passo 7, 2.1.C.
 model Partilha {
-  id             String     @id @default(cuid())
+  id             String              @id @default(cuid())
   empresaId      String
-  empresa        Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresa        Empresa             @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   entidadeTipo   String // "cliente" | "processo"
   entidadeId     String
   convidadoId    String
-  convidado      Utilizador @relation("PartilhaConvidado", fields: [convidadoId, empresaId], references: [id, empresaId], onDelete: Cascade)
+  convidado      Utilizador          @relation("PartilhaConvidado", fields: [convidadoId, empresaId], references: [id, empresaId], onDelete: Cascade)
   concedidoPorId String
-  concedidoPor   Utilizador @relation("PartilhaConcedidaPor", fields: [concedidoPorId, empresaId], references: [id, empresaId])
-  createdAt      DateTime   @default(now())
+  concedidoPor   Utilizador          @relation("PartilhaConcedidaPor", fields: [concedidoPorId, empresaId], references: [id, empresaId])
+  nivelAcesso    NivelAcessoPartilha @default(leitura)
+  revogadoEm     DateTime?
+  createdAt      DateTime            @default(now())
 
   @@index([empresaId, entidadeTipo, entidadeId])
+  @@index([empresaId, convidadoId])
 }
 
 /// Regras de permissão granulares por Empresa (FR-04; Data Model Conceptual,

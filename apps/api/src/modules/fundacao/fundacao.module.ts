@@ -14,11 +14,12 @@ import { AuditoriaController } from './auditoria/auditoria.controller';
 import { AuditoriaService } from './auditoria/auditoria.service';
 import { AuditoriaInternaService } from './auditoria/auditoria-interna.service';
 import { AuditoriaListener } from './auditoria/auditoria.listener';
+import { PartilhaController } from './partilha/partilha.controller';
+import { PartilhaService } from './partilha/partilha.service';
 
 /**
  * Módulo Fundação (Blueprint EP-01) — Passos 3 (Autenticação), 4 (Camada 1),
- * 5 (RBAC granular) e 6 (Registo de Auditoria) implementados. Partilha
- * (Passo 7) junta-se a este módulo no passo correspondente.
+ * 5 (RBAC granular), 6 (Registo de Auditoria) e 7 (Partilha) implementados.
  *
  * `EventEmitterModule.forRoot()` regista-se aqui, não em `AppModule` — a
  * Fundação é o dono natural do mecanismo de eventos que sustenta a auditoria
@@ -32,7 +33,7 @@ import { AuditoriaListener } from './auditoria/auditoria.listener';
  */
 @Module({
   imports: [EventEmitterModule.forRoot()],
-  controllers: [AuthController, UtilizadoresController, AuditoriaController],
+  controllers: [AuthController, UtilizadoresController, AuditoriaController, PartilhaController],
   providers: [
     PrismaService,
     TenantPrismaService,
@@ -45,6 +46,7 @@ import { AuditoriaListener } from './auditoria/auditoria.listener';
     AuditoriaService,
     AuditoriaInternaService,
     AuditoriaListener,
+    PartilhaService,
   ],
   exports: [TenantPrismaService],
 })
