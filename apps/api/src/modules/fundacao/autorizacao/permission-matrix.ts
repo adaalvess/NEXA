@@ -72,6 +72,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       gerar_sugestoes: true,
       confirmar_sugestao: true,
       rejeitar_sugestao: true,
+      // listar_sugestoes (Especificação Técnica do Passo 18, 3.1/Decisão A)
+      // — mesma granularidade das outras 3 ações de sugestão.
+      listar_sugestoes: true,
     },
   },
   [Papel.gestor]: {
@@ -123,6 +126,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       gerar_sugestoes: true,
       confirmar_sugestao: true,
       rejeitar_sugestao: true,
+      listar_sugestoes: true,
     },
   },
   [Papel.colaborador]: {
@@ -174,6 +178,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       gerar_sugestoes: false,
       confirmar_sugestao: false,
       rejeitar_sugestao: false,
+      listar_sugestoes: false,
     },
   },
   [Papel.convidado]: {
@@ -222,6 +227,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       gerar_sugestoes: false,
       confirmar_sugestao: false,
       rejeitar_sugestao: false,
+      listar_sugestoes: false,
     },
   },
   [Papel.super_admin]: {

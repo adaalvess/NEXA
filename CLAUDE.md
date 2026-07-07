@@ -61,7 +61,7 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 
 **Milestone M2 (Módulos Core) formalmente concluído em 2026-07-07** — todos os passos previstos (8-14) implementados, validados e aprovados; Definition of Done (Blueprint §2.2) cumprido: os 3 módulos (Dashboard, Processos, CRM) operacionais com CRUD completo, visibilidade RBAC verificada em cada módulo (por papel e por posse), estado inicial guiado presente em todos os ecrãs sem dados.
 
-### M3 (Assistente de IA) — Aprovado e em Curso (2026-07-07)
+### M3 (Assistente de IA) — Formalmente Concluído (2026-07-07)
 
 Proposta completa do M3 (objetivos, âmbito, arquitetura, sequência de passos, riscos, decisões técnicas, DoD, plano de validação) apresentada e aprovada pela Fundadora/CEO, com 5 decisões adicionais validadas (fornecedor único Anthropic, credenciais só via env vars, PSD-003 com retenção configurável, PSD-002 fora de âmbito, quota de 50/mês provisória). Numeração de passos continua a partir do M2.
 
@@ -70,7 +70,9 @@ Proposta completa do M3 (objetivos, âmbito, arquitetura, sequência de passos, 
 | Passo 15 | AI Gateway (backend) — interface própria, adaptador Anthropic, timeout/circuit breaker/quota | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.15 |
 | Passo 16 | Módulo `ia` — `POST /ia/perguntar` (UC-05), extensão do schema `SugestaoIA`, teste NFR-17 | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.16 |
 | Passo 17 | Sugestões de ação (UC-06) — `POST /ia/sugestoes`, `.../confirmar`/`/rejeitar`, RN-08 | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.17 |
-| Passo 18 | Ecrã do Assistente de IA (frontend) — conversa + sugestões pendentes | 🔜 Próximo passo |
+| Passo 18 | Ecrã do Assistente de IA (frontend) — conversa + sugestões pendentes | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.18 |
+
+**Milestone M3 (Assistente de IA) formalmente concluído em 2026-07-07** — todos os passos previstos (15-18) implementados, validados e aprovados; NFR-17 ("ações de IA") coberto na íntegra, fechando os 4 fluxos críticos obrigatórios do projeto (isolamento multi-tenant, RBAC, limites de plano, ações de IA).
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
@@ -254,6 +256,17 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **NFR-17 ("ações de IA") fecha na íntegra** — os 4 fluxos críticos obrigatórios (isolamento multi-tenant, RBAC, limites de plano, ações de IA) têm agora todos cobertura de teste automatizado.
 - **Milestone M3 em curso** — próximo: Passo 18 (Ecrã do Assistente de IA, frontend — conversa + sugestões pendentes), primeiro passo de `apps/web` desde o Passo 14.
 
+### 3.18 Registo de Conclusão — Passo 18 (2026-07-07) — último passo do M3, Milestone formalmente concluído
+
+- **Especificação técnica formal aprovada antes da implementação, com 5 decisões emergentes validadas antecipadamente** — ver [Especificação Técnica do Passo 18](docs/04-implementation-blueprint/17-especificacao-tecnica-passo-18-ecra-ia.md): (A) `GET /ia/sugestoes` (extensão aditiva ao backend, herdada da Decisão F do Passo 17) — sempre `tipo='sugestao_acao'`/`estado='pendente'`, sem parâmetro de filtro, nova permissão `ia.listar_sugestoes`; (B) visibilidade da listagem = mesma regra de autoridade de confirmar/rejeitar (Passo 17) — nunca um novo âmbito de Departamento para sugestões; (C) conversa da pergunta livre sem histórico persistido — âmbito local à sessão do browser, decisão de produto consciente, não uma limitação técnica; (D) RN-08 refletida na interface — `Modal` de segunda confirmação antes de "Confirmar", nunca ação em lote; (E) Assistente de IA como item normal da `BarraLateralNavegacao` (mesma UX de Dashboard/Processos/CRM) — a posição visual transversal fixa (Information Architecture §3.6.6) é uma capacidade arquitetural explicitamente fora do âmbito funcional do MVP nesse mesmo documento.
+- **`apps/web/src/app/(autenticado)/ia/page.tsx`** implementado — secções "Perguntar" (todos exceto `convidado`) e "Sugestões Pendentes" (só `admin_empresa`/`gestor`, condicional por `papel` — API continua a decidir, frontend só oculta, ADR-006 §3.7). Cross-navegação de cada sugestão para o Processo referenciado (Information Architecture §3.5). Tratamento explícito de `403`/`429`/`503`/`504`/`409`, nunca crash.
+- **`IaService.listarSugestoesPendentes()`** reaproveita `aplicarRetencao` (Passo 16) sobre o texto de justificação, mesma disciplina de retenção já aplicada a perguntas.
+- **Validação visual real no browser** (não só revisão de código) — Empresa de demonstração criada via API + fixtures diretas em `nexa_dev`, eliminada no fim da validação (mesmo mecanismo de limpeza dos testes e2e). Fluxo completo ponta a ponta confirmado nos 4 papéis: `admin_empresa` (pergunta livre, geração, cross-navegação, confirmação real via `Modal` com reatribuição verificada na BD), `gestor` (geração adicional, rejeição), `colaborador` (secção "Sugestões Pendentes" ausente, `403` confirmado por `fetch` direto), `convidado` (item de navegação ausente, acesso direto por URL mostra mensagem sem crash, `403` confirmado por `fetch` direto). Responsividade confirmada em 375px/768px/1280px.
+- **Nota de âmbito honesta**: sem credencial real do fornecedor Anthropic no ambiente local (decisão já aprovada do M3), o caminho de resposta bem-sucedida da pergunta livre não pôde ser observado visualmente com uma resposta real da IA — o pedido `POST /ia/perguntar` foi confirmado a disparar corretamente e o erro `502` (fornecedor indisponível) foi tratado sem crash; o caminho de sucesso já está coberto por teste automatizado com `FakeAdapter` desde o Passo 16.
+- **Sem descobertas técnicas emergentes além de uma correção operacional (não de código)**: um clique inicial no botão "Perguntar" não disparou o pedido durante a validação — artefacto do Fast Refresh do servidor de desenvolvimento a meio de uma edição concorrente, sem impacto em produção nem no código entregue.
+- **Resultados**: `apps/api/test/ia-sugestoes.e2e-spec.ts` ganhou 3 testes adicionais (T11-T13) para `GET /ia/sugestoes`, suite completa em 135/135 testes (132 herdados + 3 novos); `npm run build`/`npm run lint` limpos em `apps/api` e `apps/web`.
+- **Milestone M3 (Assistente de IA) formalmente concluído** — todos os passos previstos (15-18) implementados, validados e aprovados; NFR-17 coberto na íntegra.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -308,11 +321,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 18 (M3, ecrã do Assistente de IA)
+## 6. Próxima Ação Imediata — Próximo Milestone (M4) por Confirmar
 
-**M1 e M2 formalmente concluídos.** **M3 (Assistente de IA) aprovado e em curso — Passo 15 (AI Gateway), Passo 16 (`POST /ia/perguntar`) e Passo 17 (Sugestões de ação) concluídos e aprovados (ver 3.15/3.16/3.17)**. Próximo: **Passo 18 — Ecrã do Assistente de IA (frontend), conversa + sugestões pendentes**.
+**M1, M2 e M3 formalmente concluídos.** Com o Passo 18 aprovado (ver 3.18), o **Milestone M3 (Assistente de IA) está formalmente concluído** — Passos 15-18 implementados, validados e aprovados; NFR-17 ("ações de IA") coberto na íntegra, fechando os 4 fluxos críticos obrigatórios do projeto (isolamento multi-tenant, RBAC, limites de plano, ações de IA).
 
-- Primeiro passo de `apps/web` desde o Passo 14 — consumir `POST /ia/perguntar` (Passo 16) e `POST /ia/sugestoes`/`.../confirmar`/`.../rejeitar` (Passo 17) através dos componentes do Design System (Passo 13), sem duplicar lógica de RBAC (ADR-006 §3.7).
-- `GET /ia/sugestoes` (listagem) fica necessário neste passo — foi deliberadamente adiado do Passo 17 (Decisão F) precisamente até o frontend precisar de facto de listar sugestões pendentes; a decidir/especificar como parte da Especificação Técnica deste passo.
-- Validar visualmente RN-08 no browser — a confirmação de uma sugestão exige uma ação humana explícita e individual (nunca "aceitar todas" em lote, RN-08 literal), e a interface nunca deve sugerir o contrário.
-- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser, obrigatória para passos de frontend) → aprovação dos resultados → sincronização de documentação → commit.
+- **Próximo Milestone (M4) ainda por confirmar com a Fundadora/CEO** — mesmo padrão já seguido entre o encerramento do M1 e a proposta do M2 (Blueprint §2, Master Roadmap): não avançar sem uma proposta formal (objetivos, âmbito, sequência de passos, riscos, DoD) apresentada e aprovada antes de qualquer implementação.
+- Candidatos já identificados em documentos aprovados, mas nenhum ainda proposto formalmente: Comercial (EP-06, Blueprint) — planos/subscrição, `SubscricaoPlano` com limites reais (Master Roadmap, risco R3, dependência já registada desde o Passo 3); UC-02 (convite por email, fora de âmbito desde o Passo 5); revisão da quota provisória de IA (50/mês, Proposta do M3) à luz de uso real.
+- Mesma disciplina de sempre: proposta formal do Milestone → aprovação → Especificação Técnica por passo → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.

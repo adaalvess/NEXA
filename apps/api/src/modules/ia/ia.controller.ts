@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseFilters, UseGuards } from '@nestjs/common';
 import { SessionGuard } from '../fundacao/auth/session.guard';
 import { PermissaoGuard } from '../fundacao/autorizacao/permissao.guard';
 import { RequirePermissao } from '../fundacao/autorizacao/require-permissao.decorator';
@@ -7,11 +7,11 @@ import { PerguntarDto } from './dto/perguntar.dto';
 import { IaExceptionFilter } from './ia-exception.filter';
 
 /**
- * `/ia` (Especificações Técnicas dos Passos 16 e 17). `convidado` nunca tem
- * acesso a nenhuma ação deste controlador (Information Architecture §3.4,
- * "Não aplicável"); `colaborador` tem `ia.perguntar` mas nunca as ações de
- * sugestão (Especificação Técnica do Passo 17, Decisão D — estruturalmente
- * incapaz de reatribuir Processos a terceiros).
+ * `/ia` (Especificações Técnicas dos Passos 16, 17 e 18). `convidado` nunca
+ * tem acesso a nenhuma ação deste controlador (Information Architecture
+ * §3.4, "Não aplicável"); `colaborador` tem `ia.perguntar` mas nunca as
+ * ações de sugestão (Especificação Técnica do Passo 17, Decisão D —
+ * estruturalmente incapaz de reatribuir Processos a terceiros).
  */
 @Controller('ia')
 @UseFilters(IaExceptionFilter)
@@ -30,6 +30,13 @@ export class IaController {
   @Post('sugestoes')
   async gerarSugestoes() {
     return this.iaService.gerarSugestoes();
+  }
+
+  @UseGuards(SessionGuard, PermissaoGuard)
+  @RequirePermissao('ia', 'listar_sugestoes')
+  @Get('sugestoes')
+  async listarSugestoes() {
+    return this.iaService.listarSugestoesPendentes();
   }
 
   @UseGuards(SessionGuard, PermissaoGuard)

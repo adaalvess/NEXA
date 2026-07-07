@@ -280,4 +280,56 @@ describe('Sugestões de Ação da IA (Passo 17)', () => {
 
     await limparEmpresasDeTeste(adminClient, [empresaId]);
   });
+
+  it('T11 — GET /ia/sugestoes devolve só as pendentes geradas pelo próprio Utilizador (Passo 18)', async () => {
+    const { empresaId } = await registarELogin('t11');
+    const dept = await adminClient.departamento.create({ data: { empresaId, nome: 'Vendas' } });
+    const gestorA = await criarUtilizador(empresaId, Papel.gestor, 't11-gestorA', dept.id);
+    const gestorB = await criarUtilizador(empresaId, Papel.gestor, 't11-gestorB', dept.id);
+    const respA = await criarUtilizador(empresaId, Papel.colaborador, 't11-respA', dept.id);
+    await criarUtilizador(empresaId, Papel.colaborador, 't11-candA', dept.id);
+    await adminClient.processo.create({
+      data: { empresaId, titulo: 'Processo Gestor A', responsavelId: respA.id, departamentoId: dept.id, prazo: ONTEM },
+    });
+
+    await request(app.getHttpServer()).post('/ia/sugestoes').set('Cookie', gestorA.cookie).send({}).expect(201);
+
+    const listaA = await request(app.getHttpServer()).get('/ia/sugestoes').set('Cookie', gestorA.cookie).expect(200);
+    expect(listaA.body).toHaveLength(1);
+    expect(listaA.body[0].texto).toContain('Processo Gestor A');
+
+    const listaB = await request(app.getHttpServer()).get('/ia/sugestoes').set('Cookie', gestorB.cookie).expect(200);
+    expect(listaB.body).toHaveLength(0);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T12 — admin_empresa vê as sugestões pendentes geradas por qualquer Utilizador da Empresa', async () => {
+    const { empresaId, cookie: cookieAdmin } = await registarELogin('t12');
+    const dept = await adminClient.departamento.create({ data: { empresaId, nome: 'Vendas' } });
+    const gestor = await criarUtilizador(empresaId, Papel.gestor, 't12-gestor', dept.id);
+    const responsavel = await criarUtilizador(empresaId, Papel.colaborador, 't12-resp', dept.id);
+    await criarUtilizador(empresaId, Papel.colaborador, 't12-cand', dept.id);
+    await adminClient.processo.create({
+      data: { empresaId, titulo: 'Processo Via Gestor', responsavelId: responsavel.id, departamentoId: dept.id, prazo: ONTEM },
+    });
+
+    await request(app.getHttpServer()).post('/ia/sugestoes').set('Cookie', gestor.cookie).send({}).expect(201);
+
+    const listaAdmin = await request(app.getHttpServer()).get('/ia/sugestoes').set('Cookie', cookieAdmin).expect(200);
+    expect(listaAdmin.body).toHaveLength(1);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T13 — colaborador e convidado recebem 403 em GET /ia/sugestoes', async () => {
+    const { empresaId } = await registarELogin('t13');
+    const colaborador = await criarUtilizador(empresaId, Papel.colaborador, 't13-colab');
+    const convidado = await criarUtilizador(empresaId, Papel.convidado, 't13-conv');
+
+    await request(app.getHttpServer()).get('/ia/sugestoes').set('Cookie', colaborador.cookie).expect(403);
+    await request(app.getHttpServer()).get('/ia/sugestoes').set('Cookie', convidado.cookie).expect(403);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
 });

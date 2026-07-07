@@ -311,6 +311,39 @@ export class IaService {
   }
 
   /**
+   * Listagem de sugestões pendentes (Especificação Técnica do Passo 18,
+   * 3.1/Decisões a Validar A/B) — sempre `tipo='sugestao_acao'` e
+   * `estado='pendente'` (a área é literalmente "Sugestões Pendentes",
+   * Information Architecture §3.1, sem parâmetro de filtro). Visibilidade:
+   * mesma regra de autoridade já usada em confirmar/rejeitar (Passo 17) —
+   * `admin_empresa` vê todas as da Empresa, qualquer outro só as que gerou.
+   * Reaproveita `aplicarRetencao` sobre `conteudoResposta`, mesma disciplina
+   * já aplicada a perguntas (Passo 16).
+   */
+  async listarSugestoesPendentes(): Promise<{ id: string; entidadeRef: string | null; texto: string | null; createdAt: Date }[]> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const sugestoes = await this.tenantPrisma.client.sugestaoIA.findMany({
+      where: {
+        tipo: 'sugestao_acao',
+        estado: 'pendente',
+        utilizadorId: ctx.papel === Papel.admin_empresa ? undefined : ctx.utilizadorId,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return sugestoes.map((s) => ({
+      id: s.id,
+      entidadeRef: s.entidadeRef,
+      texto: this.aplicarRetencao(s).conteudoResposta,
+      createdAt: s.createdAt,
+    }));
+  }
+
+  /**
    * Deteção determinística de Processos em risco (Especificação Técnica do
    * Passo 17, 3.2) — reaproveita `obterEscopoVisibilidade`/`construirFiltroWhere`
    * (Passo 16), a mesma condição de "atraso" já usada em

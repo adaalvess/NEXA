@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ListChecks, Users, GitBranch, Menu, X as IconeFechar, LogOut } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, GitBranch, Sparkles, Menu, X as IconeFechar, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useSessao } from '../../lib/sessao-context';
 import { useLogout } from '../../lib/use-logout';
@@ -71,6 +71,12 @@ function Conteudo({ itens, pathname, papel, onNavegar }: { itens: ItemNav[]; pat
  * (drawer sobreposto, aberto por um botão de menu) em vez de espremer o
  * conteúdo principal com uma largura fixa — descoberta feita na validação
  * visual deste passo, não prevista literalmente na especificação.
+ *
+ * "Assistente de IA" adicionado no Passo 18 como item normal (mesma UX de
+ * Dashboard/Processos/CRM) — a posição visual transversal fixa (Information
+ * Architecture §3.6.6) é uma capacidade arquitetural fora do âmbito
+ * funcional do MVP, não bloqueia este passo (Especificação Técnica do Passo
+ * 18, Decisão E). Oculto para `convidado` (§3.4, "Não aplicável").
  */
 export function BarraLateralNavegacao() {
   const pathname = usePathname();
@@ -85,6 +91,10 @@ export function BarraLateralNavegacao() {
 
   if (papel === 'admin_empresa' || papel === 'gestor') {
     itens.push({ rotulo: 'Pipeline', href: '/crm/pipeline', icone: GitBranch });
+  }
+
+  if (papel !== 'convidado') {
+    itens.push({ rotulo: 'Assistente de IA', href: '/ia', icone: Sparkles });
   }
 
   return (
