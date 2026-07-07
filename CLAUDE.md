@@ -74,6 +74,18 @@ Proposta completa do M3 (objetivos, âmbito, arquitetura, sequência de passos, 
 
 **Milestone M3 (Assistente de IA) formalmente concluído em 2026-07-07** — todos os passos previstos (15-18) implementados, validados e aprovados; NFR-17 ("ações de IA") coberto na íntegra, fechando os 4 fluxos críticos obrigatórios do projeto (isolamento multi-tenant, RBAC, limites de plano, ações de IA).
 
+### M4 (Comercial e Pagamentos) — Aprovado e em Curso (2026-07-07)
+
+Proposta completa do M4 (objetivos, âmbito, exclusões, arquitetura, sequência de passos, riscos, DoD) apresentada e aprovada pela Fundadora/CEO — resolve formalmente o Risco R3 do Master Roadmap (valores numéricos de limites por plano, nunca antes fixados): Starter (5 utilizadores, 1024 MB, 50 pedidos IA/mês), Professional (20 utilizadores, 10240 MB, 200 pedidos IA/mês), Enterprise (sem limite — `null`, nunca um valor sentinela). Âmbito de enforcement nesta fase: só `limiteUsoIA` (RN-10/RN-11 para `limiteUtilizadores`/`limiteArmazenamentoMb` ficam preparados no modelo de dados, sem lógica de bloqueio, por não existir ainda nenhuma funcionalidade que os gatilhe — UC-02, convite por email, e gestão documental continuam fora de âmbito). Upgrade/downgrade entre planos pagos e cancelamento self-service ficam fora do M4 (nenhum UC aprovado os cobre). Toda a lógica de subscrição, estados, limites e Stripe centralizada no módulo `comercial` — outros módulos consomem serviços expostos, nunca conhecem regras de faturação diretamente. Numeração de passos continua a partir do M3.
+
+| Passo | Conteúdo | Estado |
+|---|---|---|
+| Passo 19 | `SubscricaoPlano` real (trial automático), `GET /planos` | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.19 |
+| Passo 20 | Enforcement de `limiteUsoIA` por plano + RN-11 (trial expirado → estado "limitada") | 🔜 Próximo passo |
+| Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | Por iniciar |
+| Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | Por iniciar |
+| Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | Por iniciar |
+
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
@@ -267,6 +279,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados**: `apps/api/test/ia-sugestoes.e2e-spec.ts` ganhou 3 testes adicionais (T11-T13) para `GET /ia/sugestoes`, suite completa em 135/135 testes (132 herdados + 3 novos); `npm run build`/`npm run lint` limpos em `apps/api` e `apps/web`.
 - **Milestone M3 (Assistente de IA) formalmente concluído** — todos os passos previstos (15-18) implementados, validados e aprovados; NFR-17 coberto na íntegra.
 
+### 3.19 Registo de Conclusão — Passo 19 (2026-07-07) — primeiro passo do M4
+
+- **Especificação técnica formal aprovada antes da implementação, com 6 decisões emergentes validadas antecipadamente e um reforço explícito pedido pela Fundadora/CEO na aprovação** — ver [Especificação Técnica do Passo 19](docs/04-implementation-blueprint/18-especificacao-tecnica-passo-19-comercial-subscricao.md): (A) `SubscricaoPlano` de trial criado reativamente ao mesmo `EVENTO_AUDITORIA` já emitido por `AuthService.registar()` (`fundacao/`), via `tenantContext.run()` — primeira utilização em produção de um padrão até agora só usado em testes (`comoTenant()`); `fundacao` nunca fica a saber que `comercial` existe, sem exigir nenhum novo role de BD; (B) campos de limite `Int?`, `null` = sem limite (Enterprise) — nunca um valor sentinela; exigiu corrigir o `QuotaService` (Passo 15) para distinguir "sem `SubscricaoPlano`" de "`SubscricaoPlano` existe, sem limite"; (C) trial automático no plano `professional`; (D) `plano`/`estado` promovidos a `enum` Prisma; (E) `Empresa.estadoSubscricao` removido (nunca usado desde o Passo 2) — `SubscricaoPlano.estado` passa a ser a única fonte de verdade; (F) `GET /planos` só para `admin_empresa`.
+- **Reforço explícito da Fundadora/CEO**: o `SubscricaoListener` tem de ser idempotente — `EventEmitter2` não garante entrega exatamente uma vez, e um replay do mesmo evento nunca pode duplicar a subscrição nem reverter um estado já avançado. Implementado com `upsert` (`update: {}` deliberadamente vazio), nunca `create` — testado explicitamente (T6).
+- **Novo módulo `comercial`** (`apps/api/src/modules/comercial/`) — já antecipado desde a regra não-negociável #1, agora construído: `PLANOS_CONFIG` (valores aprovados na Proposta do M4, resolvendo o Risco R3 do Master Roadmap), `SubscricaoListener`, `GET /planos`. `FundacaoModule` nunca importa `ComercialModule` — a direção de dependência mantém-se sempre módulo de negócio → Fundação, mesmo com o novo padrão de módulo-a-módulo já estabelecido no Passo 17.
+- **Sem descobertas técnicas emergentes além das já identificadas e validadas na própria especificação.**
+- **Resultados**: `apps/api/test/comercial.e2e-spec.ts` (6 testes, T1-T6, incluindo teste dedicado de idempotência), suite completa em 141/141 testes (135 herdados + 6 novos); `npm run build` limpo.
+- **Risco R3 do Master Roadmap formalmente resolvido.**
+- **Milestone M4 em curso** — próximo: Passo 20 (enforcement de `limiteUsoIA` por plano + RN-11, trial expirado).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -321,10 +343,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Próximo Milestone (M4) por Confirmar
+## 6. Próxima Ação Imediata — Passo 20 (M4, enforcement de limites)
 
-**M1, M2 e M3 formalmente concluídos.** Com o Passo 18 aprovado (ver 3.18), o **Milestone M3 (Assistente de IA) está formalmente concluído** — Passos 15-18 implementados, validados e aprovados; NFR-17 ("ações de IA") coberto na íntegra, fechando os 4 fluxos críticos obrigatórios do projeto (isolamento multi-tenant, RBAC, limites de plano, ações de IA).
+**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`) concluído e aprovado (ver 3.19)**. Próximo: **Passo 20 — Enforcement de `limiteUsoIA` por plano (já ativo automaticamente desde o Passo 19) + RN-11 (trial expirado → estado "limitada": leitura permitida, criação bloqueada)**.
 
-- **Próximo Milestone (M4) ainda por confirmar com a Fundadora/CEO** — mesmo padrão já seguido entre o encerramento do M1 e a proposta do M2 (Blueprint §2, Master Roadmap): não avançar sem uma proposta formal (objetivos, âmbito, sequência de passos, riscos, DoD) apresentada e aprovada antes de qualquer implementação.
-- Candidatos já identificados em documentos aprovados, mas nenhum ainda proposto formalmente: Comercial (EP-06, Blueprint) — planos/subscrição, `SubscricaoPlano` com limites reais (Master Roadmap, risco R3, dependência já registada desde o Passo 3); UC-02 (convite por email, fora de âmbito desde o Passo 5); revisão da quota provisória de IA (50/mês, Proposta do M3) à luz de uso real.
-- Mesma disciplina de sempre: proposta formal do Milestone → aprovação → Especificação Técnica por passo → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
+- Confirmar/testar de ponta a ponta que a quota de IA já está corretamente diferenciada por plano (o `QuotaService` já lê `SubscricaoPlano.limiteUsoIA` desde o Passo 15/19, sem alteração de código necessária — este passo é sobretudo validação e cobertura de teste adicional).
+- Novo serviço/guard transversal em `comercial` para RN-11 (bloqueio de toda ação de criação quando a subscrição está "limitada") — decidir em Especificação Técnica própria onde vive exatamente e como é consumido pelos módulos de negócio (mesmo precedente do Passo 17 — módulo exporta, outros consomem).
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.

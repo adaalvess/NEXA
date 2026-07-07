@@ -19,14 +19,14 @@ function anoMesAtual(): string {
  * Imposição de quota por Empresa, antes de qualquer chamada ao fornecedor
  * (ADR-005 §3.3 ponto 6, D12; Especificação Técnica do Passo 15, 3.5).
  *
- * `SubscricaoPlano.limiteUsoIA` (Passo 2) é um teto configurável por plano,
- * nunca criado ainda para nenhuma Empresa (Comercial/M4 por construir) — na
- * ausência de `SubscricaoPlano`, usa-se o valor conservador temporário
- * `IA_QUOTA_PADRAO_MENSAL` (Decisão Já Validada E da Proposta do M3),
- * explicitamente marcado como configuração técnica, nunca a política
- * comercial definitiva. `UsoIAMensal` (novo, descoberta real deste passo)
- * é o contador real — `SubscricaoPlano.limiteUsoIA` nunca foi um contador,
- * só um teto, e decrementá-lo destruiria o valor original do limite.
+ * `SubscricaoPlano.limiteUsoIA` é um teto configurável por plano (`null` =
+ * sem limite, plano Enterprise — Especificação Técnica do Passo 19, Decisão
+ * B). Na ausência de `SubscricaoPlano` (não deveria acontecer desde o Passo
+ * 19, já que todo o registo cria um automaticamente, mas mantido como
+ * salvaguarda), usa-se o valor conservador temporário `IA_QUOTA_PADRAO_MENSAL`
+ * (Decisão Já Validada E da Proposta do M3). `UsoIAMensal` é o contador
+ * real — `SubscricaoPlano.limiteUsoIA` nunca foi um contador, só um teto, e
+ * decrementá-lo destruiria o valor original do limite.
  */
 @Injectable()
 export class QuotaService {
@@ -39,6 +39,14 @@ export class QuotaService {
     }
 
     const subscricao = await this.tenantPrisma.client.subscricaoPlano.findUnique({ where: { empresaId: ctx.empresaId } });
+
+    // `subscricao` existe e `limiteUsoIA` é `null` — plano sem limite
+    // (Enterprise), nunca bloqueia. Distinto de "sem `SubscricaoPlano`"
+    // (`subscricao` é `undefined`), que continua a cair no valor global
+    // provisório — o `??` usado antes do Passo 19 tratava os dois casos da
+    // mesma forma, o que ficaria incorreto assim que `SubscricaoPlano` real
+    // passasse a existir.
+    const semLimite = subscricao !== null && subscricao.limiteUsoIA === null;
     const limite = subscricao?.limiteUsoIA ?? quotaPadraoMensal();
 
     const anoMes = anoMesAtual();
@@ -46,7 +54,7 @@ export class QuotaService {
       where: { empresaId_anoMes: { empresaId: ctx.empresaId, anoMes } },
     });
 
-    if ((uso?.contagem ?? 0) >= limite) {
+    if (!semLimite && (uso?.contagem ?? 0) >= limite) {
       throw new QuotaExcedidaError();
     }
 

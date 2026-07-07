@@ -8,6 +8,7 @@ import { ProcessosModule } from './modules/processos/processos.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { IaModule } from './modules/ia/ia.module';
+import { ComercialModule } from './modules/comercial/comercial.module';
 
 /**
  * Módulo raiz da aplicação NEXA.
@@ -32,7 +33,7 @@ import { IaModule } from './modules/ia/ia.module';
     CrmModule,
     DashboardModule,
     IaModule,
-    // Módulos de domínio a adicionar aqui: Comercial.
+    ComercialModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

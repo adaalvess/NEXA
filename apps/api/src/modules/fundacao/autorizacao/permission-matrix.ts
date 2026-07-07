@@ -76,6 +76,12 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       // — mesma granularidade das outras 3 ações de sugestão.
       listar_sugestoes: true,
     },
+    // Comercial (Especificação Técnica do Passo 19, 3.6/Decisão F) — só
+    // admin_empresa; nenhum UC aprovado descreve outro papel a interagir
+    // com planos/faturação.
+    comercial: {
+      ver_planos: true,
+    },
   },
   [Papel.gestor]: {
     fundacao: {
@@ -127,6 +133,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       confirmar_sugestao: true,
       rejeitar_sugestao: true,
       listar_sugestoes: true,
+    },
+    comercial: {
+      ver_planos: false,
     },
   },
   [Papel.colaborador]: {
@@ -180,6 +189,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       rejeitar_sugestao: false,
       listar_sugestoes: false,
     },
+    comercial: {
+      ver_planos: false,
+    },
   },
   [Papel.convidado]: {
     fundacao: {
@@ -228,6 +240,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       confirmar_sugestao: false,
       rejeitar_sugestao: false,
       listar_sugestoes: false,
+    },
+    comercial: {
+      ver_planos: false,
     },
   },
   [Papel.super_admin]: {
