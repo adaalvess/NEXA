@@ -285,3 +285,128 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
     expect(sessaoDepois.expiraEm.getTime()).toBeGreaterThan(expiraPertoDoLimite.getTime());
   });
 });
+
+/**
+ * GET /utilizadores (Especificação Técnica do Passo 14, 3.2.1) — listagem
+ * reduzida para popular seletores de responsável/owner nos formulários de
+ * Processos/CRM. Reutiliza o mesmo harness/beforeEach do describe acima
+ * (Admin, Gestor e dois Colaboradores em Departamentos distintos).
+ */
+describe('RBAC granular — GET /utilizadores', () => {
+  let app: INestApplication;
+  let adminClient: PrismaClient;
+  let passwordHash: string;
+
+  let empresaId: string;
+  let cookieAdmin: string;
+  let cookieGestor: string;
+  let colaboradorMesmoDeptId: string;
+
+  beforeAll(async () => {
+    passwordHash = await argon2.hash(SENHA, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2 });
+
+    const moduleRef = await Test.createTestingModule({ imports: [FundacaoModule] }).compile();
+    app = moduleRef.createNestApplication();
+    app.use(cookieParser());
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    await app.init();
+
+    adminClient = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_ADMIN_URL } } });
+    await adminClient.$connect();
+  });
+
+  afterAll(async () => {
+    await adminClient.$disconnect();
+    await app.close();
+  });
+
+  beforeEach(async () => {
+    const email = `list-utilizadores-admin-${Date.now()}-${Math.random()}@teste.pt`;
+    await request(app.getHttpServer())
+      .post('/auth/registar')
+      .send({ empresa: { nome: 'Listagem Utilizadores Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA } })
+      .expect(201);
+
+    const loginAdmin = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
+    cookieAdmin = loginAdmin.headers['set-cookie'][0];
+    empresaId = loginAdmin.body.empresaId;
+
+    const deptVendas = await adminClient.departamento.create({ data: { empresaId, nome: 'Vendas' } });
+
+    const gestor = await adminClient.utilizador.create({
+      data: {
+        empresaId,
+        nome: 'Gestor',
+        email: `list-gestor-${Date.now()}-${Math.random()}@teste.pt`,
+        passwordHash,
+        papel: Papel.gestor,
+        departamentoId: deptVendas.id,
+      },
+    });
+    const loginGestor = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: gestor.email, password: SENHA })
+      .expect(200);
+    cookieGestor = loginGestor.headers['set-cookie'][0];
+
+    const colaborador = await adminClient.utilizador.create({
+      data: {
+        empresaId,
+        nome: 'Colab Vendas',
+        email: `list-colab-${Date.now()}-${Math.random()}@teste.pt`,
+        passwordHash,
+        papel: Papel.colaborador,
+        departamentoId: deptVendas.id,
+      },
+    });
+    colaboradorMesmoDeptId = colaborador.id;
+  });
+
+  afterEach(async () => {
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T14 — Admin lista os Utilizadores da Empresa, com campos reduzidos (sem email/passwordHash)', async () => {
+    const res = await request(app.getHttpServer()).get('/utilizadores').set('Cookie', cookieAdmin).expect(200);
+    expect(res.body.length).toBe(3);
+    const colab = res.body.find((u: { id: string }) => u.id === colaboradorMesmoDeptId);
+    expect(colab).toEqual({ id: colaboradorMesmoDeptId, nome: 'Colab Vendas', papel: 'colaborador', departamentoId: expect.any(String) });
+    expect(colab.email).toBeUndefined();
+    expect(colab.passwordHash).toBeUndefined();
+  });
+
+  it('T15 — Gestor também pode listar (precisa de escolher responsável/owner)', async () => {
+    await request(app.getHttpServer()).get('/utilizadores').set('Cookie', cookieGestor).expect(200);
+  });
+
+  it('T16 — Colaborador não pode listar (cria sempre para si próprio)', async () => {
+    const loginColaborador = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: (await adminClient.utilizador.findUniqueOrThrow({ where: { id: colaboradorMesmoDeptId } })).email, password: SENHA })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/utilizadores')
+      .set('Cookie', loginColaborador.headers['set-cookie'][0])
+      .expect(403);
+  });
+
+  it('T17 — isolamento de tenant: Admin de outra Empresa nunca vê estes Utilizadores', async () => {
+    const emailB = `list-outra-${Date.now()}-${Math.random()}@teste.pt`;
+    await request(app.getHttpServer())
+      .post('/auth/registar')
+      .send({ empresa: { nome: 'Listagem Outra Empresa', pais: 'PT' }, utilizador: { nome: 'Admin B', email: emailB, password: SENHA } })
+      .expect(201);
+    const loginB = await request(app.getHttpServer()).post('/auth/login').send({ email: emailB, password: SENHA }).expect(200);
+    const empresaBId: string = loginB.body.empresaId;
+
+    const res = await request(app.getHttpServer())
+      .get('/utilizadores')
+      .set('Cookie', loginB.headers['set-cookie'][0])
+      .expect(200);
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].id).not.toBe(colaboradorMesmoDeptId);
+
+    await limparEmpresasDeTeste(adminClient, [empresaBId]);
+  });
+});

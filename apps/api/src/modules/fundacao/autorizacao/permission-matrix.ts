@@ -30,6 +30,12 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_departamento: true,
       eliminar_departamento: true,
       atribuir_departamento: true,
+      // Listagem reduzida de Utilizadores (Especificação Técnica do Passo
+      // 14, 3.2.1) — só para popular seletores de responsável/owner nos
+      // formulários de Processos/CRM, nunca uma pergunta de visibilidade
+      // RBAC por entidade (não há "dono" de um Utilizador do ponto de vista
+      // de posse).
+      listar_utilizadores: true,
     },
     // Módulo de negócio próprio (Especificação Técnica do Passo 9, D4) —
     // distinto de `fundacao` (capacidades transversais). `ver` é o gate
@@ -76,6 +82,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_departamento: false,
       eliminar_departamento: false,
       atribuir_departamento: false,
+      // Gestor também precisa de escolher responsável/owner ao criar
+      // Processos/Clientes para a sua equipa (Passo 14, 3.2.1).
+      listar_utilizadores: true,
     },
     processos: {
       criar: true,
@@ -111,6 +120,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_departamento: false,
       eliminar_departamento: false,
       atribuir_departamento: false,
+      // Colaborador cria sempre Processos/Clientes para si próprio — nunca
+      // precisa de escolher responsável/owner entre terceiros (Passo 14, 3.2.1).
+      listar_utilizadores: false,
     },
     processos: {
       criar: true,
@@ -151,6 +163,8 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       editar_departamento: false,
       eliminar_departamento: false,
       atribuir_departamento: false,
+      // Convidado nunca cria Processos/Clientes (Passo 14, 3.2.1).
+      listar_utilizadores: false,
     },
     processos: {
       criar: false,

@@ -138,4 +138,18 @@ export class UtilizadoresService {
 
     return atualizado;
   }
+
+  /**
+   * Listagem reduzida de Utilizadores da Empresa (Especificação Técnica do
+   * Passo 14, 3.2.1) — só para popular seletores de responsável/owner nos
+   * formulários de Processos/CRM; nunca dados sensíveis (sem `email`).
+   */
+  async listar() {
+    const utilizadores = await this.tenantPrisma.client.utilizador.findMany({
+      where: { eliminadoEm: null },
+      select: { id: true, nome: true, papel: true, departamentoId: true },
+      orderBy: { nome: 'asc' },
+    });
+    return utilizadores;
+  }
 }

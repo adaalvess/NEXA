@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { SessionGuard } from './session.guard';
 import { PermissaoGuard } from '../autorizacao/permissao.guard';
 import { RequirePermissao } from '../autorizacao/require-permissao.decorator';
@@ -14,6 +14,13 @@ import { AtribuirDepartamentoDto } from './dto/atribuir-departamento.dto';
 @Controller('utilizadores')
 export class UtilizadoresController {
   constructor(private readonly utilizadoresService: UtilizadoresService) {}
+
+  @UseGuards(SessionGuard, PermissaoGuard)
+  @RequirePermissao('fundacao', 'listar_utilizadores')
+  @Get()
+  async listar() {
+    return this.utilizadoresService.listar();
+  }
 
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('fundacao', 'atribuir_papel')

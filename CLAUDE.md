@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**M1 (Fundação) formalmente concluído (2026-07-06). M2 (Módulos Core — Dashboard, Processos, CRM) aprovado e em curso — Passo 13 (Design System, frontend) concluído e aprovado. Ver nota abaixo.**
+**M1 (Fundação) formalmente concluído (2026-07-06). M2 (Módulos Core — Dashboard, Processos, CRM) formalmente concluído (2026-07-07). Ver nota abaixo.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -45,7 +45,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 **M1 formalmente encerrado (2026-07-06):** o DoD literal (Blueprint §2.2) estava tecnicamente cumprido desde o Passo 6, mas a Fundadora/CEO tinha decidido que o Passo 7 (Partilha/Convidado) — listado como conteúdo do M1 no Blueprint §3 — era pré-requisito para o encerramento formal do Milestone. Com o Passo 7 concluído e aprovado, **o Milestone M1 (Fundação) está formalmente concluído** — todos os passos previstos (0-7) implementados, validados e aprovados.
 
-### M2 (Módulos Core) — Aprovado e em Curso (2026-07-06)
+### M2 (Módulos Core) — Formalmente Concluído (2026-07-07)
 
 Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências, riscos, DoD, decisões arquitetónicas) apresentada e aprovada pela Fundadora/CEO. Numeração de passos continua a partir do M1.
 
@@ -57,7 +57,9 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 | Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.11 |
 | Passo 12 | Dashboard — agregação read-only | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.12 |
 | Passo 13 | Design System (frontend) — componentes base (ADR-006) | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.13 |
-| Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | 🔜 Próximo passo |
+| Passo 14 | Ecrãs (frontend) — Login, Dashboard, Processos, CRM | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.14 |
+
+**Milestone M2 (Módulos Core) formalmente concluído em 2026-07-07** — todos os passos previstos (8-14) implementados, validados e aprovados; Definition of Done (Blueprint §2.2) cumprido: os 3 módulos (Dashboard, Processos, CRM) operacionais com CRUD completo, visibilidade RBAC verificada em cada módulo (por papel e por posse), estado inicial guiado presente em todos os ecrãs sem dados.
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
@@ -201,6 +203,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - Validação por **inspeção visual real no browser** (preview), não apenas revisão de código: todos os 11 componentes e variantes renderizados; cores confirmadas por correspondência HEX exata ao Brand Book; tipografia confirmada (Space Grotesk/Inter, escala completa); `Modal`/`Select` navegáveis por teclado; responsivo sem quebras em 375px/768px/desktop; `EstadoVazioGuiado` confirmado sem texto fixo interno. `npm run build` e `npm run lint` (`apps/web`) sem erros, TypeScript `strict` intacto — detalhe completo em §3.12 da especificação.
 - **Design System (Blueprint §5.1) concluído** — próximo e último passo do M2: Passo 14 (Ecrãs), primeiro a consumir as APIs do backend (Passos 8-12) através destes componentes.
 
+### 3.14 Registo de Conclusão — Passo 14 (2026-07-07) — último passo do M2, Milestone formalmente concluído
+
+- **Especificação técnica formal aprovada antes da implementação** — ver [Especificação Técnica do Passo 14](docs/04-implementation-blueprint/13-especificacao-tecnica-passo-14-ecras.md). Duas decisões de âmbito validadas (E1: incluir ecrã de Login mínimo, pré-requisito técnico para validação visual dos restantes ecrãs; E2: excluir Registo/Configurações, utilizadores de teste criados via API). Implementado em **3 sub-entregas sequenciais**, cada uma validada visualmente no browser e aprovada formalmente antes da seguinte (Login+Dashboard → Processos → CRM) — mesma disciplina, ritmo mais granular.
+- **Descoberta técnica pré-implementação**: `GET /utilizadores` não existia (só `PATCH :id/papel`/`:id/departamento`), necessário para os seletores de responsável/owner nos formulários de criação — adicionado como extensão mínima e aditiva ao `UtilizadoresController` já existente, nova permissão `fundacao.listar_utilizadores` (só admin/gestor).
+- **Sub-entrega 1 (Login + Dashboard)**: `lib/api.ts` (cliente único de API), sessão via `GET /auth/eu` no Server Component, `papel` só em memória (nunca `localStorage`). **Descoberta**: `POST /auth/logout` nunca tinha sido implementado desde o Passo 3 — adicionado (invalida `Sessao` na BD, nunca só o cookie; evento de auditoria `logout`), com validação explícita pedida pela Fundadora/CEO (invalidação de sessão, redirecionamento de rotas protegidas, botão "Voltar" do browser não expõe conteúdo autenticado, cache do TanStack Query limpa sem fuga entre Empresas). **Descoberta**: sidebar sem responsividade real (largura fixa cortava conteúdo em mobile) — corrigida com padrão de drawer sobreposto em `<md`.
+- **Sub-entrega 2 (Processos)**: lista/criar/detalhe completos, RBAC testado com utilizador `colaborador` real (formulário esconde responsável/departamento, "Eliminar" ausente, confirmado com tentativa direta de `DELETE` via `fetch` → `403`, defesa em profundidade). **Descoberta**: faltava componente `Textarea` (nenhum dos 11 do Passo 13 cobria multi-linha) — adicionado. **Descoberta**: `TabelaDados` recortava colunas em ecrãs estreitos em vez de scrollar — corrigido no componente partilhado, beneficia CRM automaticamente.
+- **Sub-entrega 3 (CRM)**: lista/criar/detalhe/pipeline completos. CR-06 (contacto principal obrigatório antes da primeira Interação) validado end-to-end. RBAC por posse (CR-02/CR-03) validado — "Editar" e registo de Interação dependem de ser owner, não do papel. Pipeline oculto da navegação para colaborador/convidado, acesso direto por URL devolve `403` tratado com mensagem, nunca crash.
+- **Resultados finais**: backend 109/109 testes (102 herdados + 7 novos: 4 para `GET /utilizadores`, 3 para `POST /auth/logout`); frontend build/lint limpos em todas as sub-entregas; responsividade confirmada em 375px/768px/1280px.
+- **Milestone M2 (Módulos Core) formalmente concluído** — Passos 8 a 14 implementados, validados e aprovados; Definition of Done (Blueprint §2.2) cumprido integralmente.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -255,11 +267,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 14 (M2, último passo — Ecrãs)
+## 6. Próxima Ação Imediata — M3 (Assistente de IA) por propor
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso — backend concluído (Passos 8-12) e Design System concluído (Passo 13, ver 3.13)**. Próximo e último passo do M2: **Passo 14 — Ecrãs (frontend)**.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) formalmente concluído em 2026-07-07** (Passos 8-14 — backend, Design System, e Ecrãs). Não há um próximo Passo numerado ainda decidido — o próximo Milestone (**M3 — Assistente de IA**, Blueprint §2.2/Product Vision Arco 1) precisa de uma proposta formal (objetivos, âmbito, sequência de passos, dependências, riscos, DoD, decisões arquitetónicas) apresentada e aprovada pela Fundadora/CEO antes de qualquer numeração de Passo ou implementação — mesmo padrão já seguido na transição M1 → M2.
 
-- Construir os ecrãs reais em `apps/web` consumindo as APIs já implementadas e aprovadas (Passos 8-12) através dos 11 componentes do Design System (Passo 13): Dashboard, Processos (lista + detalhe), CRM (lista + detalhe + pipeline), estado inicial guiado por módulo (`EstadoVazioGuiado`, já pronto a receber `titulo`/`descricao`/`acaoLabel`/`onAcao` por ecrã).
-- `BarraLateralNavegacao` (Blueprint §5.1) fica para este passo — depende da árvore de navegação real dos ecrãs (Information Architecture), só agora decidível.
-- **Decisão A do M2 (já aprovada)**: API-first — nenhuma UI deve antecipar dados/comportamento não coberto pelas APIs já aprovadas; o frontend nunca decide RBAC, só apresenta o que a API já filtrou (ADR-006 §3.7).
-- Seguir a mesma disciplina de governação: Especificação Técnica formal antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação (testável visualmente no browser, não só revisão de código) antes de considerar o passo concluído.
+- **Contexto orientador já registado para a proposta do M3**: Product Vision v1.2, §3.5a (aditamento aprovado em 2026-07-07) — a NEXA aloca esforço de produto segundo o princípio 40% organização / 60% inteligência própria; 6 perguntas canónicas de Autonomia Nível A ("o que está atrasado", "que equipa está sobrecarregada", "que cliente arrisca abandono", "que processo bloqueia o crescimento", "que tarefas posso automatizar hoje", "quais são as três prioridades desta semana") ilustram o que o Assistente de IA deve ser capaz de responder; "profundidade progressiva, nunca complexidade por defeito" como princípio de desenho. A proposta do M3 deve nascer diretamente desta orientação, não ser decidida do zero.
+- **Infraestrutura já preparada para o M3** (decisão deliberada desde o Product Roadmap D3): camada de abstração multi-fornecedor de IA (AI Gateway, ADR-005) e sistema de políticas de autonomia por Empresa ainda por implementar tecnicamente, mas a arquitetura de auditoria/permissões (Passos 4-7) já está pronta para os suportar sem retrabalho.
+- Seguir a mesma disciplina de governação de sempre: proposta formal → aprovação → Especificação Técnica por passo → implementação → validação visual/testes → aprovação dos resultados → sincronização de documentação → commit.

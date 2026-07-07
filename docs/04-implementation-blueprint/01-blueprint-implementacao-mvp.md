@@ -4,8 +4,8 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 2.4 |
-| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, backend do M2 concluído, Design System (Passo 13) concluído |
+| **Versão** | 2.5 |
+| **Estado** | ✅ Aprovado — vivo; M1 e M2 formalmente concluídos |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
 | **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 12 |
 | **Última atualização** | 2026-07-07 |
@@ -235,7 +235,9 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 |---|---|---|---|
 | Fundação | POST | `/auth/registar` | UC-01 — ✅ Implementado (Passo 3) |
 | Fundação | POST | `/auth/login` | ADR-004 — ✅ Implementado (Passo 3) |
+| Fundação | POST | `/auth/logout` | ADR-004 — ✅ Implementado (Passo 14, 3.14 — lacuna real do Passo 3) |
 | Fundação | POST | `/empresas/:id/utilizadores/convidar` | UC-02, FR-02/03 |
+| Fundação | GET | `/utilizadores` | Passo 14, 3.2.1 — ✅ Implementado (listagem reduzida para seletores de responsável/owner) |
 | Fundação | PATCH | `/utilizadores/:id/papel` | FR-03/04 — ✅ Implementado (Passo 5) |
 | Fundação | GET | `/auditoria` | FR-07 — ✅ Implementado (Passo 6) |
 | Fundação | POST | `/partilhas` | FR-35 — ✅ Implementado (Passo 7) |
@@ -290,7 +292,9 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 **Especificação técnica detalhada do Passo 12 (Dashboard):** ver [Especificação Técnica do Passo 12](11-especificacao-tecnica-passo-12-dashboard.md) — terceiro módulo de negócio (`apps/api/src/modules/dashboard/`), **zero alterações ao `AuthorizationService`** (terceira confirmação prática da Decisão B do M2); indicadores agregados de Processos/Clientes/Notificações, estado inicial guiado (FR-12); `GET /notificacoes`/`PATCH .../lida` (exposição de Notificações herdada do Passo 11). **Backend do M2 concluído** — Passos 8 a 12 implementados, validados e aprovados.
 
-**Especificação técnica detalhada do Passo 13 (Design System, frontend):** ver [Especificação Técnica do Passo 13](12-especificacao-tecnica-passo-13-design-system.md) — primeiro passo de `apps/web` desde o scaffolding do Passo 1: estrutura de pastas `components/ui|layout/`, `lib/`, `hooks/` (resolve ADR-006 Q1); 11 componentes base (Botão, Input, Select, Modal, MenuDropdown, TabelaDados, Cartão, NotificacaoToast, BadgeEstado, Avatar, EstadoVazioGuiado) sobre primitivas Radix UI, nomenclatura em português; tokens de marca estendidos (escala tipográfica completa, `glow-purple`); modo único dark (sem light mode no MVP); vitrine interna em `/design-system` em vez de Storybook; `EstadoVazioGuiado` personalizado por módulo (resolve Information Architecture Q1). Validado por inspeção visual real no browser — cores, tipografia, teclado, responsividade — e `npm run build`/`npm run lint` sem erros. **Design System (§5.1) concluído**; próximo e último passo do M2: Passo 14 (Ecrãs), primeiro a consumir as APIs do backend (Passos 8-12) através destes componentes.
+**Especificação técnica detalhada do Passo 13 (Design System, frontend):** ver [Especificação Técnica do Passo 13](12-especificacao-tecnica-passo-13-design-system.md) — primeiro passo de `apps/web` desde o scaffolding do Passo 1: estrutura de pastas `components/ui|layout/`, `lib/`, `hooks/` (resolve ADR-006 Q1); 11 componentes base (Botão, Input, Select, Modal, MenuDropdown, TabelaDados, Cartão, NotificacaoToast, BadgeEstado, Avatar, EstadoVazioGuiado) sobre primitivas Radix UI, nomenclatura em português; tokens de marca estendidos (escala tipográfica completa, `glow-purple`); modo único dark (sem light mode no MVP); vitrine interna em `/design-system` em vez de Storybook; `EstadoVazioGuiado` personalizado por módulo (resolve Information Architecture Q1). Validado por inspeção visual real no browser — cores, tipografia, teclado, responsividade — e `npm run build`/`npm run lint` sem erros. **Design System (§5.1) concluído**.
+
+**Especificação técnica detalhada do Passo 14 (Ecrãs, frontend):** ver [Especificação Técnica do Passo 14](13-especificacao-tecnica-passo-14-ecras.md) — último passo do M2, implementado em 3 sub-entregas sequenciais aprovadas individualmente (Login+Dashboard, Processos, CRM). Ecrãs: `/login`, `/dashboard`, `/processos` (lista/criar/detalhe), `/crm` (lista/criar/detalhe/pipeline) — todos consumindo as APIs dos Passos 8-12 através dos componentes do Passo 13, sem duplicar lógica de RBAC (ADR-006 §3.7). Uma alteração mínima ao backend fora do âmbito original do M2: `GET /utilizadores` (listagem reduzida, nova permissão `fundacao.listar_utilizadores`) e `POST /auth/logout` (nunca implementado desde o Passo 3), ambos aditivos, sem alterar contratos existentes. Validado exaustivamente no browser em cada sub-entrega, incluindo RBAC por papel e por posse, CR-06, defesa em profundidade (`403` mesmo com UI a esconder ações). Endpoints `/utilizadores` e `/auth/logout` marcados implementados na Superfície de API (§4). **Com este passo aprovado, o Milestone M2 (Módulos Core) está formalmente concluído** (Fundadora/CEO, 2026-07-07) — Dashboard, Processos e CRM operacionais com CRUD completo, visibilidade RBAC verificada em cada módulo, estado inicial guiado presente em todos os ecrãs sem dados (Definition of Done, §2.2).
 
 ---
 
@@ -300,7 +304,7 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 ### 5.1 Componentes Base (Tailwind + Radix, ADR-006)
 
-**✅ Implementado e aprovado (Passo 13, ver §4 acima e [Especificação Técnica do Passo 13](12-especificacao-tecnica-passo-13-design-system.md)).** Botão, Input, Select, Modal/Dialog, Menu Dropdown, Tabela de Dados, Cartão, Notificação Toast, Badge de Estado, Avatar, Estado Vazio Guiado (Information Architecture, 3.3) — todos configurados com os tokens exatos do Brand Book (cor, tipografia, espaçamento), em `apps/web/src/components/ui/`. Barra Lateral de Navegação fica para o Passo 14 (composição estrutural, depende da árvore de navegação real dos ecrãs).
+**✅ Implementado e aprovado (Passo 13, ver §4 acima e [Especificação Técnica do Passo 13](12-especificacao-tecnica-passo-13-design-system.md)).** Botão, Input, Select, Modal/Dialog, Menu Dropdown, Tabela de Dados, Cartão, Notificação Toast, Badge de Estado, Avatar, Estado Vazio Guiado (Information Architecture, 3.3) — todos configurados com os tokens exatos do Brand Book (cor, tipografia, espaçamento), em `apps/web/src/components/ui/`. **Barra Lateral de Navegação implementada no Passo 14** (com suporte responsivo em mobile, descoberta feita nesse passo). **Textarea adicionado no Passo 14** — extensão mínima não prevista na lista original dos 11 componentes, necessária para campos de texto multi-linha.
 
 ### 5.2 Ecrãs (a partir do Information Architecture, 3.1)
 
@@ -308,10 +312,10 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 |---|---|
 | Landing Page | M5 |
 | Pricing | M5 |
-| Registo / Login | M1 |
-| Dashboard | M2 |
-| Processos (lista + detalhe) | M2 |
-| CRM (lista + detalhe + pipeline) | M2 |
+| Registo / Login | M1 (Login ✅ implementado no Passo 14; Registo continua via API, UI fora de âmbito) |
+| Dashboard | M2 — ✅ Implementado (Passo 14) |
+| Processos (lista + detalhe) | M2 — ✅ Implementado (Passo 14) |
+| CRM (lista + detalhe + pipeline) | M2 — ✅ Implementado (Passo 14) |
 | Assistente de IA (conversa + sugestões pendentes) | M3 |
 | Configurações da Empresa / Utilizadores | M1 |
 | Checkout / Confirmação de Subscrição | M4 |
@@ -364,3 +368,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 2.2 | 2026-07-06 | **Passo 11 (Notification Dispatcher) concluído e formalmente aprovado pela Fundadora/CEO** — com Especificação Técnica própria (docs/04-implementation-blueprint/10-especificacao-tecnica-passo-11-notification-dispatcher.md): `NotificacaoListener` fire-and-forget sobre o `EVENTO_AUDITORIA` já existente, 5 gatilhos mínimos, sem nova superfície de API (exposição fica para o Passo 12) | CTO (Claude) + Fundadora/CEO |
 | 2.3 | 2026-07-07 | **Passo 12 (Dashboard) concluído e formalmente aprovado pela Fundadora/CEO — backend do M2 concluído (Passos 8-12).** Com Especificação Técnica própria (docs/04-implementation-blueprint/11-especificacao-tecnica-passo-12-dashboard.md): terceiro módulo de negócio, zero alterações ao `AuthorizationService` (terceira confirmação da Decisão B do M2), `GET /notificacoes`/`PATCH .../lida` (exposição herdada do Passo 11). Endpoints `/dashboard` e `/notificacoes` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
 | 2.4 | 2026-07-07 | **Passo 13 (Design System, frontend) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro passo de `apps/web` desde o scaffolding do Passo 1, com Especificação Técnica própria (docs/04-implementation-blueprint/12-especificacao-tecnica-passo-13-design-system.md): 11 componentes base sobre primitivas Radix UI, tokens de marca completos, vitrine interna em `/design-system`, validado por inspeção visual real no browser. §5.1 marcado implementado; próximo e último passo do M2: Passo 14 (Ecrãs) | CTO (Claude) + Fundadora/CEO |
+| 2.5 | 2026-07-07 | **Passo 14 (Ecrãs, frontend) concluído e formalmente aprovado pela Fundadora/CEO — Milestone M2 (Módulos Core) formalmente concluído.** Implementado em 3 sub-entregas sequenciais (Login+Dashboard, Processos, CRM), cada uma validada e aprovada individualmente, com Especificação Técnica própria (docs/04-implementation-blueprint/13-especificacao-tecnica-passo-14-ecras.md): ecrãs `/login`, `/dashboard`, `/processos`, `/crm` completos; `GET /utilizadores` e `POST /auth/logout` adicionados como extensões mínimas ao backend; `Textarea` adicionado ao Design System; `TabelaDados` corrigida para scroll horizontal responsivo. §5.1/§5.2 e Superfície de API (§4) atualizados | CTO (Claude) + Fundadora/CEO |

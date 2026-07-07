@@ -125,4 +125,21 @@ export class AuthService {
 
     return { utilizador, sessao };
   }
+
+  /**
+   * Invalida a Sessao no servidor (Especificação Técnica do Passo 14,
+   * validação de logout) — nunca basta limpar o cookie no browser, já que um
+   * cookie replay continuaria a autenticar enquanto a Sessao existisse na BD.
+   */
+  async logout(sessaoId: string, ctx: { utilizadorId: string; empresaId: string }): Promise<void> {
+    await this.prisma.sessao.delete({ where: { id: sessaoId } });
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: ctx.empresaId,
+      ator: ctx.utilizadorId,
+      acao: 'logout',
+      entidade: 'Sessao',
+      entidadeId: sessaoId,
+    } satisfies EventoAuditoria);
+  }
 }

@@ -1,13 +1,12 @@
+import { redirect } from 'next/navigation';
+import { obterSessaoServidor } from '../lib/sessao-servidor';
+
 /**
- * Placeholder do Passo 1 (Scaffolding). A Landing Page real (Blueprint,
- * secção 5.2, Milestone M5) é construída mais tarde — este ecrã existe só
- * para confirmar que o projeto arranca corretamente.
+ * A Landing Page real (Blueprint, secção 5.2, Milestone M5) fica para mais
+ * tarde — por agora, a raiz só redireciona consoante a sessão (Especificação
+ * Técnica do Passo 14, 3.3), substituindo o placeholder do Passo 1.
  */
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="font-display text-4xl font-semibold">NEXA</h1>
-      <p className="text-nexa-gray">Scaffolding do Passo 1 — a construir.</p>
-    </main>
-  );
+export default async function Home() {
+  const sessao = await obterSessaoServidor();
+  redirect(sessao ? '/dashboard' : '/login');
 }

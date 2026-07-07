@@ -52,4 +52,21 @@ export class AuthController {
   async eu(@Req() req: Request & { utilizador?: TenantContextValue }) {
     return req.utilizador;
   }
+
+  // Adicionado na validação da Sub-entrega 1 do Passo 14 — lacuna real do
+  // Passo 3 (só registo/login/verificação existiam, nunca logout).
+  @UseGuards(SessionGuard)
+  @HttpCode(200)
+  @Post('logout')
+  async logout(
+    @Req() req: Request & { utilizador?: TenantContextValue },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const sessaoId: string | undefined = req.cookies?.[SESSION_COOKIE_NAME];
+    if (sessaoId && req.utilizador) {
+      await this.authService.logout(sessaoId, req.utilizador);
+    }
+    res.clearCookie(SESSION_COOKIE_NAME, { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
+    return { ok: true };
+  }
 }

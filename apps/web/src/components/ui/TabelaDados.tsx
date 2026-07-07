@@ -37,27 +37,29 @@ export function TabelaDados<T>({ colunas, linhas, chaveLinha, carregando, estado
   }
 
   return (
-    <table className="w-full border-collapse text-body text-nexa-white">
-      <thead>
-        <tr className="border-b border-nexa-slate/20 text-left text-small text-nexa-gray">
-          {colunas.map((coluna) => (
-            <th key={coluna.chave} className="px-3 py-2 font-medium">
-              {coluna.cabecalho}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {linhas.map((linha) => (
-          <tr key={chaveLinha(linha)} className={cn('border-b border-nexa-slate/10 last:border-0')}>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-max border-collapse text-body text-nexa-white">
+        <thead>
+          <tr className="border-b border-nexa-slate/20 text-left text-small text-nexa-gray">
             {colunas.map((coluna) => (
-              <td key={coluna.chave} className="px-3 py-3">
-                {coluna.render(linha)}
-              </td>
+              <th key={coluna.chave} className="px-3 py-2 font-medium">
+                {coluna.cabecalho}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {linhas.map((linha) => (
+            <tr key={chaveLinha(linha)} className={cn('border-b border-nexa-slate/10 last:border-0')}>
+              {colunas.map((coluna) => (
+                <td key={coluna.chave} className="px-3 py-3">
+                  {coluna.render(linha)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

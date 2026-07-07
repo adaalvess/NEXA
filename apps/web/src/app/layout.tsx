@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
-import { ToastProvider } from '../components/ui/NotificacaoToast';
+import { Providers } from './providers';
 
 // Auto-hospedadas pelo Next.js (sem pedido externo em runtime) — Brand
 // Book 3.2. Pesos exatamente os recomendados nesse documento.
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt" className={`${spaceGrotesk.variable} ${inter.variable}`}>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
