@@ -354,6 +354,12 @@ model SugestaoIA {
   /// `IA_RETENCAO_CONTEUDO_DIAS`, mesmo que ainda presente na BD.
   conteudoPergunta String?
   conteudoResposta String?
+  /// Parâmetros exatos da ação proposta (Especificação Técnica do Passo 17,
+  /// 3.1) — só para `tipo='sugestao_acao'`. A confirmação executa este
+  /// payload tal-e-qual, nunca uma recomputação tardia da heurística de
+  /// deteção, para que a ação executada seja sempre a que foi mostrada ao
+  /// Utilizador.
+  acaoPayload     Json?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 

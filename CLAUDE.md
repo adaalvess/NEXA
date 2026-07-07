@@ -69,8 +69,8 @@ Proposta completa do M3 (objetivos, âmbito, arquitetura, sequência de passos, 
 |---|---|---|
 | Passo 15 | AI Gateway (backend) — interface própria, adaptador Anthropic, timeout/circuit breaker/quota | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.15 |
 | Passo 16 | Módulo `ia` — `POST /ia/perguntar` (UC-05), extensão do schema `SugestaoIA`, teste NFR-17 | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.16 |
-| Passo 17 | Sugestões de ação (UC-06) — `POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, RN-08 | 🔜 Próximo passo |
-| Passo 18 | Ecrã do Assistente de IA (frontend) — conversa + sugestões pendentes | Por iniciar |
+| Passo 17 | Sugestões de ação (UC-06) — `POST /ia/sugestoes`, `.../confirmar`/`/rejeitar`, RN-08 | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.17 |
+| Passo 18 | Ecrã do Assistente de IA (frontend) — conversa + sugestões pendentes | 🔜 Próximo passo |
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
@@ -244,6 +244,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **NFR-17 ("ações de IA")** tem agora a metade "pergunta" coberta — a metade "sugestão/confirmação" (RN-08) fica para o Passo 17.
 - **Milestone M3 em curso** — próximo: Passo 17 (`POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, UC-06).
 
+### 3.17 Registo de Conclusão — Passo 17 (2026-07-07) — fecha NFR-17 na íntegra
+
+- **Especificação técnica formal aprovada antes da implementação, com 6 decisões emergentes validadas antecipadamente** — ver [Especificação Técnica do Passo 17](docs/04-implementation-blueprint/16-especificacao-tecnica-passo-17-ia-sugestoes.md): (A) único tipo de ação suportado no MVP — reatribuição de um Processo em atraso a um Colaborador do mesmo Departamento com menor carga, o exemplo literal de UC-06; (B) deteção e texto de justificação 100% determinísticos, sem qualquer chamada ao AI Gateway na geração — preserva a quota escassa (50/mês), sem exigir que FR-24/FR-25 sejam cumpridos por um LLM; (C) `ProcessosService` passa a ser exportado por `ProcessosModule` e consumido por `IaModule` para executar a reatribuição confirmada — primeira vez que um módulo de negócio importa o serviço de outro módulo de negócio, coberto pela regra #1 do System Design Principles (interface interna explícita), nunca uma exceção a ela; (D) `ia.gerar_sugestoes`/`confirmar_sugestao`/`rejeitar_sugestao` só para `admin_empresa`/`gestor` — `colaborador` estruturalmente incapaz de reatribuir Processos a terceiros (`ProcessosService.editar` já o impede); (E) sugestão obsoleta na confirmação (UC-06, Exceção E1) → `409`, sem introduzir um 4º valor de `estado`; (F) sem `GET /ia/sugestoes` neste passo, adiado para o Passo 18.
+- **`POST /ia/sugestoes`** (geração), **`POST /ia/sugestoes/:id/confirmar`**, **`POST /ia/sugestoes/:id/rejeitar`** implementados — `IaService.detetarProcessosEmRisco()` (deteção determinística, idempotente), `gerarSugestoes()`, `confirmarSugestao()` (revalida staleness antes de executar via `processosService.editar`, Decisão E; autoridade = destinatário da sugestão ou `admin_empresa`), `rejeitarSugestao()`. RN-08 garantida em duas camadas independentes: tipos (`PendingSuggestion`/`ConfirmedAction`, Passo 15) e eventos (`gerar`/`confirmar`/`rejeitar` de `SugestaoIA` sempre distintos do evento `atualizar`/`Processo` já emitido por Processos, Event & Notification Architecture Rules §3.8).
+- **Extensão aditiva do schema `SugestaoIA`** (`acaoPayload Json?`, migração `20260707191042`) — a confirmação executa exatamente o payload gravado na geração, nunca uma recomputação tardia da heurística.
+- **Sem descobertas técnicas emergentes além das já antecipadas nas 6 decisões da própria especificação** — única confirmação obtida em código (não alterou nenhuma decisão): `ProcessosService.validarResponsavelParaEdicao` já resolve o Departamento a partir do Processo existente quando a confirmação não o fornece explicitamente, por isso `IaService.confirmarSugestao` herda corretamente o âmbito de Departamento do `gestor` confirmante sem código adicional.
+- **Resultados**: `apps/api/test/ia-sugestoes.e2e-spec.ts` (10 testes, via HTTP real), suite completa em 132/132 testes (122 herdados + 10 novos); `npm run build` limpo; app arranca corretamente, rotas mapeadas.
+- **NFR-17 ("ações de IA") fecha na íntegra** — os 4 fluxos críticos obrigatórios (isolamento multi-tenant, RBAC, limites de plano, ações de IA) têm agora todos cobertura de teste automatizado.
+- **Milestone M3 em curso** — próximo: Passo 18 (Ecrã do Assistente de IA, frontend — conversa + sugestões pendentes), primeiro passo de `apps/web` desde o Passo 14.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -298,12 +308,11 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 17 (M3, sugestões de ação)
+## 6. Próxima Ação Imediata — Passo 18 (M3, ecrã do Assistente de IA)
 
-**M1 e M2 formalmente concluídos.** **M3 (Assistente de IA) aprovado e em curso — Passo 15 (AI Gateway) e Passo 16 (`POST /ia/perguntar`) concluídos e aprovados (ver 3.15/3.16)**. Próximo: **Passo 17 — Sugestões de ação (UC-06), `POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, RN-08**.
+**M1 e M2 formalmente concluídos.** **M3 (Assistente de IA) aprovado e em curso — Passo 15 (AI Gateway), Passo 16 (`POST /ia/perguntar`) e Passo 17 (Sugestões de ação) concluídos e aprovados (ver 3.15/3.16/3.17)**. Próximo: **Passo 18 — Ecrã do Assistente de IA (frontend), conversa + sugestões pendentes**.
 
-- Introduzir a distinção estrutural sugestão-pendente/ação-confirmada ao nível de produto (os tipos `PendingSuggestion`/`ConfirmedAction` já existem desde o Passo 15, ADR-005 §3.6/§3.7, mas ainda sem nenhum endpoint a produzi-los ou a consumi-los) — `SugestaoIA.estado` passa a incluir `'pendente'` como estado real, não só teórico (Passo 16 só produziu `'aceite'`).
-- `POST /ia/sugestoes/:id/confirmar` e `POST /ia/sugestoes/:id/rejeitar` — RN-08 (nenhuma ação sugerida pela IA executa sem confirmação humana explícita e individual) aplicado pela primeira vez a um endpoint de produto real, não apenas como princípio de arquitetura.
-- Definir, na Especificação Técnica, que ações concretas o MVP efetivamente propõe (a Proposta do M3 não fechou esta lista) — decisão a trazer para validação, não a assumir.
-- Teste automatizado da metade "sugestão/confirmação" do fluxo crítico "ações de IA" (NFR-17) — fecha a cobertura dos 4 fluxos críticos obrigatórios, juntamente com a metade "pergunta" já coberta no Passo 16.
-- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (testes automatizados, sem endpoint HTTP ainda tem UI a validar) → aprovação dos resultados → sincronização de documentação → commit.
+- Primeiro passo de `apps/web` desde o Passo 14 — consumir `POST /ia/perguntar` (Passo 16) e `POST /ia/sugestoes`/`.../confirmar`/`.../rejeitar` (Passo 17) através dos componentes do Design System (Passo 13), sem duplicar lógica de RBAC (ADR-006 §3.7).
+- `GET /ia/sugestoes` (listagem) fica necessário neste passo — foi deliberadamente adiado do Passo 17 (Decisão F) precisamente até o frontend precisar de facto de listar sugestões pendentes; a decidir/especificar como parte da Especificação Técnica deste passo.
+- Validar visualmente RN-08 no browser — a confirmação de uma sugestão exige uma ação humana explícita e individual (nunca "aceitar todas" em lote, RN-08 literal), e a interface nunca deve sugerir o contrário.
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser, obrigatória para passos de frontend) → aprovação dos resultados → sincronização de documentação → commit.

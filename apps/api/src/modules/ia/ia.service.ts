@@ -1,12 +1,32 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Papel, Prisma } from '@prisma/client';
 import { TenantPrismaService } from '../fundacao/prisma/tenant-prisma.service';
 import { AuthorizationService } from '../fundacao/autorizacao/authorization.service';
 import { tenantContext } from '../fundacao/tenant/tenant-context';
+import { EVENTO_AUDITORIA, EventoAuditoria } from '../fundacao/auditoria/eventos-auditoria';
+import { ProcessosService } from '../processos/processos.service';
 import { AiGatewayService } from './gateway/ai-gateway.service';
 
 interface ConteudoSugestao {
   conteudoPergunta: string | null;
   conteudoResposta: string | null;
+}
+
+/** Único tipo de ação suportado no MVP (Especificação Técnica do Passo 17, Decisão A). */
+interface AcaoReatribuirProcesso {
+  tipo: 'reatribuir_processo';
+  processoId: string;
+  responsavelAtualId: string;
+  responsavelSugeridoId: string;
+}
+
+interface SituacaoDetetada {
+  processoId: string;
+  titulo: string;
+  responsavelAtualId: string;
+  responsavelSugeridoId: string;
+  nomeCandidato: string;
 }
 
 function reterConteudo(): boolean {
@@ -19,9 +39,10 @@ function retencaoDias(): number {
 
 /**
  * Módulo `ia` — pergunta livre (UC-05, FR-23/24; Especificação Técnica do
- * Passo 16). Reúne o resumo operacional já filtrado por RBAC (3.3 dessa
- * especificação) antes de invocar o `AiGatewayService` (Passo 15) — nunca
- * o Gateway decide sobre dados de domínio (ADR-005 §3.3 ponto 1).
+ * Passo 16) e sugestões de ação (UC-06, FR-25, RN-08; Especificação Técnica
+ * do Passo 17). Reúne o resumo operacional/deteta situações já filtrados
+ * por RBAC antes de invocar o `AiGatewayService` (Passo 15) — nunca o
+ * Gateway decide sobre dados de domínio (ADR-005 §3.3 ponto 1).
  */
 @Injectable()
 export class IaService {
@@ -29,6 +50,8 @@ export class IaService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly authorizationService: AuthorizationService,
     private readonly aiGateway: AiGatewayService,
+    private readonly processosService: ProcessosService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async perguntar(pergunta: string): Promise<{ id: string; resposta: string }> {
@@ -128,5 +151,232 @@ export class IaService {
       return { conteudoPergunta: null, conteudoResposta: null };
     }
     return { conteudoPergunta: sugestao.conteudoPergunta, conteudoResposta: sugestao.conteudoResposta };
+  }
+
+  /**
+   * Geração de sugestões de ação (UC-06, FR-25; Especificação Técnica do
+   * Passo 17, 3.3). Deteção e texto 100% determinísticos (Decisão B) —
+   * nenhuma chamada ao AI Gateway, para preservar a quota escassa. Cria uma
+   * `SugestaoIA` `pendente` por situação detetada; idempotente (3.2) — uma
+   * situação já coberta por uma sugestão pendente nunca gera duplicado.
+   */
+  async gerarSugestoes(): Promise<{ sugestoes: { id: string; entidadeRef: string; texto: string }[] }> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const situacoes = await this.detetarProcessosEmRisco();
+
+    const criadas: { id: string; entidadeRef: string; texto: string }[] = [];
+    for (const situacao of situacoes) {
+      const texto = `Processo '${situacao.titulo}' está atrasado. Sugerimos reatribuir a ${situacao.nomeCandidato}, que tem atualmente menos Processos em atraso no Departamento.`;
+      const acaoPayload: AcaoReatribuirProcesso = {
+        tipo: 'reatribuir_processo',
+        processoId: situacao.processoId,
+        responsavelAtualId: situacao.responsavelAtualId,
+        responsavelSugeridoId: situacao.responsavelSugeridoId,
+      };
+
+      const sugestao = await this.tenantPrisma.client.sugestaoIA.create({
+        data: {
+          empresaId: ctx.empresaId,
+          utilizadorId: ctx.utilizadorId,
+          tipo: 'sugestao_acao',
+          entidadeRef: situacao.processoId,
+          fornecedorUsado: 'deterministico',
+          conteudoResposta: texto,
+          // `AcaoReatribuirProcesso` não é estruturalmente igual ao tipo
+          // recursivo `InputJsonValue` do Prisma — cast seguro, o valor real
+          // é sempre JSON serializável (mesmo padrão de AuditoriaListener).
+          acaoPayload: acaoPayload as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      criadas.push({ id: sugestao.id, entidadeRef: situacao.processoId, texto });
+    }
+
+    if (criadas.length > 0) {
+      await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+        empresaId: ctx.empresaId,
+        ator: ctx.utilizadorId,
+        acao: 'gerar',
+        entidade: 'SugestaoIA',
+        entidadeId: criadas[0].id,
+        detalhe: { quantidade: criadas.length, ids: criadas.map((c) => c.id) },
+      } satisfies EventoAuditoria);
+    }
+
+    return { sugestoes: criadas };
+  }
+
+  /**
+   * Confirmação de uma sugestão de ação (UC-06, RN-08; Especificação
+   * Técnica do Passo 17, 3.4/Decisão C). Executa via `ProcessosService.editar`
+   * — nunca escreve diretamente no Processo — herdando PR-01 a PR-07, a
+   * autorização de instância e o evento de auditoria já emitidos por
+   * Processos (evento distinto do `confirmar`/`SugestaoIA` abaixo, Event &
+   * Notification Architecture Rules §3.8).
+   */
+  async confirmarSugestao(id: string): Promise<{ id: string; estado: string }> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const sugestao = await this.tenantPrisma.client.sugestaoIA.findUnique({ where: { id } });
+    if (!sugestao) {
+      throw new NotFoundException();
+    }
+
+    if (sugestao.utilizadorId !== ctx.utilizadorId && ctx.papel !== Papel.admin_empresa) {
+      throw new ForbiddenException();
+    }
+
+    if (sugestao.tipo !== 'sugestao_acao') {
+      throw new BadRequestException('Este endpoint só confirma sugestões de ação.');
+    }
+
+    if (sugestao.estado !== 'pendente') {
+      throw new ConflictException('Esta sugestão já foi confirmada ou rejeitada.');
+    }
+
+    const acao = sugestao.acaoPayload as unknown as AcaoReatribuirProcesso;
+
+    // Decisão E — revalida a situação antes de executar (UC-06, Exceção
+    // E1): se já não for válida, devolve 409 sem tocar em `estado`, para o
+    // Utilizador poder rejeitar explicitamente.
+    const processoAtual = await this.tenantPrisma.client.processo.findUnique({ where: { id: acao.processoId } });
+    const aindaValida =
+      processoAtual &&
+      !processoAtual.eliminadoEm &&
+      processoAtual.estado !== 'concluida' &&
+      processoAtual.responsavelId === acao.responsavelAtualId;
+
+    if (!aindaValida) {
+      throw new ConflictException('A ação sugerida já não é válida.');
+    }
+
+    await this.processosService.editar(acao.processoId, { responsavelId: acao.responsavelSugeridoId });
+
+    const atualizada = await this.tenantPrisma.client.sugestaoIA.update({ where: { id }, data: { estado: 'aceite' } });
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: ctx.empresaId,
+      ator: ctx.utilizadorId,
+      acao: 'confirmar',
+      entidade: 'SugestaoIA',
+      entidadeId: id,
+      detalhe: { processoId: acao.processoId, responsavelSugeridoId: acao.responsavelSugeridoId },
+    } satisfies EventoAuditoria);
+
+    return { id: atualizada.id, estado: atualizada.estado };
+  }
+
+  /** Rejeição de uma sugestão de ação (UC-06; Especificação Técnica do Passo 17, 3.5) — nunca toca no Processo. */
+  async rejeitarSugestao(id: string): Promise<{ id: string; estado: string }> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const sugestao = await this.tenantPrisma.client.sugestaoIA.findUnique({ where: { id } });
+    if (!sugestao) {
+      throw new NotFoundException();
+    }
+
+    if (sugestao.utilizadorId !== ctx.utilizadorId && ctx.papel !== Papel.admin_empresa) {
+      throw new ForbiddenException();
+    }
+
+    if (sugestao.tipo !== 'sugestao_acao') {
+      throw new BadRequestException('Este endpoint só rejeita sugestões de ação.');
+    }
+
+    if (sugestao.estado !== 'pendente') {
+      throw new ConflictException('Esta sugestão já foi confirmada ou rejeitada.');
+    }
+
+    const atualizada = await this.tenantPrisma.client.sugestaoIA.update({ where: { id }, data: { estado: 'rejeitada' } });
+
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: ctx.empresaId,
+      ator: ctx.utilizadorId,
+      acao: 'rejeitar',
+      entidade: 'SugestaoIA',
+      entidadeId: id,
+    } satisfies EventoAuditoria);
+
+    return { id: atualizada.id, estado: atualizada.estado };
+  }
+
+  /**
+   * Deteção determinística de Processos em risco (Especificação Técnica do
+   * Passo 17, 3.2) — reaproveita `obterEscopoVisibilidade`/`construirFiltroWhere`
+   * (Passo 16), a mesma condição de "atraso" já usada em
+   * `reunirResumoOperacional`. Único candidato considerado: um Colaborador
+   * do mesmo Departamento, diferente do responsável atual, com menos
+   * Processos em atraso atualmente atribuídos (empate desfeito por `id`
+   * ascendente, para resultado estável em teste).
+   */
+  private async detetarProcessosEmRisco(): Promise<SituacaoDetetada[]> {
+    const escopo = await this.authorizationService.obterEscopoVisibilidade('processo');
+    const filtro = this.authorizationService.construirFiltroWhere(escopo, 'departamentoId', 'responsavelId');
+    const where = { eliminadoEm: null, estado: { not: 'concluida' as const }, prazo: { lt: new Date() }, ...filtro };
+
+    const processosEmRisco = await this.tenantPrisma.client.processo.findMany({
+      where,
+      select: { id: true, titulo: true, responsavelId: true, departamentoId: true },
+    });
+
+    const situacoes: SituacaoDetetada[] = [];
+
+    for (const processo of processosEmRisco) {
+      if (!processo.departamentoId) {
+        continue; // sem Departamento, não há como identificar um candidato de reatribuição.
+      }
+
+      const jaPendente = await this.tenantPrisma.client.sugestaoIA.findFirst({
+        where: { tipo: 'sugestao_acao', entidadeRef: processo.id, estado: 'pendente' },
+      });
+      if (jaPendente) {
+        continue; // idempotência — não duplica uma sugestão já pendente para o mesmo Processo.
+      }
+
+      const candidatos = await this.tenantPrisma.client.utilizador.findMany({
+        where: { departamentoId: processo.departamentoId, papel: Papel.colaborador, eliminadoEm: null, id: { not: processo.responsavelId } },
+        orderBy: { id: 'asc' },
+        select: { id: true, nome: true },
+      });
+      if (candidatos.length === 0) {
+        continue; // sem candidato válido, não há ação a propor.
+      }
+
+      let melhor: { id: string; nome: string } | null = null;
+      let melhorContagem = Infinity;
+      for (const candidato of candidatos) {
+        const contagem = await this.tenantPrisma.client.processo.count({
+          where: { responsavelId: candidato.id, eliminadoEm: null, estado: { not: 'concluida' }, prazo: { lt: new Date() } },
+        });
+        if (contagem < melhorContagem) {
+          melhor = candidato;
+          melhorContagem = contagem;
+        }
+      }
+
+      if (!melhor) {
+        continue;
+      }
+
+      situacoes.push({
+        processoId: processo.id,
+        titulo: processo.titulo,
+        responsavelAtualId: processo.responsavelId,
+        responsavelSugeridoId: melhor.id,
+        nomeCandidato: melhor.nome,
+      });
+    }
+
+    return situacoes;
   }
 }

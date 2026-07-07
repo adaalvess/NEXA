@@ -65,8 +65,13 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     },
     // Assistente de IA (Especificação Técnica do Passo 16) — Information
     // Architecture §3.4 (RBAC por área): admin vê a Empresa toda.
+    // gerar_sugestoes/confirmar_sugestao/rejeitar_sugestao (Especificação
+    // Técnica do Passo 17, 3.6/Decisão D) — sem restrição de instância.
     ia: {
       perguntar: true,
+      gerar_sugestoes: true,
+      confirmar_sugestao: true,
+      rejeitar_sugestao: true,
     },
   },
   [Papel.gestor]: {
@@ -110,8 +115,14 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       marcar_lida: true,
     },
     // Âmbito: a sua equipa (Information Architecture §3.4).
+    // gerar_sugestoes/confirmar_sugestao/rejeitar_sugestao (Passo 17,
+    // Decisão D) — âmbito restrito ao seu Departamento, herdado de
+    // `obterEscopoVisibilidade`/`ProcessosService.editar`.
     ia: {
       perguntar: true,
+      gerar_sugestoes: true,
+      confirmar_sugestao: true,
+      rejeitar_sugestao: true,
     },
   },
   [Papel.colaborador]: {
@@ -154,8 +165,15 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       marcar_lida: true,
     },
     // Âmbito: o seu próprio (Information Architecture §3.4).
+    // gerar_sugestoes/confirmar_sugestao/rejeitar_sugestao: `false` (Passo
+    // 17, Decisão D) — Colaborador estruturalmente incapaz de reatribuir
+    // Processos a terceiros (`ProcessosService.editar` já o impede), nunca
+    // conseguiria executar esta ação de qualquer forma.
     ia: {
       perguntar: true,
+      gerar_sugestoes: false,
+      confirmar_sugestao: false,
+      rejeitar_sugestao: false,
     },
   },
   [Papel.convidado]: {
@@ -201,6 +219,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     // o Assistente de IA.
     ia: {
       perguntar: false,
+      gerar_sugestoes: false,
+      confirmar_sugestao: false,
+      rejeitar_sugestao: false,
     },
   },
   [Papel.super_admin]: {
