@@ -4,12 +4,12 @@
 |---|---|
 | **Documento** | Resumo Executivo e Roadmap (Master Roadmap) |
 | **Fase** | Transversal — documento de acompanhamento permanente do projeto |
-| **Versão** | 2.4 |
+| **Versão** | 2.5 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | Fundadora / CEO |
 | **Documentos de referência** | Todos os documentos produzidos até à data (38 documentos) |
 | **Natureza** | Vivo — atualizado a cada fase concluída |
-| **Última atualização** | 2026-07-06 |
+| **Última atualização** | 2026-07-07 |
 
 ---
 
@@ -29,7 +29,7 @@ A NEXA está, à data deste documento, em fase 100% de documentação — nenhum
 
 ### 3.1 Estado Atual do Projeto
 
-> **A NEXA concluiu toda a Fase 3 (3a Engineering Principles, 3b ADRs de Tecnologia — 8 aprovados, 3c Coding Standards, 3d AI Principles). As Fases 4 (Planeamento), 5 (Arquitetura Técnica Detalhada) e 6 (UI/UX) foram compactadas num único documento — o Blueprint de Implementação do MVP (decisão D1 desse documento) — que cobre parcialmente os seus Exit Criteria originais (ver 3.2a). Dentro da Fase 7 (Desenvolvimento da Plataforma), **o Milestone M1 (Fundação) do Blueprint está formalmente concluído (2026-07-06)** — Passos 0-7 implementados, validados e aprovados. **O Milestone M2 (Módulos Core — Dashboard, Processos, CRM) está aprovado e em curso, com o backend concluído** (Passos 8-12: Departamento, Processos/Tarefas, CRM, Notification Dispatcher e Dashboard) — próximos passos (13-14) são de frontend.**
+> **A NEXA concluiu toda a Fase 3 (3a Engineering Principles, 3b ADRs de Tecnologia — 8 aprovados, 3c Coding Standards, 3d AI Principles). As Fases 4 (Planeamento), 5 (Arquitetura Técnica Detalhada) e 6 (UI/UX) foram compactadas num único documento — o Blueprint de Implementação do MVP (decisão D1 desse documento) — que cobre parcialmente os seus Exit Criteria originais (ver 3.2a). Dentro da Fase 7 (Desenvolvimento da Plataforma), **o Milestone M1 (Fundação) do Blueprint está formalmente concluído (2026-07-06)** — Passos 0-7 implementados, validados e aprovados. **O Milestone M2 (Módulos Core — Dashboard, Processos, CRM) está aprovado e em curso, com o backend concluído** (Passos 8-12: Departamento, Processos/Tarefas, CRM, Notification Dispatcher e Dashboard) **e o Passo 13 (Design System, frontend) concluído e formalmente aprovado** — próximo passo (14, Ecrãs) é o último do M2.**
 
 Tecnologia escolhida e documentada nos 8 ADRs (PostgreSQL/Prisma, NestJS, Next.js, sessões server-side, AI Gateway multi-fornecedor, Stripe). Código já existe (scaffolding do monorepo + schema de base de dados real e migrado) — a afirmação anterior desta secção ("nenhum código foi escrito") ficou desatualizada e foi corrigida nesta revisão.
 
@@ -44,9 +44,9 @@ Tecnologia escolhida e documentada nos 8 ADRs (PostgreSQL/Prisma, NestJS, Next.j
 | 3c | Coding Standards | ✅ Concluída |
 | 3d | AI Principles (formalização técnica dedicada) | ✅ Concluída |
 | 4 | Planeamento (Épicos, Features, Milestones, Sprints, Release Strategy, Risk Register, Technical Debt Register) | 🔶 Parcialmente coberta — Épicos/Milestones/DoD no Blueprint (D1); Sprints, Release Strategy, Risk Register e Technical Debt Register formais ainda não produzidos |
-| 5 | Arquitetura Técnica Detalhada (esquema de base de dados real, especificação de API, Design System de componentes) | 🔶 Parcialmente coberta — esquema real já implementado e migrado (Blueprint §3a); superfície de API mínima definida; Design System só como inventário de componentes, sem especificação visual ao detalhe |
+| 5 | Arquitetura Técnica Detalhada (esquema de base de dados real, especificação de API, Design System de componentes) | 🔶 Parcialmente coberta — esquema real já implementado e migrado (Blueprint §3a); superfície de API mínima definida; Design System já implementado e validado (Blueprint M2, Passo 13) — 11 componentes base, tokens de marca completos |
 | 6 | UI/UX Design (protótipos, ecrãs) | 🔶 Parcialmente coberta — só inventário de ecrãs por prioridade (Blueprint §5.2); nenhum protótipo real produzido |
-| 7 | Desenvolvimento da Plataforma (código) | 🔄 Em curso — M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) backend concluído (Passos 8-12), frontend (13-14) por iniciar |
+| 7 | Desenvolvimento da Plataforma (código) | 🔄 Em curso — M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) backend concluído (Passos 8-12), Design System (Passo 13) concluído, Passo 14 (Ecrãs) por iniciar |
 | 8 | Testes e Garantia de Qualidade (funcional, integração, performance, segurança, aceitação) | ⬜ Por iniciar |
 | 9 | Preparação para Produção (infraestrutura, observabilidade, monitorização, backups, continuidade, CI/CD) | ⬜ Por iniciar |
 | 10 | Lançamento e Evolução Contínua (piloto → lançamento público → Arcos 2-4 do Product Roadmap) | ⬜ Por iniciar — fase contínua, sem estado final |
@@ -66,9 +66,9 @@ Cada fase só é considerada concluída quando os seus critérios objetivos est�
 | 3c — Coding Standards | ✅ **Cumprido** — documento aprovado e coerente com os ADRs de 3b |
 | 3d — AI Principles | ✅ **Cumprido** — documento aprovado, coerente com FR-26/27 e Security & Access Principles 3.6 |
 | 4 — Planeamento | 🔶 **Parcial** — Épicos e Milestones mapeados no Blueprint, com Definition of Done por Milestone; Sprints, Release Strategy, Risk Register e Technical Debt Register formais **ainda não produzidos**. Decisão deliberada (Blueprint D1) de compactar em vez de produzir os 3 documentos completos — o desenvolvimento avançou sobre esta base parcial, não bloqueou por causa dela |
-| 5 — Arquitetura Técnica Detalhada | 🔶 **Parcial** — esquema de base de dados real aprovado **e já implementado/migrado** (Blueprint §3a); especificação de API mínima definida (Blueprint §4), mas não confirmada como cobrindo 1:1 todos os FR-XX; Design System listado como inventário de componentes, sem especificação visual ao detalhe |
+| 5 — Arquitetura Técnica Detalhada | 🔶 **Parcial** — esquema de base de dados real aprovado **e já implementado/migrado** (Blueprint §3a); especificação de API mínima definida (Blueprint §4), mas não confirmada como cobrindo 1:1 todos os FR-XX; **Design System já implementado e validado** (Blueprint M2, Passo 13) |
 | 6 — UI/UX | 🔶 **Parcial** — inventário de ecrãs por prioridade definido (Blueprint §5.2); nenhum protótipo visual real produzido ainda |
-| 7 — Desenvolvimento | 🔄 **Em curso** — M1 (Fundação) do Blueprint **formalmente concluído** (Passos 0-7: scaffolding, schema Prisma + migração, Autenticação, Camada 1/RLS, RBAC granular, Registo de Auditoria, Partilha/Convidado). **M2 (Módulos Core) aprovado e em curso, backend concluído** — Passo 8 (Departamento), Passo 9 (Processos/Tarefas), Passo 10 (CRM) e Passo 11 (Notification Dispatcher), e Passo 12 (Dashboard, terceira confirmação da Decisão B do M2 — zero alterações ao `AuthorizationService`) concluídos; Passo 13 (Design System, frontend) por iniciar. Exit criteria da Fase 7 como um todo (todos os FR/US/UC do MVP implementados, testes dos 4 fluxos críticos) continua por cumprir — o M1 é só o primeiro de vários milestones do Blueprint dentro desta fase |
+| 7 — Desenvolvimento | 🔄 **Em curso** — M1 (Fundação) do Blueprint **formalmente concluído** (Passos 0-7: scaffolding, schema Prisma + migração, Autenticação, Camada 1/RLS, RBAC granular, Registo de Auditoria, Partilha/Convidado). **M2 (Módulos Core) aprovado e em curso, backend concluído** — Passo 8 (Departamento), Passo 9 (Processos/Tarefas), Passo 10 (CRM) e Passo 11 (Notification Dispatcher), e Passo 12 (Dashboard, terceira confirmação da Decisão B do M2 — zero alterações ao `AuthorizationService`) concluídos; **Passo 13 (Design System, frontend) concluído** — 11 componentes base, tokens de marca completos, vitrine interna em `/design-system`, validados por inspeção real no browser. Passo 14 (Ecrãs) é o último do M2. Exit criteria da Fase 7 como um todo (todos os FR/US/UC do MVP implementados, testes dos 4 fluxos críticos) continua por cumprir — o M1 é só o primeiro de vários milestones do Blueprint dentro desta fase |
 | 8 — Testes e QA | Plano de testes executado (funcional, integração, performance, segurança, aceitação); zero defeitos de severidade crítica em aberto |
 | 9 — Preparação para Produção | Infraestrutura, observabilidade, monitorização, backups e CI/CD operacionais; disponibilidade validada contra NFR-01 (99,9%) em ambiente real |
 | 10 — Lançamento e Evolução | *(sem exit criteria — fase contínua por desenho; ver nota acima)*. O "sucesso" do piloto é medido pelos critérios já definidos no Success Metrics, não por um critério de conclusão de fase |
@@ -303,9 +303,9 @@ Cálculo: (30+0+0) / 3 = 30/3 = **10%**
 | **M3** | Fase 3a — Engineering Principles concluída | ✅ Concluído |
 | **M4** | Fase 3b-3d — ADRs de tecnologia, Coding Standards, AI Principles | ✅ Concluído — 8 ADRs, Coding Standards e AI Principles aprovados |
 | **M5** | Fase 4 — Planeamento (Épicos, Sprints, Release Strategy) | 🔶 Parcial — Épicos/Milestones/DoD no Blueprint; Sprints/Release Strategy/Risk Register/Technical Debt Register por fazer |
-| **M6** | Fase 5 — Arquitetura Técnica Detalhada (esquema real, API, Design System) | 🔶 Parcial — esquema real implementado e migrado (Blueprint M1/Passo 2); API mínima definida; Design System só como inventário |
+| **M6** | Fase 5 — Arquitetura Técnica Detalhada (esquema real, API, Design System) | 🔶 Parcial — esquema real implementado e migrado (Blueprint M1/Passo 2); API mínima definida; Design System já implementado e validado (Blueprint M2/Passo 13) |
 | **M7** | Fase 6 — UI/UX (protótipos) | 🔶 Parcial — só inventário de ecrãs por prioridade, sem protótipos |
-| **M8** | Início do desenvolvimento (Fase 7, Claude Code) | 🔄 Em curso — Blueprint M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) backend concluído (Passos 8-12), frontend (13-14) por iniciar |
+| **M8** | Início do desenvolvimento (Fase 7, Claude Code) | 🔄 Em curso — Blueprint M1 (Fundação) formalmente concluído (Passos 0-7); M2 (Módulos Core) backend concluído (Passos 8-12), Design System (Passo 13) concluído, Passo 14 (Ecrãs) por iniciar |
 | **M9** | Fase 8 — Testes e Garantia de Qualidade (funcional, integração, performance, segurança, aceitação) | ⬜ Pendente |
 | **M10** | Fase 9 — Preparação para Produção (infraestrutura, observabilidade, backups, CI/CD) | ⬜ Pendente |
 | **M11** | Lançamento com empresas piloto (Fase 10, Horizonte 1 do Product Roadmap) | ⬜ Pendente |
@@ -340,7 +340,7 @@ O diagrama seguinte mostra como as fases convergem para uma especificação úni
 
 ### 3.10 Recomendação Fundamentada — Próxima Fase
 
-**Milestone M1 (Fundação) formalmente concluído (2026-07-06, Passo 7). Milestone M2 (Módulos Core) aprovado e em curso, backend concluído — Passos 8 a 12 concluídos e formalmente aprovados, ver 3.8-3.12 do CLAUDE.md e as respetivas Especificações Técnicas. Passo 9 centralizou a lógica de visibilidade RBAC no `AuthorizationService` (Decisão B do M2); Passos 10 e 12 confirmaram, em dois módulos de negócio distintos, que essa centralização funciona sem duplicação (zero alterações ao `AuthorizationService` em ambos); Passo 11 introduziu o primeiro consumidor de eventos fire-and-forget. Próximo: Passo 13 (Design System, frontend) — primeiro passo de `apps/web` desde o scaffolding do Passo 1.**
+**Milestone M1 (Fundação) formalmente concluído (2026-07-06, Passo 7). Milestone M2 (Módulos Core) aprovado e em curso — Passos 8 a 13 concluídos e formalmente aprovados, ver 3.8-3.13 do CLAUDE.md e as respetivas Especificações Técnicas. Passo 9 centralizou a lógica de visibilidade RBAC no `AuthorizationService` (Decisão B do M2); Passos 10 e 12 confirmaram, em dois módulos de negócio distintos, que essa centralização funciona sem duplicação (zero alterações ao `AuthorizationService` em ambos); Passo 11 introduziu o primeiro consumidor de eventos fire-and-forget; Passo 13 (Design System) foi o primeiro passo de `apps/web` desde o scaffolding do Passo 1 — 11 componentes base, tokens de marca completos, vitrine interna em `/design-system`. Próximo: Passo 14 (Ecrãs — Dashboard, Processos, CRM, estado inicial guiado) — último passo do M2, primeiro a consumir as APIs do backend (Passos 8-12) através dos componentes do Design System (Passo 13).**
 
 **Porquê esta é a sequência mais lógica agora:**
 
@@ -408,3 +408,4 @@ Toda atualização é registada no Histórico de Alterações (secção 7), com 
 | 2.2 | 2026-07-06 | **Passo 10 (CRM) concluído e formalmente aprovado pela Fundadora/CEO** — segundo módulo de negócio; zero alterações ao `AuthorizationService`, confirmando na prática a centralização da Decisão B do M2. Estado da Fase 7 atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) | CTO (Claude) + Fundadora/CEO |
 | 2.3 | 2026-07-06 | **Passo 11 (Notification Dispatcher) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro consumidor de eventos fire-and-forget do projeto, reutilizando o `EVENTO_AUDITORIA` já existente sem alterar nenhum ponto de emissão. Estado da Fase 7 atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) | CTO (Claude) + Fundadora/CEO |
 | 2.4 | 2026-07-07 | **Passo 12 (Dashboard) concluído e formalmente aprovado pela Fundadora/CEO — backend do Milestone M2 concluído** (Passos 8-12). Terceira confirmação prática da Decisão B do M2 (zero alterações ao `AuthorizationService`). Estado da Fase 7 atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) — próximos passos (13-14) são de frontend | CTO (Claude) + Fundadora/CEO |
+| 2.5 | 2026-07-07 | **Passo 13 (Design System, frontend) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro passo de `apps/web` desde o scaffolding do Passo 1: 11 componentes base sobre primitivas Radix UI, tokens de marca completos (tipografia, glow), vitrine interna em `/design-system`, validado por inspeção visual real no browser (não só revisão de código). Estado da Fase 7 e da Fase 5 (Design System) atualizado em todas as menções (3.1 topo, 3.2, 3.7/M8, 3.10) — próximo e último passo do M2: Passo 14 (Ecrãs) | CTO (Claude) + Fundadora/CEO |

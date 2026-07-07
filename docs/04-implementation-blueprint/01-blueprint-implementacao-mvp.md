@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 2.3 |
-| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, backend do M2 concluído |
+| **Versão** | 2.4 |
+| **Estado** | ✅ Aprovado — vivo; M1 formalmente concluído, backend do M2 concluído, Design System (Passo 13) concluído |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
 | **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 12 |
-| **Última atualização** | 2026-07-06 |
+| **Última atualização** | 2026-07-07 |
 
 ---
 
@@ -288,7 +288,9 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 **Especificação técnica detalhada do Passo 11 (Notification Dispatcher):** ver [Especificação Técnica do Passo 11](10-especificacao-tecnica-passo-11-notification-dispatcher.md) — `NotificacaoListener` fire-and-forget sobre o mesmo `EVENTO_AUDITORIA` já existente (sem novo tipo de evento); 5 gatilhos mínimos (`atribuir_papel`, `atribuir_departamento`, `criar` Partilha, `criar`/`atualizar` Processo com reatribuição). **Sem nova superfície de API** — exposição de Notificações ao Utilizador fica para o Passo 12 (Dashboard).
 
-**Especificação técnica detalhada do Passo 12 (Dashboard):** ver [Especificação Técnica do Passo 12](11-especificacao-tecnica-passo-12-dashboard.md) — terceiro módulo de negócio (`apps/api/src/modules/dashboard/`), **zero alterações ao `AuthorizationService`** (terceira confirmação prática da Decisão B do M2); indicadores agregados de Processos/Clientes/Notificações, estado inicial guiado (FR-12); `GET /notificacoes`/`PATCH .../lida` (exposição de Notificações herdada do Passo 11). **Backend do M2 concluído** — Passos 8 a 12 implementados, validados e aprovados; próximos passos (13-14) são de frontend (`apps/web`).
+**Especificação técnica detalhada do Passo 12 (Dashboard):** ver [Especificação Técnica do Passo 12](11-especificacao-tecnica-passo-12-dashboard.md) — terceiro módulo de negócio (`apps/api/src/modules/dashboard/`), **zero alterações ao `AuthorizationService`** (terceira confirmação prática da Decisão B do M2); indicadores agregados de Processos/Clientes/Notificações, estado inicial guiado (FR-12); `GET /notificacoes`/`PATCH .../lida` (exposição de Notificações herdada do Passo 11). **Backend do M2 concluído** — Passos 8 a 12 implementados, validados e aprovados.
+
+**Especificação técnica detalhada do Passo 13 (Design System, frontend):** ver [Especificação Técnica do Passo 13](12-especificacao-tecnica-passo-13-design-system.md) — primeiro passo de `apps/web` desde o scaffolding do Passo 1: estrutura de pastas `components/ui|layout/`, `lib/`, `hooks/` (resolve ADR-006 Q1); 11 componentes base (Botão, Input, Select, Modal, MenuDropdown, TabelaDados, Cartão, NotificacaoToast, BadgeEstado, Avatar, EstadoVazioGuiado) sobre primitivas Radix UI, nomenclatura em português; tokens de marca estendidos (escala tipográfica completa, `glow-purple`); modo único dark (sem light mode no MVP); vitrine interna em `/design-system` em vez de Storybook; `EstadoVazioGuiado` personalizado por módulo (resolve Information Architecture Q1). Validado por inspeção visual real no browser — cores, tipografia, teclado, responsividade — e `npm run build`/`npm run lint` sem erros. **Design System (§5.1) concluído**; próximo e último passo do M2: Passo 14 (Ecrãs), primeiro a consumir as APIs do backend (Passos 8-12) através destes componentes.
 
 ---
 
@@ -298,7 +300,7 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 ### 5.1 Componentes Base (Tailwind + Radix, ADR-006)
 
-Botão, Input, Select, Modal/Dialog, Menu Dropdown, Tabela de Dados, Cartão, Barra Lateral de Navegação, Notificação Toast, Badge de Estado, Avatar, Estado Vazio Guiado (Information Architecture, 3.3) — todos configurados com os tokens exatos do Brand Book (cor, tipografia, espaçamento).
+**✅ Implementado e aprovado (Passo 13, ver §4 acima e [Especificação Técnica do Passo 13](12-especificacao-tecnica-passo-13-design-system.md)).** Botão, Input, Select, Modal/Dialog, Menu Dropdown, Tabela de Dados, Cartão, Notificação Toast, Badge de Estado, Avatar, Estado Vazio Guiado (Information Architecture, 3.3) — todos configurados com os tokens exatos do Brand Book (cor, tipografia, espaçamento), em `apps/web/src/components/ui/`. Barra Lateral de Navegação fica para o Passo 14 (composição estrutural, depende da árvore de navegação real dos ecrãs).
 
 ### 5.2 Ecrãs (a partir do Information Architecture, 3.1)
 
@@ -361,3 +363,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 2.1 | 2026-07-06 | **Passo 10 (CRM) concluído e formalmente aprovado pela Fundadora/CEO** — segundo módulo de negócio, com Especificação Técnica própria (docs/04-implementation-blueprint/09-especificacao-tecnica-passo-10-crm.md): zero alterações ao `AuthorizationService` (confirmação prática da Decisão B do M2), `Cliente.estadoOportunidade` como `enum`, regras CR-01 a CR-06 e IR-01 a IR-03, sem eliminação de Cliente (decisão deliberada). Endpoints `/clientes` e `/pipeline` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
 | 2.2 | 2026-07-06 | **Passo 11 (Notification Dispatcher) concluído e formalmente aprovado pela Fundadora/CEO** — com Especificação Técnica própria (docs/04-implementation-blueprint/10-especificacao-tecnica-passo-11-notification-dispatcher.md): `NotificacaoListener` fire-and-forget sobre o `EVENTO_AUDITORIA` já existente, 5 gatilhos mínimos, sem nova superfície de API (exposição fica para o Passo 12) | CTO (Claude) + Fundadora/CEO |
 | 2.3 | 2026-07-07 | **Passo 12 (Dashboard) concluído e formalmente aprovado pela Fundadora/CEO — backend do M2 concluído (Passos 8-12).** Com Especificação Técnica própria (docs/04-implementation-blueprint/11-especificacao-tecnica-passo-12-dashboard.md): terceiro módulo de negócio, zero alterações ao `AuthorizationService` (terceira confirmação da Decisão B do M2), `GET /notificacoes`/`PATCH .../lida` (exposição herdada do Passo 11). Endpoints `/dashboard` e `/notificacoes` marcados implementados na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
+| 2.4 | 2026-07-07 | **Passo 13 (Design System, frontend) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro passo de `apps/web` desde o scaffolding do Passo 1, com Especificação Técnica própria (docs/04-implementation-blueprint/12-especificacao-tecnica-passo-13-design-system.md): 11 componentes base sobre primitivas Radix UI, tokens de marca completos, vitrine interna em `/design-system`, validado por inspeção visual real no browser. §5.1 marcado implementado; próximo e último passo do M2: Passo 14 (Ecrãs) | CTO (Claude) + Fundadora/CEO |

@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 /**
  * Configuração Tailwind da NEXA — tokens de marca traduzidos diretamente
@@ -22,9 +23,11 @@ const config: Config = {
         error: '#EF4444',
         info: '#38BDF8',
       },
+      // Carregadas via `next/font/google` em `app/layout.tsx` (Passo 13,
+      // 3.3) — variáveis CSS, não o nome literal da fonte diretamente.
       fontFamily: {
-        display: ['"Space Grotesk"', 'sans-serif'],
-        body: ['"Inter"', 'sans-serif'],
+        display: ['var(--font-display)', 'sans-serif'],
+        body: ['var(--font-body)', 'sans-serif'],
       },
       spacing: {
         // Grelha de 8px (Brand Book, 3.6)
@@ -41,9 +44,25 @@ const config: Config = {
         DEFAULT: '4px',
         lg: '12px',
       },
+      // Escala tipográfica completa (Brand Book, 3.2) — Passo 13.
+      fontSize: {
+        display: ['48px', { lineHeight: '56px' }],
+        h1: ['36px', { lineHeight: '44px' }],
+        h2: ['28px', { lineHeight: '36px' }],
+        h3: ['22px', { lineHeight: '28px' }],
+        'body-lg': ['18px', { lineHeight: '28px' }],
+        body: ['16px', { lineHeight: '24px' }],
+        small: ['14px', { lineHeight: '20px' }],
+        caption: ['12px', { lineHeight: '16px' }],
+      },
+      // Glow suave para elementos de destaque em roxo (Brand Book, 3.8) —
+      // nunca sombra pesada/skeuomórfica. Passo 13.
+      boxShadow: {
+        'glow-purple': '0 0 24px rgba(123, 47, 247, 0.35)',
+      },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

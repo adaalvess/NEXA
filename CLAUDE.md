@@ -28,7 +28,7 @@ O repositório inclui **38 documentos aprovados**, organizados por fase. **Nunca
 
 ## 3. Estado Atual da Implementação
 
-**M1 (Fundação) formalmente concluído (2026-07-06). M2 (Módulos Core — Dashboard, Processos, CRM) aprovado e em curso — Passo 8 (Departamento) concluído e aprovado. Ver nota abaixo.**
+**M1 (Fundação) formalmente concluído (2026-07-06). M2 (Módulos Core — Dashboard, Processos, CRM) aprovado e em curso — Passo 13 (Design System, frontend) concluído e aprovado. Ver nota abaixo.**
 
 | Passo | Conteúdo | Estado |
 |---|---|---|
@@ -56,8 +56,8 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 | Passo 10 | CRM — Cliente/Contacto/Oportunidade, Interação, Pipeline | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.10 |
 | Passo 11 | Notification Dispatcher — consumidor de eventos para `Notificacao` (fire-and-forget) | ✅ **Concluído e aprovado** (2026-07-06) — ver 3.11 |
 | Passo 12 | Dashboard — agregação read-only | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.12 |
-| Passo 13 | Design System (frontend) — componentes base (ADR-006) | 🔜 Próximo passo |
-| Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | Por iniciar |
+| Passo 13 | Design System (frontend) — componentes base (ADR-006) | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.13 |
+| Passo 14 | Ecrãs (frontend) — Dashboard, Processos, CRM, estado inicial guiado | 🔜 Próximo passo |
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
@@ -189,6 +189,18 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - Todos os testes (102/102: 8 novos deste passo + regressão completa de 94 testes dos Passos 4-11) passaram, estáveis e sem erros de log em 3 execuções consecutivas — detalhe em §3.11 da especificação.
 - **Backend do M2 concluído** — Passos 8 a 12 implementados, validados e aprovados. Próximo: Passo 13 — Design System (frontend), primeiro passo de `apps/web` desde o scaffolding do Passo 1.
 
+### 3.13 Registo de Conclusão — Passo 13 (2026-07-07) — primeiro passo de frontend desde o scaffolding do Passo 1
+
+- **Especificação técnica formal aprovada antes da implementação, adaptada ao contexto visual/frontend (sem regras de negócio, RBAC ou schema) mas com a mesma disciplina de governação dos passos anteriores** — ver [Especificação Técnica do Passo 13](docs/04-implementation-blueprint/12-especificacao-tecnica-passo-13-design-system.md): resolve duas Questões em Aberto herdadas (ADR-006 Q1 — estrutura de pastas e nomenclatura; Information Architecture Q1 — estado inicial guiado personalizado por módulo, já implicitamente confirmado pelo desenho do `GET /dashboard`, Passo 12).
+- **Estrutura de pastas** `apps/web/src/components/ui/`, `components/layout/` (vazia — `BarraLateralNavegacao` fica para o Passo 14), `lib/utils.ts` (`cn()`), `hooks/use-toast.ts` — nomenclatura de componentes e props em português, consistente com o vocabulário do backend.
+- **11 componentes base** implementados sobre primitivas Radix UI (`@radix-ui/react-select`, `-dialog`, `-dropdown-menu`, `-toast`, `-avatar`): `Botao`, `Input`, `Select`, `Modal`, `MenuDropdown`, `TabelaDados`, `Cartao`, `NotificacaoToast`, `BadgeEstado`, `Avatar`, `EstadoVazioGuiado` — acessibilidade (NFR-14) herdada por construção nos que usam Radix.
+- **Tokens de marca estendidos** em `tailwind.config.ts` — escala tipográfica completa (`display` a `caption`) e `boxShadow.glow-purple`, ambos traduzidos diretamente do Brand Book v1.3, sem reinterpretação.
+- **Modo único dark** (Dark Tech Premium) confirmado para o âmbito do MVP — sem "light mode"; questão fica registada para decisão futura, não antecipada.
+- **Vitrine interna** em `/design-system` (`apps/web/src/app/design-system/page.tsx`) demonstra todos os componentes com estado interativo real — substituindo Storybook por menor complexidade operacional (Risco R1, aceite conscientemente).
+- **Três descobertas reais durante a implementação, todas documentadas em §3.12 da especificação:** (1) correção de rota — a especificação previa `/_design-system`, mas o Next.js App Router exclui do routing qualquer pasta prefixada com `_`; corrigido para `/design-system`, sem impacto na decisão de vitrine interna vs. Storybook; (2) lacuna real pré-existente desde o Passo 1 — `tailwind.config.ts` já referenciava os nomes das fontes (Space Grotesk/Inter) mas nenhum ficheiro as carregava, caindo silenciosamente no tipo de letra do sistema; corrigido com `next/font/google` em `app/layout.tsx`; (3) cache do servidor de desenvolvimento (`.next`) temporariamente desatualizado após a alteração ao `tailwind.config.ts`, sem impacto em produção nem no código — resolvido reiniciando o servidor com o cache limpo.
+- Validação por **inspeção visual real no browser** (preview), não apenas revisão de código: todos os 11 componentes e variantes renderizados; cores confirmadas por correspondência HEX exata ao Brand Book; tipografia confirmada (Space Grotesk/Inter, escala completa); `Modal`/`Select` navegáveis por teclado; responsivo sem quebras em 375px/768px/desktop; `EstadoVazioGuiado` confirmado sem texto fixo interno. `npm run build` e `npm run lint` (`apps/web`) sem erros, TypeScript `strict` intacto — detalhe completo em §3.12 da especificação.
+- **Design System (Blueprint §5.1) concluído** — próximo e último passo do M2: Passo 14 (Ecrãs), primeiro a consumir as APIs do backend (Passos 8-12) através destes componentes.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -240,12 +252,11 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 13 (M2, primeiro passo de frontend)
+## 6. Próxima Ação Imediata — Passo 14 (M2, último passo — Ecrãs)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso — backend concluído** (Passos 8-12, ver 3.8-3.12). Próximo: **Passo 13 — Design System (frontend)**.
+**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) aprovado e em curso — backend concluído (Passos 8-12) e Design System concluído (Passo 13, ver 3.13)**. Próximo e último passo do M2: **Passo 14 — Ecrãs (frontend)**.
 
-- Primeiro passo em `apps/web` desde o scaffolding do Passo 1 (Next.js mínimo + Tailwind com os tokens do Brand Book já configurados).
-- Construir os componentes base (Blueprint §5.1, ADR-006): Botão, Input, Select, Modal/Dialog, Menu Dropdown, Tabela de Dados, Cartão, Barra Lateral de Navegação, Notificação Toast, Badge de Estado, Avatar, Estado Vazio Guiado — Tailwind + Radix, tokens exatos do Brand Book (cor, tipografia, espaçamento).
-- **Decisão A do M2 (já aprovada)**: API-first — todas as APIs que os Passos 14 (Ecrãs) vão consumir já estão implementadas, testadas e aprovadas (Passos 8-12); nenhuma UI deve anticipar dados/comportamento não coberto pelas APIs já aprovadas.
-- Avaliar, antes de avançar, se a mesma disciplina de "Especificação Técnica formal" se aplica tal e qual a componentes visuais (sem regras RBAC/schema/migração), ou se um formato mais leve (ex: inventário de componentes + critérios de aceitação visuais) é mais adequado — não assumir, validar com a Fundadora/CEO.
-- Seguir a mesma disciplina de governação: proposta/especificação antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação (testável visualmente, não só testes automatizados) antes de considerar o passo concluído.
+- Construir os ecrãs reais em `apps/web` consumindo as APIs já implementadas e aprovadas (Passos 8-12) através dos 11 componentes do Design System (Passo 13): Dashboard, Processos (lista + detalhe), CRM (lista + detalhe + pipeline), estado inicial guiado por módulo (`EstadoVazioGuiado`, já pronto a receber `titulo`/`descricao`/`acaoLabel`/`onAcao` por ecrã).
+- `BarraLateralNavegacao` (Blueprint §5.1) fica para este passo — depende da árvore de navegação real dos ecrãs (Information Architecture), só agora decidível.
+- **Decisão A do M2 (já aprovada)**: API-first — nenhuma UI deve antecipar dados/comportamento não coberto pelas APIs já aprovadas; o frontend nunca decide RBAC, só apresenta o que a API já filtrou (ADR-006 §3.7).
+- Seguir a mesma disciplina de governação: Especificação Técnica formal antes de implementar, decisões emergentes identificadas antes de as tomar, evidências objetivas de validação (testável visualmente no browser, não só revisão de código) antes de considerar o passo concluído.
