@@ -14,6 +14,7 @@
     "prisma:migrate": "node --env-file=.env.migrate ../../node_modules/prisma/build/index.js migrate dev"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.0",

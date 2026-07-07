@@ -53,6 +53,7 @@ model Empresa {
   clientes          Cliente[]
   interacoes        Interacao[]
   sugestoesIA       SugestaoIA[]
+  usosIAMensal      UsoIAMensal[]
   notificacoes      Notificacao[]
   partilhas         Partilha[]
   registosAuditoria RegistoAuditoria[]
@@ -350,6 +351,26 @@ model SugestaoIA {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
+  @@index([empresaId])
+}
+
+/// Contador de utilização mensal do AI Gateway por Empresa (Especificação
+/// Técnica do Passo 15, 3.5) — descoberta real durante a implementação:
+/// `SubscricaoPlano.limiteUsoIA` (Passo 2) é um teto, nunca um contador, e
+/// `SubscricaoPlano` nunca é criado no registo (deliberadamente adiado para o
+/// M4, ver CLAUDE.md 3.2). Este modelo é aditivo e não antecipa nenhuma
+/// decisão comercial — `anoMes` (formato "YYYY-MM") é a chave natural do
+/// período; reinício mensal é implícito (nunca há linha para um mês novo até
+/// à primeira chamada desse mês).
+model UsoIAMensal {
+  id        String   @id @default(cuid())
+  empresaId String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  anoMes    String
+  contagem  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([empresaId, anoMes])
   @@index([empresaId])
 }
 

@@ -61,6 +61,17 @@ Proposta completa do M2 (objetivos, âmbito, sequência de passos, dependências
 
 **Milestone M2 (Módulos Core) formalmente concluído em 2026-07-07** — todos os passos previstos (8-14) implementados, validados e aprovados; Definition of Done (Blueprint §2.2) cumprido: os 3 módulos (Dashboard, Processos, CRM) operacionais com CRUD completo, visibilidade RBAC verificada em cada módulo (por papel e por posse), estado inicial guiado presente em todos os ecrãs sem dados.
 
+### M3 (Assistente de IA) — Aprovado e em Curso (2026-07-07)
+
+Proposta completa do M3 (objetivos, âmbito, arquitetura, sequência de passos, riscos, decisões técnicas, DoD, plano de validação) apresentada e aprovada pela Fundadora/CEO, com 5 decisões adicionais validadas (fornecedor único Anthropic, credenciais só via env vars, PSD-003 com retenção configurável, PSD-002 fora de âmbito, quota de 50/mês provisória). Numeração de passos continua a partir do M2.
+
+| Passo | Conteúdo | Estado |
+|---|---|---|
+| Passo 15 | AI Gateway (backend) — interface própria, adaptador Anthropic, timeout/circuit breaker/quota | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.15 |
+| Passo 16 | Módulo `ia` — `POST /ia/perguntar` (UC-05), extensão do schema `SugestaoIA`, teste NFR-17 | 🔜 Próximo passo |
+| Passo 17 | Sugestões de ação (UC-06) — `POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, RN-08 | Por iniciar |
+| Passo 18 | Ecrã do Assistente de IA (frontend) — conversa + sugestões pendentes | Por iniciar |
+
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
@@ -213,6 +224,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados finais**: backend 109/109 testes (102 herdados + 7 novos: 4 para `GET /utilizadores`, 3 para `POST /auth/logout`); frontend build/lint limpos em todas as sub-entregas; responsividade confirmada em 375px/768px/1280px.
 - **Milestone M2 (Módulos Core) formalmente concluído** — Passos 8 a 14 implementados, validados e aprovados; Definition of Done (Blueprint §2.2) cumprido integralmente.
 
+### 3.15 Registo de Conclusão — Passo 15 (2026-07-07) — primeiro passo do M3
+
+- **Proposta formal do Milestone M3 aprovada antes de qualquer Especificação Técnica** — objetivos, âmbito, arquitetura, sequência de passos (15-18), riscos, DoD, plano de validação; 5 decisões adicionais validadas (fornecedor único Anthropic com arquitetura independente de fornecedor; credenciais só via variáveis de ambiente, nunca reais em teste; PSD-003 com retenção de conteúdo configurável; PSD-002 fora de âmbito, sem bloquear extensão futura; quota de 50 pedidos/mês por Empresa como configuração técnica provisória, a rever no M4). Contexto orientador: Product Vision v1.2 §3.5a (princípio 40/60).
+- **Especificação técnica formal aprovada antes da implementação, cumprindo 5 condições explícitas adicionais da aprovação do M3** — ver [Especificação Técnica do Passo 15](docs/04-implementation-blueprint/14-especificacao-tecnica-passo-15-ai-gateway.md): estratégia de versionamento (nenhum HTTP explícito — serviço interno, não API externa), observabilidade (logs estruturados, `requestId` de correlação, sem ferramenta dedicada ainda), testes com `FakeAdapter` (zero dependência de rede/credenciais reais), timeout (30s)/zero retries automáticos/circuit breaker (5 falhas/60s → 120s aberto), classificação completa de erros.
+- **Módulo `apps/api/src/modules/ia/`** implementado — `AiGatewayService`, `QuotaService`, `CircuitBreakerService`, `AnthropicAdapter` (único adaptador real), `FakeAdapter` (só testes). Contrato de tipos neutro de SDK (`AIRequest`/`AIResponse`) e distinção estrutural sugestão/execução (`PendingSuggestion`/`ConfirmedAction`) ao nível de tipos (ADR-005 §3.6/§3.7). **Sem endpoint de produto neste passo** — fundação para os Passos 16/17.
+- **Descoberta técnica real, corrigida antes de escrever código de produção**: `SubscricaoPlano.limiteUsoIA` é um teto, nunca um contador, e `SubscricaoPlano` nunca é criado para nenhuma Empresa (M4, deliberadamente adiado). Resolvido com um novo modelo aditivo `UsoIAMensal` (migração `20260707150654`) + RLS (migração `20260707150804`) — nunca reabre a decisão adiada do M4.
+- **Duas descobertas de testabilidade**: parâmetros configuráveis (timeout/quota/circuit breaker) passaram de constantes cacheadas ao nível do módulo para leitura a cada chamada (mesmo comportamento em produção, testável sem depender de ordem de importação); testes migrados de "um `TestingModule` por teste" (que acumulava listeners do `EventEmitter2` entre compilações, duplicando auditoria) para o padrão já estabelecido de um único módulo por ficheiro de teste.
+- **Resultados**: `apps/api/test/ia-gateway.e2e-spec.ts` (7 testes, mesmo padrão sem-HTTP de `tenant-isolation.e2e-spec.ts`), suite completa em 116/116 testes (109 herdados + 7 novos); `npm run build` limpo; app arranca corretamente sem credencial real.
+- **Milestone M3 em curso** — próximo: Passo 16 (`POST /ia/perguntar`, UC-05).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -267,10 +288,11 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — M3 (Assistente de IA) por propor
+## 6. Próxima Ação Imediata — Passo 16 (M3, módulo `ia` — pergunta livre)
 
-**M1 (Fundação) formalmente concluído em 2026-07-06** (Passos 0-7). **M2 (Módulos Core) formalmente concluído em 2026-07-07** (Passos 8-14 — backend, Design System, e Ecrãs). Não há um próximo Passo numerado ainda decidido — o próximo Milestone (**M3 — Assistente de IA**, Blueprint §2.2/Product Vision Arco 1) precisa de uma proposta formal (objetivos, âmbito, sequência de passos, dependências, riscos, DoD, decisões arquitetónicas) apresentada e aprovada pela Fundadora/CEO antes de qualquer numeração de Passo ou implementação — mesmo padrão já seguido na transição M1 → M2.
+**M1 e M2 formalmente concluídos.** **M3 (Assistente de IA) aprovado e em curso — Passo 15 (AI Gateway) concluído e aprovado (ver 3.15)**. Próximo: **Passo 16 — Módulo `ia`, `POST /ia/perguntar` (UC-05)**.
 
-- **Contexto orientador já registado para a proposta do M3**: Product Vision v1.2, §3.5a (aditamento aprovado em 2026-07-07) — a NEXA aloca esforço de produto segundo o princípio 40% organização / 60% inteligência própria; 6 perguntas canónicas de Autonomia Nível A ("o que está atrasado", "que equipa está sobrecarregada", "que cliente arrisca abandono", "que processo bloqueia o crescimento", "que tarefas posso automatizar hoje", "quais são as três prioridades desta semana") ilustram o que o Assistente de IA deve ser capaz de responder; "profundidade progressiva, nunca complexidade por defeito" como princípio de desenho. A proposta do M3 deve nascer diretamente desta orientação, não ser decidida do zero.
-- **Infraestrutura já preparada para o M3** (decisão deliberada desde o Product Roadmap D3): camada de abstração multi-fornecedor de IA (AI Gateway, ADR-005) e sistema de políticas de autonomia por Empresa ainda por implementar tecnicamente, mas a arquitetura de auditoria/permissões (Passos 4-7) já está pronta para os suportar sem retrabalho.
-- Seguir a mesma disciplina de governação de sempre: proposta formal → aprovação → Especificação Técnica por passo → implementação → validação visual/testes → aprovação dos resultados → sincronização de documentação → commit.
+- Consumir o `AiGatewayService` (Passo 15, já pronto) para implementar a pergunta livre — filtragem RBAC pelo módulo `ia` antes de chegar ao Gateway (ADR-005 §3.3 ponto 1, reutilizando `AuthorizationService.obterEscopoVisibilidade` já centralizado, Decisão B do M2).
+- Extensão do schema `SugestaoIA` (já existente desde o Passo 2) para guardar conteúdo, conforme PSD-003 (retenção configurável, aprovada na proposta do M3) — esta é a peça que faltava resolver antes de qualquer persistência de conversa.
+- Teste automatizado do fluxo crítico "ações de IA" (NFR-17) — o 4º e último fluxo crítico obrigatório ainda por cobrir.
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (testes automatizados, sem endpoint HTTP ainda tem UI a validar) → aprovação dos resultados → sincronização de documentação → commit.
