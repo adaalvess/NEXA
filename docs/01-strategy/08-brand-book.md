@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | Brand Book |
 | **Fase** | 1 — Documentação Estratégica |
-| **Versão** | 1.3 |
+| **Versão** | 1.4 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | Fundadora / CEO / Product Owner |
 | **Documentos de referência** | Vision Document v1.1 · Product Vision v1.1 · Mission & Values v1.1 (todos Aprovados) |
-| **Última atualização** | 2026-07-02 |
+| **Última atualização** | 2026-07-07 |
 
 ---
 
@@ -113,13 +113,14 @@ Este documento não fecha um símbolo específico nesta fase — faria exatament
 3. **O "X" mantém-se o elemento icónico da marca, mas integrado naturalmente na palavra**, não destacado como símbolo à parte. O destaque do X pode vir de cor (roxo elétrico sobre o resto em tom neutro/metálico), de peso, ou de um tratamento gráfico subtil — nunca de uma separação que quebre a leitura fluida da palavra "NEXA" como um todo.
 4. **O conjunto completo deve transmitir robustez e sofisticação de nível "top tier tech"** — o tipo de wordmark que se associa a empresas tecnológicas de referência internacional, não a um exercício gráfico genérico ou a um símbolo geométrico abstrato desligado do nome da marca.
 5. **Coerência total com o Dark Tech Premium já aprovado** — paleta preto/cinza escuro/roxo elétrico (secção 3.3), minimalismo, ausência de elementos decorativos supérfluos.
+6. **Hierarquia visual distinta entre o wordmark completo e qualquer representação reduzida da marca (diretriz permanente, fixada 2026-07-07).** O princípio 3 acima (X integrado, não destacado como símbolo à parte) aplica-se **especificamente ao wordmark completo "NEXA"** — contextos onde a palavra inteira está presente e legível (papelaria, sinalética, assinatura de email, materiais institucionais). Em **qualquer representação reduzida ou simplificada da marca** — ícone de aplicação, favicon, logótipo simplificado, avatar, splash screen, ou qualquer contexto onde a palavra completa não é usada — **o "X" é o elemento protagonista e de maior destaque**, nunca o "N" nem qualquer outra letra. Esta é uma inversão deliberada de ênfase entre os dois contextos, não uma contradição: o wordmark comunica a marca pelo nome; a representação reduzida comunica a marca pelo símbolo, e esse símbolo é sempre o "X". A referência visual fornecida pela fundadora (composição com o "X" isolado, em roxo elétrico, como ícone de aplicação/símbolo autónomo) fixa a hierarquia a seguir — não é necessário reproduzi-la exatamente, mas todo desenho de ícone/favicon/avatar/splash screen deve respeitar essa mesma hierarquia (X como protagonista, NEXA como complemento, quando presente).
 
 **Requisitos técnicos que qualquer proposta final deve cumprir** (independentes da direção criativa exata, e por isso mantidos como requisitos de sistema):
 
 | Requisito | Descrição |
 |---|---|
 | Legibilidade a qualquer escala | O wordmark deve manter-se legível desde aplicações de grande formato até tamanhos reduzidos de interface (ex: cabeçalho da aplicação) |
-| Elemento standalone para espaços mínimos | Deve existir uma redução válida do wordmark (ex: apenas o "X" tratado, ou um monograma extraído da própria palavra) para uso em favicon, ícone de aplicação e avatares, onde a palavra completa não cabe |
+| Elemento standalone para espaços mínimos | A redução válida do wordmark para uso em favicon, ícone de aplicação, avatares e splash screens **é sempre o "X" tratado como símbolo autónomo** (nunca um monograma centrado no "N" ou noutra letra) — ver princípio 6 acima |
 | Versões de cor | Cor cheia (sobre fundo escuro), reversa (versão clara, para fundos onde a cor principal não for aplicável) e monocromática (para impressão a uma cor) |
 | Área de proteção | Espaço mínimo de respiro à volta do logótipo, a definir com precisão na fase de Brand Design, com base no desenho final |
 | Tamanho mínimo | Medidas mínimas de reprodução digital e impressa, a validar com o artefacto final |
@@ -209,6 +210,7 @@ Lista de referência dos contextos onde esta identidade deve ser aplicada de for
 | D3 | O logótipo mantém-se ao nível de princípios (wordmark como base, N com personalidade, X integrado e icónico, robustez premium), sem fechar um símbolo geométrico específico nesta fase — a direção "X Negativo em Diamante", explorada e temporariamente aprovada numa iteração anterior, foi revertida | A fundadora já possui uma referência visual concreta e aprovada (imagem de marca própria) que deve orientar a fase dedicada de Brand Design; fechar um símbolo alternativo neste documento contrariaria essa referência e comprometeria prematuramente uma decisão que pertence a essa fase, não à documentação estratégica |
 | D4 | Recomendação de biblioteca de iconografia open-source (Lucide) em vez de iconografia customizada de raiz | Reduz custo e tempo de desenvolvimento visual sem comprometer consistência, reservando esforço de design customizado apenas para elementos exclusivos de marca (símbolo do logótipo) |
 | D5 | Este documento não especifica componentes de interface (Design System de componentes); apenas os tokens de base (cor, tipografia, espaçamento) | Mantém o Brand Book ao nível da marca, evitando comprometer decisões de implementação de UI antes de existir arquitetura técnica — consistente com a metodologia de não avançar fases prematuramente |
+| D6 | O "X" é sempre o elemento protagonista em qualquer representação reduzida da marca (ícone de aplicação, favicon, logótipo simplificado, avatar, splash screen) — diretriz permanente, distinta do princípio 3 de 3.4 (que rege apenas o wordmark completo) | Diretriz explícita e permanente da Fundadora/CEO (2026-07-07), com referência visual própria fornecida; garante que qualquer implementação futura (favicon, ícone de aplicação, splash screen) segue a mesma hierarquia visual sem reinterpretação ad-hoc |
 
 ---
 
@@ -233,3 +235,4 @@ Lista de referência dos contextos onde esta identidade deve ser aplicada de for
 | 1.2 | 2026-07-02 | Revisão da secção de Sistema de Logótipo (3.4): revertida a direção fechada "X Negativo em Diamante" para uma abordagem de princípios (wordmark como base da identidade, N com personalidade própria, X integrado e icónico dentro da palavra, robustez premium), remetendo o desenho definitivo para uma fase dedicada de Brand Design, com referência visual oficial fornecida pela fundadora; decisão D3 e questão Q1 atualizadas em conformidade | CTO (Claude) + Fundadora/CEO |
 | 1.3 | 2026-07-02 | Adicionada declaração formal de "Referência Visual Oficial" em 3.4, fixando em texto explícito que o processo de Brand Design parte da composição visual já aprovada (wordmark Dark Tech Premium, N com personalidade, X em destaque) | CTO (Claude) + Fundadora/CEO |
 | 1.3 | 2026-07-02 | **Aprovação oficial.** Documento passa a estado Aprovado | Fundadora/CEO |
+| 1.4 | 2026-07-07 | **Diretriz permanente fixada pela Fundadora/CEO:** o "X" é o elemento protagonista em qualquer representação reduzida da marca (ícone de aplicação, favicon, logótipo simplificado, avatar, splash screen), distinto do princípio 3 de 3.4 (que rege apenas o wordmark completo "NEXA", onde o X permanece integrado, não destacado como símbolo à parte). Adicionado princípio 6 em 3.4, atualizado o requisito técnico "Elemento standalone para espaços mínimos", e adicionada Decisão D6. Referência visual própria fornecida pela fundadora (composição com o "X" isolado como ícone/símbolo autónomo) registada como orientação de hierarquia, não como artefacto final a copiar | Fundadora/CEO |

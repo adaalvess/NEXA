@@ -241,6 +241,9 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 ### Princípio Geral (Blueprint, 5a)
 24. Quando existir mais do que uma solução tecnicamente válida, prefere a de **menor complexidade operacional, maior facilidade de manutenção assistida por IA, e maior capacidade de evolução futura** — sem nunca comprometer segurança, qualidade ou escalabilidade.
 
+### Identidade Visual (Brand Book v1.4, §3.4, D6 — diretriz permanente fixada 2026-07-07)
+25. **O "X" é sempre o elemento protagonista em qualquer representação reduzida da marca** (ícone de aplicação, favicon, logótipo simplificado, avatar, splash screen) — nunca o "N" nem qualquer outra letra. Aplica-se só a representações reduzidas; no wordmark completo "NEXA", o X mantém-se integrado na palavra (Brand Book §3.4, princípio 3), não destacado como símbolo à parte.
+
 ---
 
 ## 5. Método de Trabalho — Não Alterar
