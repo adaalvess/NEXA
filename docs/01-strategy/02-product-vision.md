@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | Product Vision |
 | **Fase** | 1 — Documentação Estratégica |
-| **Versão** | 1.1 |
+| **Versão** | 1.2 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | Fundadora / CEO / Product Owner |
 | **Documento de referência** | Vision Document v1.1 (Aprovado) |
-| **Última atualização** | 2026-07-02 |
+| **Última atualização** | 2026-07-07 |
 
 ---
 
@@ -79,6 +79,25 @@ Estes pilares traduzem o Manifesto NEXA (Vision Document, secção 3.8) em crit�
 6. **Modularidade sem perda de integração** — cada empresa pode ativar apenas os módulos de que necessita, pagando e configurando apenas o que usa, sem que isso comprometa a integração nativa entre os módulos que efetivamente utiliza. Modularidade é uma opção de configuração, nunca um sistema de "silos" desconectados.
 7. **Aprendizagem e adaptação contínua** — a NEXA não se limita a registar o que o utilizador introduz; observa padrões de uso, processos recorrentes e decisões tomadas ao longo do tempo, para sugerir ajustes, automações e melhorias cada vez mais alinhadas com a forma real de trabalhar de cada empresa. A plataforma torna-se mais útil e mais precisa quanto mais é usada — nunca estática desde o primeiro dia de configuração.
 
+### 3.5a A Camada de Inteligência Operacional (o que diferencia a NEXA)
+
+A organização de processos, clientes e informação — hierarquias, listas, quadros, filtros — já existe, bem executada, em várias plataformas do mercado (ClickUp, Notion, e outras citadas no Competitive Analysis). Não é aí que a NEXA se diferencia. O que ainda é raro é um sistema que **compreenda a operação da empresa como um todo e ajude quem a gere a tomar melhores decisões** — não apenas registar o que já aconteceu, mas responder a perguntas como:
+
+- "O que está atrasado?"
+- "Qual equipa está sobrecarregada?"
+- "Qual cliente corre maior risco de abandono?"
+- "Que processo está a bloquear o crescimento da empresa?"
+- "Que tarefas posso automatizar hoje?"
+- "Quais são as três prioridades desta semana?"
+
+Estas perguntas ilustram concretamente a Autonomia de Nível A já definida no Glossário ("o Assistente de IA responde a perguntas e gera insights, sem propor nem executar ações") — até agora descrita apenas em abstrato.
+
+**Princípio de afetação de esforço (40/60):** como bússola de priorização de produto, não como métrica operacional rígida — aproximadamente 40% do valor da NEXA vem de organização bem executada; 60% vem da camada de inteligência própria (IA, automação, análise, recomendações, previsões, coordenação). Sempre que houver dúvida entre investir em mais uma funcionalidade de organização ou aprofundar a camada de inteligência, a segunda ganha por defeito.
+
+**Profundidade progressiva, nunca complexidade por defeito:** toda funcionalidade avançada é desenhada para ter uma experiência simples por defeito, expansível apenas para quem realmente precisa dessa profundidade — extensão, ao nível de desenho de funcionalidade, do princípio já fixado para decisões técnicas (Blueprint, 5a) e coerente com o Pilar 4 (3.5).
+
+Esta camada é o que permite à NEXA ser lida não como concorrente direto de ferramentas de produtividade, mas como uma categoria diferente — um Sistema Operacional Inteligente para Empresas.
+
 ### 3.6 Evolução do Produto ao Longo do Tempo
 
 Esta é uma visão de arcos evolutivos, não um roadmap detalhado (que será formalizado no documento Product Roadmap):
@@ -106,6 +125,7 @@ Ao nível de produto (distintas dos KPIs de negócio, que serão detalhados no d
 | D2 | A NEXA constrói uma arquitetura própria, não uma camada sobre um ERP de terceiros | Dá controlo total sobre a experiência, o modelo de dados e a evolução para agentes autónomos, ao custo de mais esforço de construção do núcleo — troca aceite dado o horizonte de 6 meses definido para o MVP e a ambição de longo prazo da empresa |
 | D3 | A confiança (autonomia da IA sempre supervisionada e configurável) é tratada como vantagem competitiva central, não apenas como restrição de segurança | Já existe validação de mercado de que este é o modelo que gera adoção em PMEs — a NEXA reforça esta aposta em vez de a tratar como limitação temporária |
 | D4 | A análise competitiva detalhada passa a viver num documento próprio (Competitive Analysis), revisto periodicamente, separado das conclusões estratégicas estáveis deste documento | O mercado de IA aplicada a operações empresariais muda em meses; separar "o que observamos hoje" de "o que decidimos por causa disso" protege o Product Vision de ficar desatualizado ou excessivamente ancorado num concorrente específico |
+| D5 | A NEXA aloca esforço de produto segundo o princípio 40% organização / 60% inteligência própria, com 6 perguntas canónicas de Nível A como ilustração de referência (3.5a) | Clarifica e consolida, sem alterar, a direção estratégica já presente no Pilar 2 e no Glossário; evita que a organização (replicável por qualquer concorrente) seja tratada como prioridade igual à inteligência (o que é difícil de replicar) |
 
 ---
 
@@ -125,3 +145,4 @@ Ao nível de produto (distintas dos KPIs de negócio, que serão detalhados no d
 | 1.0 | 2026-07-02 | Criação do documento, incluindo análise competitiva baseada em pesquisa de mercado atual (monday.com, ClickUp, HubSpot, Odoo, Knowlix) | CTO (Claude) + Fundadora/CEO |
 | 1.1 | 2026-07-02 | Revisão de aprovação: análise competitiva detalhada movida para documento próprio (Competitive Analysis), mantendo aqui apenas conclusões estratégicas estáveis; reduzida a dependência de um concorrente específico como referência central; adicionados os pilares "Modularidade sem perda de integração" e "Aprendizagem e adaptação contínua" | CTO (Claude) + Fundadora/CEO |
 | 1.1 | 2026-07-02 | **Aprovação oficial.** Documento passa a estado Aprovado | Fundadora/CEO |
+| 1.2 | 2026-07-07 | Adicionada a secção 3.5a — "A Camada de Inteligência Operacional", clarificando e consolidando (sem alterar) a direção estratégica já presente no Pilar 2 e no Glossário: princípio de afetação de esforço 40% organização / 60% inteligência própria, 6 perguntas canónicas de Nível A como ilustração de referência, e o princípio de "profundidade progressiva, nunca complexidade por defeito". Adicionada Decisão D5 | Fundadora/CEO + CTO (Claude) |
