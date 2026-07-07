@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | Information Architecture |
 | **Fase** | 2 — Documentação Funcional |
-| **Versão** | 1.4 |
+| **Versão** | 1.5 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | Fundadora / CEO / Product Owner |
 | **Documentos de referência** | PRD v1.0 · User Personas v1.1 · User Journey Maps v1.1 (Aprovados) |
-| **Última atualização** | 2026-07-02 |
+| **Última atualização** | 2026-07-07 |
 
 ---
 
@@ -139,7 +139,7 @@ Todos os oito princípios acima são citados explicitamente no PRD como fora do 
 
 | # | Questão | Impacto | Responsável pela decisão |
 |---|---|---|---|
-| Q1 | O "estado inicial guiado" (3.3) deve ser idêntico para todos os módulos, ou personalizado por módulo (ex: o CRM guia para "adicionar cliente", o Processos guia para "criar processo")? | Functional Specifications, UI/UX | CEO + CTO, a decidir na Fase de UI/UX Design |
+| Q1 | ~~O "estado inicial guiado" (3.3) deve ser idêntico para todos os módulos, ou personalizado por módulo?~~ **Resolvida** — personalizado por módulo, cada módulo passa a sua própria `titulo`/`descricao`/`acaoLabel`/`onAcao` ao componente `EstadoVazioGuiado` (nunca texto fixo interno), já implicitamente confirmado pelo `GET /dashboard` (Passo 12, `sugestoes` distintas por módulo: `criar_processo`, `criar_cliente`) e formalmente decidido na Especificação Técnica do Passo 13 (Design System), §3.6 | Functional Specifications, UI/UX | Resolvida em 2026-07-07 |
 | Q2 | ~~O acesso de Convidado a Processos/CRM "se explicitamente partilhado" (3.4) — como é tecnicamente decidido esse partilhamento?~~ **Resolvida** — ver entidade "Partilha", adicionada ao Data Model Conceptual v1.1 (auditoria de consistência Fase 1/2) | Data Model Conceptual, Functional Requirements | Resolvida em 2026-07-02 |
 | Q3 | A Pesquisa Global deve ter alguma forma simples já no MVP (ex: pesquisa por módulo), ou fica inteiramente para o Arco 2, com apenas a preparação arquitetural feita agora? | Functional Requirements, Product Roadmap | CEO + CTO, a decidir no Functional Requirements |
 | Q4 | Quando o Workspace Context evoluir para suportar múltiplas empresas por utilizador, a mudança de contexto deve ser um seletor visível permanentemente (ex: como em ferramentas de workspace conhecidas) ou um fluxo mais discreto? | UI/UX Design futuro | CEO + CTO, a decidir apenas quando este cenário se tornar relevante |
@@ -157,3 +157,4 @@ Todos os oito princípios acima são citados explicitamente no PRD como fora do 
 | 1.3 | 2026-07-02 | Reorganizada a secção 3.6 em 8 subsecções numeradas; adicionados os princípios Workspace Context, Sistema Global de Favoritos e Itens Recentes, Navegação Consistente, Deep Linking e Escalabilidade Modular; Workspace Context fixado como fundação de que os restantes princípios (Pesquisa, Favoritos, Deep Linking) dependem explicitamente | CTO (Claude) + Fundadora/CEO |
 | 1.3 | 2026-07-02 | **Aprovação oficial.** Documento passa a estado Aprovado | Fundadora/CEO |
 | 1.4 | 2026-07-02 | Correção da auditoria de consistência Fase 1/2: Q2 marcada como resolvida, com referência à entidade "Partilha" adicionada ao Data Model Conceptual v1.1 | CTO (Claude) + Fundadora/CEO |
+| 1.5 | 2026-07-07 | Q1 marcada como resolvida — estado inicial guiado personalizado por módulo, decisão formalizada na Especificação Técnica do Passo 13 (Design System) e já implicitamente implementada pelo `GET /dashboard` do Passo 12; esta correção fecha o ciclo entre a decisão tomada na Especificação Técnica e o documento de origem da questão, que tinha ficado por atualizar | CTO (Claude) + Fundadora/CEO |
