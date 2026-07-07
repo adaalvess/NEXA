@@ -15,9 +15,12 @@ export class FakeAdapter implements AIAdapterInterface {
   comportamento: ComportamentoFakeAdapter = 'sucesso';
   respostaConfigurada = 'Resposta simulada.';
   chamadas = 0;
+  /** Último pedido recebido — permite a testes (ex: RN-07) inspecionar o que foi realmente enviado. */
+  ultimoPedido: AIRequest | undefined;
 
-  async enviar(_pedido: AIRequest): Promise<AIResponse> {
+  async enviar(pedido: AIRequest): Promise<AIResponse> {
     this.chamadas += 1;
+    this.ultimoPedido = pedido;
 
     if (this.comportamento === 'timeout') {
       // Nunca resolve dentro do timeout configurado no Gateway — o próprio

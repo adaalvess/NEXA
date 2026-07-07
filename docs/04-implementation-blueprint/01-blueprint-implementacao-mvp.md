@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 2.6 |
+| **Versão** | 2.7 |
 | **Estado** | ✅ Aprovado — vivo; M1 e M2 formalmente concluídos, M3 em curso |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 12 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 16 |
 | **Última atualização** | 2026-07-07 |
 
 ---
@@ -263,7 +263,7 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 | CRM | POST | `/clientes/:id/interacoes` | FR-20 — ✅ Implementado (Passo 10) |
 | CRM | GET | `/clientes/:id/interacoes` | FR-20 — ✅ Implementado (Passo 10) |
 | CRM | GET | `/pipeline` | FR-22 — ✅ Implementado (Passo 10) |
-| Assistente de IA | POST | `/ia/perguntar` | FR-23, UC-05 |
+| Assistente de IA | POST | `/ia/perguntar` | FR-23, UC-05 — ✅ Implementado (Passo 16) |
 | Assistente de IA | POST | `/ia/sugestoes/:id/confirmar` | FR-25, UC-06 |
 | Assistente de IA | POST | `/ia/sugestoes/:id/rejeitar` | FR-25, UC-06 |
 | Comercial | GET | `/planos` | FR-29 |
@@ -299,6 +299,8 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 **Proposta e início do Milestone M3 (Assistente de IA):** proposta completa (objetivos, âmbito, arquitetura, sequência de passos 15-18, riscos, decisões técnicas, DoD, plano de validação) apresentada e aprovada pela Fundadora/CEO em 2026-07-07 — numeração de passos continua a partir do M2. Contexto orientador: Product Vision v1.2 §3.5a (princípio 40/60 organização/inteligência).
 
 **Especificação técnica detalhada do Passo 15 (AI Gateway, backend):** ver [Especificação Técnica do Passo 15](14-especificacao-tecnica-passo-15-ai-gateway.md) — primeiro passo do M3, implementa integralmente o ADR-005 (interface própria, adaptador Anthropic único, timeout/circuit breaker/quota, neutralidade de tipos, distinção sugestão/execução ao nível de tipos). Novo módulo `apps/api/src/modules/ia/`, sem endpoint de produto neste passo (fundação para os Passos 16/17). **Descoberta real**: `SubscricaoPlano.limiteUsoIA` é um teto, nunca um contador — novo modelo aditivo `UsoIAMensal` resolve o contador de consumo sem reabrir a decisão de planos comerciais, deliberadamente adiada para o M4. Testes exclusivamente com `FakeAdapter`, zero dependência de rede/credenciais reais (condição explícita da aprovação do M3). 116/116 testes (109 herdados + 7 novos).
+
+**Especificação técnica detalhada do Passo 16 (módulo `ia` — pergunta livre):** ver [Especificação Técnica do Passo 16](15-especificacao-tecnica-passo-16-ia-perguntar.md) — primeiro endpoint de produto do M3, `POST /ia/perguntar` (UC-05). `AuthorizationService.construirFiltroWhere` extraído do `DashboardService` (4ª confirmação da Decisão B do M2, comportamento neutro, zero alteração aos testes de Dashboard); `IaService.reunirResumoOperacional()` garante estruturalmente o cumprimento da RN-07 (dados fora do escopo RBAC nunca chegam ao Gateway); contexto da IA limitado a dados agregados (decisão consciente de âmbito do MVP, sem lookup de entidade nomeada); `IaExceptionFilter` traduz os erros tipados do Gateway (429/504/503/400/502); extensão aditiva do schema `SugestaoIA` (`conteudoPergunta`/`conteudoResposta`), retenção de conteúdo configurável (PSD-003) por ocultação-na-leitura. 122/122 testes (116 herdados + 6 novos).
 
 ---
 
@@ -374,3 +376,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 2.4 | 2026-07-07 | **Passo 13 (Design System, frontend) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro passo de `apps/web` desde o scaffolding do Passo 1, com Especificação Técnica própria (docs/04-implementation-blueprint/12-especificacao-tecnica-passo-13-design-system.md): 11 componentes base sobre primitivas Radix UI, tokens de marca completos, vitrine interna em `/design-system`, validado por inspeção visual real no browser. §5.1 marcado implementado; próximo e último passo do M2: Passo 14 (Ecrãs) | CTO (Claude) + Fundadora/CEO |
 | 2.5 | 2026-07-07 | **Passo 14 (Ecrãs, frontend) concluído e formalmente aprovado pela Fundadora/CEO — Milestone M2 (Módulos Core) formalmente concluído.** Implementado em 3 sub-entregas sequenciais (Login+Dashboard, Processos, CRM), cada uma validada e aprovada individualmente, com Especificação Técnica própria (docs/04-implementation-blueprint/13-especificacao-tecnica-passo-14-ecras.md): ecrãs `/login`, `/dashboard`, `/processos`, `/crm` completos; `GET /utilizadores` e `POST /auth/logout` adicionados como extensões mínimas ao backend; `Textarea` adicionado ao Design System; `TabelaDados` corrigida para scroll horizontal responsivo. §5.1/§5.2 e Superfície de API (§4) atualizados | CTO (Claude) + Fundadora/CEO |
 | 2.6 | 2026-07-07 | **Proposta do Milestone M3 (Assistente de IA) aprovada pela Fundadora/CEO; Passo 15 (AI Gateway) concluído e formalmente aprovado** — primeiro passo do M3, com Especificação Técnica própria (docs/04-implementation-blueprint/14-especificacao-tecnica-passo-15-ai-gateway.md): implementa integralmente o ADR-005 (adaptador Anthropic, timeout/circuit breaker/quota, neutralidade de tipos); novo módulo `apps/api/src/modules/ia/`, sem endpoint de produto ainda; descoberta real (`UsoIAMensal`, novo modelo aditivo, já que `SubscricaoPlano.limiteUsoIA` nunca foi um contador); testes exclusivamente com `FakeAdapter` | CTO (Claude) + Fundadora/CEO |
+| 2.7 | 2026-07-07 | **Passo 16 (módulo `ia` — pergunta livre) concluído e formalmente aprovado pela Fundadora/CEO** — primeiro endpoint de produto do M3, com Especificação Técnica própria (docs/04-implementation-blueprint/15-especificacao-tecnica-passo-16-ia-perguntar.md): `POST /ia/perguntar` (UC-05); `AuthorizationService.construirFiltroWhere` extraído do `DashboardService` (4ª confirmação da Decisão B do M2); RN-07 garantida estruturalmente por `IaService.reunirResumoOperacional()`; contexto agregado (decisão consciente de âmbito); extensão aditiva do schema `SugestaoIA`; retenção de conteúdo configurável (PSD-003). `POST /ia/perguntar` marcado implementado na Superfície de API (§4). NFR-17 ("ações de IA") com a metade "pergunta" coberta; metade "sugestão/confirmação" fica para o Passo 17 | CTO (Claude) + Fundadora/CEO |

@@ -177,4 +177,35 @@ export class AuthorizationService {
     // colaborador.
     return { tipo: 'proprio', utilizadorId: ctx.utilizadorId };
   }
+
+  /**
+   * Traduz um `EscopoVisibilidade` (3.150) num filtro Prisma — extraído de
+   * `DashboardService` (privado, Passo 12: `aplicarEscopo` para Processo,
+   * lógica bespoke para Cliente) para aqui (Especificação Técnica do Passo
+   * 16, 3.2/Decisão a Validar A) — 4ª confirmação da Decisão B do M2:
+   * reutilização centralizada, nunca duplicação, agora também pelo módulo
+   * `ia`. Comportamento idêntico aos dois métodos que substitui.
+   *
+   * `departamentoViaRelacao` cobre o caso de `Cliente` — sem `departamentoId`
+   * próprio, só através do `owner` (`{ owner: { departamentoId } }`),
+   * distinto de `Processo`, que tem o campo direto.
+   */
+  construirFiltroWhere(
+    escopo: EscopoVisibilidade,
+    campoDepartamento: string,
+    campoResponsavel: string,
+    opcoes?: { departamentoViaRelacao?: string },
+  ): Record<string, unknown> {
+    if (escopo.tipo === 'departamento') {
+      const filtroDepartamento = { [campoDepartamento]: escopo.departamentoId };
+      return opcoes?.departamentoViaRelacao ? { [opcoes.departamentoViaRelacao]: filtroDepartamento } : filtroDepartamento;
+    }
+    if (escopo.tipo === 'proprio') {
+      return { [campoResponsavel]: escopo.utilizadorId };
+    }
+    if (escopo.tipo === 'partilhado') {
+      return { id: { in: escopo.entidadeIds } };
+    }
+    return {}; // 'total' — sem filtro adicional além do isolamento de tenant (Camada 1).
+  }
 }

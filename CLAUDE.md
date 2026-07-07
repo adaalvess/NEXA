@@ -68,8 +68,8 @@ Proposta completa do M3 (objetivos, âmbito, arquitetura, sequência de passos, 
 | Passo | Conteúdo | Estado |
 |---|---|---|
 | Passo 15 | AI Gateway (backend) — interface própria, adaptador Anthropic, timeout/circuit breaker/quota | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.15 |
-| Passo 16 | Módulo `ia` — `POST /ia/perguntar` (UC-05), extensão do schema `SugestaoIA`, teste NFR-17 | 🔜 Próximo passo |
-| Passo 17 | Sugestões de ação (UC-06) — `POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, RN-08 | Por iniciar |
+| Passo 16 | Módulo `ia` — `POST /ia/perguntar` (UC-05), extensão do schema `SugestaoIA`, teste NFR-17 | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.16 |
+| Passo 17 | Sugestões de ação (UC-06) — `POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, RN-08 | 🔜 Próximo passo |
 | Passo 18 | Ecrã do Assistente de IA (frontend) — conversa + sugestões pendentes | Por iniciar |
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
@@ -234,6 +234,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados**: `apps/api/test/ia-gateway.e2e-spec.ts` (7 testes, mesmo padrão sem-HTTP de `tenant-isolation.e2e-spec.ts`), suite completa em 116/116 testes (109 herdados + 7 novos); `npm run build` limpo; app arranca corretamente sem credencial real.
 - **Milestone M3 em curso** — próximo: Passo 16 (`POST /ia/perguntar`, UC-05).
 
+### 3.16 Registo de Conclusão — Passo 16 (2026-07-07) — primeiro endpoint de produto do M3
+
+- **Especificação técnica formal aprovada antes da implementação, com 3 decisões emergentes validadas antecipadamente** — ver [Especificação Técnica do Passo 16](docs/04-implementation-blueprint/15-especificacao-tecnica-passo-16-ia-perguntar.md): (A) `AuthorizationService.construirFiltroWhere` extraído do `DashboardService` — 4ª confirmação da Decisão B do M2, comportamento neutro confirmado pelos 8 testes de Dashboard já existentes, sem alteração ao ficheiro de teste; (B) retenção de conteúdo (PSD-003) por ocultação-na-leitura, sem purga física nem scheduler nesta fase; (C) contexto da IA = resumo agregado (Processos/Clientes/Pipeline), sem lookup de entidade nomeada — decisão consciente de âmbito, registada como tal, não uma lacuna escondida.
+- **`POST /ia/perguntar`** implementado — `IaService.reunirResumoOperacional()` (RN-07 estrutural: dados fora do escopo RBAC nunca são reunidos, logo nunca chegam ao Gateway) + `IaService.perguntar()` (orquestra o `AiGatewayService` do Passo 15 e persiste `SugestaoIA`). `IaExceptionFilter` traduz pela primeira vez os erros tipados do Gateway para HTTP (429/504/503/400/502). Permissão `ia.perguntar` — `convidado` sem acesso (Information Architecture §3.4).
+- **Extensão aditiva do schema `SugestaoIA`** (`conteudoPergunta`/`conteudoResposta`, migração `20260707154415`) — `estado` de uma pergunta é sempre `'aceite'`, nunca `'pendente'` (só sugestões de ação, Passo 17, ficam pendentes).
+- **Sem descobertas técnicas emergentes além das já antecipadas nas 3 decisões da própria especificação** — as Decisões a Validar cobriram antecipadamente o que, nos passos anteriores, normalmente só surgia durante a implementação.
+- **Resultados**: `apps/api/test/ia-perguntar.e2e-spec.ts` (6 testes, via HTTP real — RN-07 verificado inspecionando o `AIRequest` realmente recebido pelo `FakeAdapter`), suite completa em 122/122 testes (116 herdados + 6 novos); `npm run build` limpo; app arranca corretamente, rota mapeada.
+- **NFR-17 ("ações de IA")** tem agora a metade "pergunta" coberta — a metade "sugestão/confirmação" (RN-08) fica para o Passo 17.
+- **Milestone M3 em curso** — próximo: Passo 17 (`POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, UC-06).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -288,11 +298,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 16 (M3, módulo `ia` — pergunta livre)
+## 6. Próxima Ação Imediata — Passo 17 (M3, sugestões de ação)
 
-**M1 e M2 formalmente concluídos.** **M3 (Assistente de IA) aprovado e em curso — Passo 15 (AI Gateway) concluído e aprovado (ver 3.15)**. Próximo: **Passo 16 — Módulo `ia`, `POST /ia/perguntar` (UC-05)**.
+**M1 e M2 formalmente concluídos.** **M3 (Assistente de IA) aprovado e em curso — Passo 15 (AI Gateway) e Passo 16 (`POST /ia/perguntar`) concluídos e aprovados (ver 3.15/3.16)**. Próximo: **Passo 17 — Sugestões de ação (UC-06), `POST /ia/sugestoes/:id/confirmar`/`/rejeitar`, RN-08**.
 
-- Consumir o `AiGatewayService` (Passo 15, já pronto) para implementar a pergunta livre — filtragem RBAC pelo módulo `ia` antes de chegar ao Gateway (ADR-005 §3.3 ponto 1, reutilizando `AuthorizationService.obterEscopoVisibilidade` já centralizado, Decisão B do M2).
-- Extensão do schema `SugestaoIA` (já existente desde o Passo 2) para guardar conteúdo, conforme PSD-003 (retenção configurável, aprovada na proposta do M3) — esta é a peça que faltava resolver antes de qualquer persistência de conversa.
-- Teste automatizado do fluxo crítico "ações de IA" (NFR-17) — o 4º e último fluxo crítico obrigatório ainda por cobrir.
+- Introduzir a distinção estrutural sugestão-pendente/ação-confirmada ao nível de produto (os tipos `PendingSuggestion`/`ConfirmedAction` já existem desde o Passo 15, ADR-005 §3.6/§3.7, mas ainda sem nenhum endpoint a produzi-los ou a consumi-los) — `SugestaoIA.estado` passa a incluir `'pendente'` como estado real, não só teórico (Passo 16 só produziu `'aceite'`).
+- `POST /ia/sugestoes/:id/confirmar` e `POST /ia/sugestoes/:id/rejeitar` — RN-08 (nenhuma ação sugerida pela IA executa sem confirmação humana explícita e individual) aplicado pela primeira vez a um endpoint de produto real, não apenas como princípio de arquitetura.
+- Definir, na Especificação Técnica, que ações concretas o MVP efetivamente propõe (a Proposta do M3 não fechou esta lista) — decisão a trazer para validação, não a assumir.
+- Teste automatizado da metade "sugestão/confirmação" do fluxo crítico "ações de IA" (NFR-17) — fecha a cobertura dos 4 fluxos críticos obrigatórios, juntamente com a metade "pergunta" já coberta no Passo 16.
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (testes automatizados, sem endpoint HTTP ainda tem UI a validar) → aprovação dos resultados → sincronização de documentação → commit.

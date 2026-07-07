@@ -346,8 +346,14 @@ model SugestaoIA {
   utilizador      Utilizador @relation(fields: [utilizadorId, empresaId], references: [id, empresaId], onDelete: Cascade)
   tipo            String // pergunta | sugestao_acao
   entidadeRef     String?
-  estado          String     @default("pendente") // pendente | aceite | rejeitada
+  estado          String     @default("pendente") // pendente | aceite | rejeitada — "pergunta" nasce sempre "aceite" (Especificação Técnica do Passo 16, D4)
   fornecedorUsado String
+  /// Conteúdo, sujeito a retenção configurável (PSD-003; Especificação
+  /// Técnica do Passo 16, 3.1/Decisão a Validar B) — `null` se
+  /// `IA_RETER_CONTEUDO=false`; nunca devolvido pela API além de
+  /// `IA_RETENCAO_CONTEUDO_DIAS`, mesmo que ainda presente na BD.
+  conteudoPergunta String?
+  conteudoResposta String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 

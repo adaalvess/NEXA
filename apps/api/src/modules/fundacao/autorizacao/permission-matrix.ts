@@ -63,6 +63,11 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       ver: true,
       marcar_lida: true,
     },
+    // Assistente de IA (Especificação Técnica do Passo 16) — Information
+    // Architecture §3.4 (RBAC por área): admin vê a Empresa toda.
+    ia: {
+      perguntar: true,
+    },
   },
   [Papel.gestor]: {
     fundacao: {
@@ -104,6 +109,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       ver: true,
       marcar_lida: true,
     },
+    // Âmbito: a sua equipa (Information Architecture §3.4).
+    ia: {
+      perguntar: true,
+    },
   },
   [Papel.colaborador]: {
     fundacao: {
@@ -144,6 +153,10 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       ver: true,
       marcar_lida: true,
     },
+    // Âmbito: o seu próprio (Information Architecture §3.4).
+    ia: {
+      perguntar: true,
+    },
   },
   [Papel.convidado]: {
     fundacao: {
@@ -183,6 +196,11 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     dashboard: {
       ver: true,
       marcar_lida: true,
+    },
+    // "Não aplicável" (Information Architecture §3.4) — Convidado nunca usa
+    // o Assistente de IA.
+    ia: {
+      perguntar: false,
     },
   },
   [Papel.super_admin]: {

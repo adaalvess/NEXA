@@ -3,15 +3,16 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { TenantPrismaService } from '../fundacao/prisma/tenant-prisma.service';
 import { tenantContext } from '../fundacao/tenant/tenant-context';
-import { AuthorizationService, EscopoVisibilidade } from '../fundacao/autorizacao/authorization.service';
+import { AuthorizationService } from '../fundacao/autorizacao/authorization.service';
 import { EVENTO_AUDITORIA, EventoAuditoria } from '../fundacao/auditoria/eventos-auditoria';
 
 /**
  * Dashboard Inteligente (FR-11 a FR-13; Especificação Técnica do Passo 12)
  * — terceiro módulo de negócio, "sem entidade própria" (Functional
- * Specifications, 3.2). Reutiliza integralmente `obterEscopoVisibilidade`
- * (Passo 9) — zero alterações ao `AuthorizationService`, terceira
- * confirmação prática da Decisão B do M2.
+ * Specifications, 3.2). Reutiliza `obterEscopoVisibilidade` (Passo 9) e,
+ * desde o Passo 16, `construirFiltroWhere` (extraído deste próprio ficheiro
+ * para `AuthorizationService`, quando o módulo `ia` precisou da mesma
+ * tradução — comportamento idêntico, 4ª confirmação da Decisão B do M2).
  */
 @Injectable()
 export class DashboardService {
@@ -108,37 +109,13 @@ export class DashboardService {
 
   private async construirWhereProcesso(): Promise<Prisma.ProcessoWhereInput> {
     const escopo = await this.authorizationService.obterEscopoVisibilidade('processo');
-    const where: Prisma.ProcessoWhereInput = { eliminadoEm: null };
-    this.aplicarEscopo(where, escopo, 'departamentoId', 'responsavelId');
-    return where;
+    const filtro = this.authorizationService.construirFiltroWhere(escopo, 'departamentoId', 'responsavelId');
+    return { eliminadoEm: null, ...filtro };
   }
 
   private async construirWhereCliente(): Promise<Prisma.ClienteWhereInput> {
     const escopo = await this.authorizationService.obterEscopoVisibilidade('cliente');
-    const where: Prisma.ClienteWhereInput = { eliminadoEm: null };
-    if (escopo.tipo === 'departamento') {
-      where.owner = { departamentoId: escopo.departamentoId };
-    } else if (escopo.tipo === 'proprio') {
-      where.ownerId = escopo.utilizadorId;
-    } else if (escopo.tipo === 'partilhado') {
-      where.id = { in: escopo.entidadeIds };
-    }
-    return where;
-  }
-
-  /** Tradução genérica para modelos com `departamentoId` direto (Processo). */
-  private aplicarEscopo(
-    where: Record<string, unknown>,
-    escopo: EscopoVisibilidade,
-    campoDepartamento: string,
-    campoResponsavel: string,
-  ): void {
-    if (escopo.tipo === 'departamento') {
-      where[campoDepartamento] = escopo.departamentoId;
-    } else if (escopo.tipo === 'proprio') {
-      where[campoResponsavel] = escopo.utilizadorId;
-    } else if (escopo.tipo === 'partilhado') {
-      where.id = { in: escopo.entidadeIds };
-    }
+    const filtro = this.authorizationService.construirFiltroWhere(escopo, 'departamentoId', 'ownerId', { departamentoViaRelacao: 'owner' });
+    return { eliminadoEm: null, ...filtro };
   }
 }
