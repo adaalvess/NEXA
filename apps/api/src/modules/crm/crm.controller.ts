@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@ne
 import { SessionGuard } from '../fundacao/auth/session.guard';
 import { PermissaoGuard } from '../fundacao/autorizacao/permissao.guard';
 import { RequirePermissao } from '../fundacao/autorizacao/require-permissao.decorator';
+import { BloqueadoPorSubscricao } from '../comercial/bloqueado-por-subscricao.decorator';
 import { CriarClienteDto } from './dto/criar-cliente.dto';
 import { EditarClienteDto } from './dto/editar-cliente.dto';
 import { CriarInteracaoDto } from './dto/criar-interacao.dto';
@@ -21,6 +22,7 @@ export class CrmController {
 
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('crm', 'criar')
+  @BloqueadoPorSubscricao()
   @Post('clientes')
   async criarCliente(@Body() dto: CriarClienteDto) {
     return this.crmService.criarCliente(dto);
@@ -49,6 +51,7 @@ export class CrmController {
 
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('crm', 'editar')
+  @BloqueadoPorSubscricao()
   @Post('clientes/:id/interacoes')
   async criarInteracao(@Param('id') id: string, @Body() dto: CriarInteracaoDto) {
     return this.crmService.criarInteracao(id, dto);

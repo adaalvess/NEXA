@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, UseFilters, UseGuards } from '@nest
 import { SessionGuard } from '../fundacao/auth/session.guard';
 import { PermissaoGuard } from '../fundacao/autorizacao/permissao.guard';
 import { RequirePermissao } from '../fundacao/autorizacao/require-permissao.decorator';
+import { BloqueadoPorSubscricao } from '../comercial/bloqueado-por-subscricao.decorator';
 import { IaService } from './ia.service';
 import { PerguntarDto } from './dto/perguntar.dto';
 import { IaExceptionFilter } from './ia-exception.filter';
@@ -20,6 +21,7 @@ export class IaController {
 
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('ia', 'perguntar')
+  @BloqueadoPorSubscricao()
   @Post('perguntar')
   async perguntar(@Body() dto: PerguntarDto) {
     return this.iaService.perguntar(dto.pergunta);
@@ -27,6 +29,7 @@ export class IaController {
 
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('ia', 'gerar_sugestoes')
+  @BloqueadoPorSubscricao()
   @Post('sugestoes')
   async gerarSugestoes() {
     return this.iaService.gerarSugestoes();

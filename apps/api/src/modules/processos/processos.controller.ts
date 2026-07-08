@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { SessionGuard } from '../fundacao/auth/session.guard';
 import { PermissaoGuard } from '../fundacao/autorizacao/permissao.guard';
 import { RequirePermissao } from '../fundacao/autorizacao/require-permissao.decorator';
+import { BloqueadoPorSubscricao } from '../comercial/bloqueado-por-subscricao.decorator';
 import { CriarProcessoDto } from './dto/criar-processo.dto';
 import { EditarProcessoDto } from './dto/editar-processo.dto';
 import { ProcessosService } from './processos.service';
@@ -21,6 +22,7 @@ export class ProcessosController {
 
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('processos', 'criar')
+  @BloqueadoPorSubscricao()
   @Post()
   async criar(@Body() dto: CriarProcessoDto) {
     return this.processosService.criar(dto);

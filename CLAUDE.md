@@ -81,8 +81,8 @@ Proposta completa do M4 (objetivos, âmbito, exclusões, arquitetura, sequência
 | Passo | Conteúdo | Estado |
 |---|---|---|
 | Passo 19 | `SubscricaoPlano` real (trial automático), `GET /planos` | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.19 |
-| Passo 20 | Enforcement de `limiteUsoIA` por plano + RN-11 (trial expirado → estado "limitada") | 🔜 Próximo passo |
-| Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | Por iniciar |
+| Passo 20 | Enforcement de `limiteUsoIA` por plano + RN-11 (trial expirado → estado "limitada") | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.20 |
+| Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | 🔜 Próximo passo |
 | Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | Por iniciar |
 | Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | Por iniciar |
 
@@ -289,6 +289,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Risco R3 do Master Roadmap formalmente resolvido.**
 - **Milestone M4 em curso** — próximo: Passo 20 (enforcement de `limiteUsoIA` por plano + RN-11, trial expirado).
 
+### 3.20 Registo de Conclusão — Passo 20 (2026-07-08) — RN-11 uniforme em toda a aplicação
+
+- **Especificação técnica formal aprovada antes da implementação, com 5 decisões emergentes validadas antecipadamente e um pedido explícito de rigor da Fundadora/CEO** — ver [Especificação Técnica do Passo 20](docs/04-implementation-blueprint/19-especificacao-tecnica-passo-20-comercial-enforcement.md): (A) `SubscricaoGuard`/`SubscricaoExceptionFilter` globais (`APP_GUARD`/`APP_FILTER`, mesmo padrão do `ThrottlerGuard`) com decorator leve de opt-in `@BloqueadoPorSubscricao()` — refinamento estrutural sobre a Decisão 6.2 da Proposta do M4, garantindo a uniformidade pedida pela Fundadora/CEO de forma impossível de contornar por um módulo futuro, em vez de depender de convenção; (B) código `402 Payment Required` — distinto e inequívoco de `403` (RBAC) e `429` (quota de IA); (C) estado efetivo de subscrição derivado dinamicamente (`SubscricaoService.obterEstadoEfetivo`), nunca escrito por um scheduler — consistente com a aversão já estabelecida a infraestrutura de tarefas agendadas prematura; (D) só 5 endpoints de criação de conteúdo de negócio ficam sujeitos (Processos, Clientes, Interações, pergunta à IA, geração de sugestões) — nunca edição/eliminação (RN-10), nunca confirmar/rejeitar sugestões, nunca ações administrativas da Fundação; (E) mensagem e `code` únicos, nunca personalizados por papel.
+- **`SubscricaoGuard`/`SubscricaoExceptionFilter`** registados globalmente em `ComercialModule` — nenhum módulo de negócio importa `ComercialModule` para beneficiar disto, só o decorator leve `@BloqueadoPorSubscricao()`, aplicado a `ProcessosController.criar`, `CrmController.criarCliente`/`criarInteracao`, `IaController.perguntar`/`gerarSugestoes`.
+- **Implementação estritamente conforme a especificação aprovada** — nenhuma situação surgiu durante a implementação que exigisse alterar a arquitetura, o âmbito ou uma decisão já aprovada, conforme pedido explícito da Fundadora/CEO.
+- **T6 tratado como teste estrutural** (pedido explícito da Fundadora/CEO) — compara a resposta de `POST /processos` e `POST /ia/perguntar` (dois módulos distintos) byte-a-byte (`JSON.stringify` idêntico), não apenas verifica o `statusCode`.
+- **Resultados**: `apps/api/test/comercial-enforcement.e2e-spec.ts` (12 testes, T1-T12, via HTTP real), suite completa em 153/153 testes (141 herdados + 12 novos); `npm run build` limpo.
+- **RN-11 aplicada de forma estruturalmente uniforme em toda a aplicação.**
+- **Milestone M4 em curso** — próximo: Passo 21 (Stripe Checkout, `POST /subscricao/checkout`).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -343,10 +353,11 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 20 (M4, enforcement de limites)
+## 6. Próxima Ação Imediata — Passo 21 (M4, Stripe Checkout)
 
-**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`) concluído e aprovado (ver 3.19)**. Próximo: **Passo 20 — Enforcement de `limiteUsoIA` por plano (já ativo automaticamente desde o Passo 19) + RN-11 (trial expirado → estado "limitada": leitura permitida, criação bloqueada)**.
+**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`) e Passo 20 (enforcement uniforme de RN-11) concluídos e aprovados (ver 3.19/3.20)**. Próximo: **Passo 21 — Stripe Checkout, `POST /subscricao/checkout` (UC-07, ADR-008)**.
 
-- Confirmar/testar de ponta a ponta que a quota de IA já está corretamente diferenciada por plano (o `QuotaService` já lê `SubscricaoPlano.limiteUsoIA` desde o Passo 15/19, sem alteração de código necessária — este passo é sobretudo validação e cobertura de teste adicional).
-- Novo serviço/guard transversal em `comercial` para RN-11 (bloqueio de toda ação de criação quando a subscrição está "limitada") — decidir em Especificação Técnica própria onde vive exatamente e como é consumido pelos módulos de negócio (mesmo precedente do Passo 17 — módulo exporta, outros consomem).
+- Sessão de Stripe Checkout associando `empresaId` como metadado (ADR-008 §3.3) — nunca invocado antes de UC-07 (RN-02, ADR-008 D3), consistente com o facto de o registo/trial nunca exigir dados de pagamento.
+- Credenciais Stripe só via variáveis de ambiente (`STRIPE_SECRET_KEY`, já em `.env.example` desde o scaffolding) — nunca em código, mesma disciplina já aplicada às credenciais de IA (Security & Access Principles §3.8).
+- Testes sem credenciais Stripe reais — mesma disciplina já usada no M3 (`FakeAdapter`), a definir em Especificação Técnica própria como se traduz para a integração Stripe.
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
