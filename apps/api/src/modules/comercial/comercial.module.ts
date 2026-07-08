@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { FundacaoModule } from '../fundacao/fundacao.module';
 import { ComercialController } from './comercial.controller';
+import { StripeWebhookController } from './stripe-webhook.controller';
 import { SubscricaoListener } from './subscricao.listener';
 import { SubscricaoService } from './subscricao.service';
 import { SubscricaoGuard } from './subscricao.guard';
@@ -26,7 +27,7 @@ import { stripeClientProvider } from './stripe-client.provider';
  */
 @Module({
   imports: [FundacaoModule],
-  controllers: [ComercialController],
+  controllers: [ComercialController, StripeWebhookController],
   providers: [
     SubscricaoListener,
     SubscricaoService,

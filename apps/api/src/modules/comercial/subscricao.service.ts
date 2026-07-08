@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { EstadoSubscricao } from '@prisma/client';
+import { EstadoSubscricao, Papel } from '@prisma/client';
 import type Stripe from 'stripe';
 import { TenantPrismaService } from '../fundacao/prisma/tenant-prisma.service';
 import { tenantContext } from '../fundacao/tenant/tenant-context';
@@ -85,5 +85,36 @@ export class SubscricaoService {
     });
 
     return { url: sessao.url! };
+  }
+
+  /**
+   * Processa `checkout.session.completed` (Especificação Técnica do Passo
+   * 22, 3.4) — chamado só depois da assinatura do webhook já ter sido
+   * verificada pelo `StripeWebhookController`, nunca antes. `tenantContext.run()`
+   * explícito, mesmo padrão já usado pelo `SubscricaoListener` (Passo 19) —
+   * primeira reutilização deste padrão fora de um evento interno.
+   *
+   * Idempotente por `stripeEventId` (ADR-008 §3.4/Decisão D): verifica
+   * primeiro se o evento já foi processado, só depois muta `SubscricaoPlano`,
+   * só depois regista o evento como processado.
+   */
+  async processarCheckoutConcluido(empresaId: string, stripeEventId: string, sessao: Stripe.Checkout.Session): Promise<void> {
+    await tenantContext.run({ utilizadorId: 'stripe-webhook', empresaId, papel: Papel.admin_empresa }, async () => {
+      const jaProcessado = await this.tenantPrisma.client.webhookStripeProcessado.findUnique({ where: { stripeEventId } });
+      if (jaProcessado) {
+        return; // idempotência — nunca reprocessa.
+      }
+
+      await this.tenantPrisma.client.subscricaoPlano.update({
+        where: { empresaId },
+        data: {
+          estado: 'ativa',
+          stripeCustomerId: typeof sessao.customer === 'string' ? sessao.customer : (sessao.customer?.id ?? undefined),
+          stripeSubscriptionId: typeof sessao.subscription === 'string' ? sessao.subscription : (sessao.subscription?.id ?? undefined),
+        },
+      });
+
+      await this.tenantPrisma.client.webhookStripeProcessado.create({ data: { empresaId, stripeEventId } });
+    });
   }
 }

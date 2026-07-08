@@ -63,6 +63,7 @@ model Empresa {
   registosAuditoria RegistoAuditoria[]
   regrasPermissao   RegraPermissao[]
   subscricaoPlano   SubscricaoPlano?
+  webhooksStripeProcessados WebhookStripeProcessado[]
 }
 
 /// Papel RBAC predefinido (Vision Document, RBAC; Passo 5) — enum, não String
@@ -444,4 +445,17 @@ model SubscricaoPlano {
   limiteUsoIA           Int?
   trialIniciadoEm       DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+}
+
+/// Ledger de deduplicação de webhooks Stripe (Especificação Técnica do
+/// Passo 22, 3.1/Decisão D) — ADR-008 §3.4 exige idempotência real por
+/// identificador único do evento, não apenas tolerância a repetição.
+model WebhookStripeProcessado {
+  id            String   @id @default(cuid())
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  stripeEventId String   @unique
+  processadoEm  DateTime @default(now())
+
+  @@index([empresaId])
 }

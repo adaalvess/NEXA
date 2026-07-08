@@ -83,8 +83,8 @@ Proposta completa do M4 (objetivos, âmbito, exclusões, arquitetura, sequência
 | Passo 19 | `SubscricaoPlano` real (trial automático), `GET /planos` | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.19 |
 | Passo 20 | Enforcement de `limiteUsoIA` por plano + RN-11 (trial expirado → estado "limitada") | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.20 |
 | Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.21 |
-| Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | 🔜 Próximo passo |
-| Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | Por iniciar |
+| Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.22 |
+| Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | 🔜 Próximo passo |
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
@@ -308,6 +308,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados**: `apps/api/test/comercial-checkout.e2e-spec.ts` (7 testes, T1-T7, via HTTP real com `FakeStripeClient`, zero chamada de rede real), suite completa em 160/160 testes (153 herdados + 7 novos); `npm run build` limpo.
 - **Milestone M4 em curso** — próximo: Passo 22 (Webhooks Stripe, `POST /webhooks/stripe`, idempotentes).
 
+### 3.22 Registo de Conclusão — Passo 22 (2026-07-08) — fecha o ciclo de UC-07
+
+- **Especificação técnica formal aprovada antes da implementação, com 6 decisões emergentes validadas antecipadamente** — ver [Especificação Técnica do Passo 22](docs/04-implementation-blueprint/21-especificacao-tecnica-passo-22-stripe-webhooks.md): (A) só `checkout.session.completed` tratado neste passo — decisão consciente de âmbito, documentada como tal, não uma omissão; cancelamento/falha de pagamento ficam registados como Questão em Aberto; (B) `rawBody: true` (mecanismo nativo do NestJS) para preservar o corpo bruto exigido pela verificação de assinatura, sem afetar o parsing JSON de nenhuma outra rota; (C) `tenantContext.run()` reutilizado tal-e-qual do `SubscricaoListener` (Passo 19) — primeira vez fora de um evento interno; (D) idempotência real via novo modelo `WebhookStripeProcessado` (verificar → mutar → registar); (E) eventos Stripe não tratados devolvem sempre `200`, nunca um erro; (F) testes de assinatura com o SDK real da Stripe (`generateTestHeaderString`), não `FakeStripeClient` — prova genuína de rejeição criptográfica, não uma simulação.
+- **`StripeWebhookController`** (controlador dedicado, sem `SessionGuard`/`PermissaoGuard`) implementado — `POST /webhooks/stripe` verifica a assinatura (Fail Secure — inválida nunca processada), filtra por tipo de evento, e chama `SubscricaoService.processarCheckoutConcluido` (extensão do mesmo serviço, single source of truth preservada).
+- **Idempotência real confirmada por teste dedicado (T4)**: um estado alterado manualmente entre duas entregas do mesmo evento nunca é revertido pela segunda entrega — prova de deduplicação genuína, não apenas tolerância a repetição.
+- **Sem descobertas técnicas emergentes além das já identificadas e validadas na própria especificação.**
+- **Resultados**: `apps/api/test/comercial-webhooks.e2e-spec.ts` (6 testes, T1-T6, assinatura gerada e verificada com o SDK real, zero chamada de rede real), suite completa em 166/166 testes (160 herdados + 6 novos); `npm run build` limpo.
+- **Fecha o ciclo completo de UC-07** — escolher plano (Passo 21) → pagar → subscrição ativa (Passo 22).
+- **Milestone M4 em curso** — próximo: Passo 23 (Ecrã(s) frontend — plano atual, limites/uso, upgrade), último passo do M4.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -362,12 +372,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 22 (M4, Webhooks Stripe)
+## 6. Próxima Ação Imediata — Passo 23 (M4, ecrã de subscrição — último passo do M4)
 
-**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`), Passo 20 (enforcement uniforme de RN-11) e Passo 21 (Stripe Checkout) concluídos e aprovados (ver 3.19/3.20/3.21)**. Próximo: **Passo 22 — Webhooks Stripe, `POST /webhooks/stripe` (ADR-008 §3.4)**.
+**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`), Passo 20 (enforcement uniforme de RN-11), Passo 21 (Stripe Checkout) e Passo 22 (Webhooks Stripe) concluídos e aprovados (ver 3.19/3.20/3.21/3.22)**. Próximo: **Passo 23 — Ecrã(s) frontend (plano atual, limites/uso, upgrade), último passo do M4**.
 
-- Endpoint sem sessão, verificado por assinatura (`STRIPE_WEBHOOK_SECRET`, já em `.env.example`) — Fail Secure explícito (Security & Access Principles §3.9): um webhook não verificado é rejeitado, nunca processado.
-- Processamento idempotente por identificador único do evento Stripe (Event & Notification Architecture Rules §3.5) — mesmo princípio já aplicado ao `SubscricaoListener` (Passo 19), agora para eventos externos, não internos.
-- Atualiza `SubscricaoPlano.estado`/`stripeCustomerId`/`stripeSubscriptionId` a partir de `metadata.empresaId` (Passo 21) — aplica RN-10/RN-11 já decididas (ADR-008 §3.4), nunca as redefine.
-- Testes sem credenciais Stripe reais — assinatura de webhook calculada localmente com um segredo de teste, payloads sintéticos, mesma disciplina já aplicada ao Passo 21 (`FakeStripeClient`).
-- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
+- `GET /subscricao` (estado atual da própria Empresa) ainda não existe — deliberadamente adiado desde os Passos 20/22 até este momento em que o frontend precisa de facto dele; reaproveita `SubscricaoService.obterEstadoEfetivo` já construído (Passo 20), nunca duplica o cálculo.
+- Ecrã dentro da aplicação autenticada (nunca uma página pública — isso é EP-07/M5, fora de âmbito) — plano atual, limites/uso, botão de upgrade (consumindo `POST /subscricao/checkout`, Passo 21), aviso a 90% do limite (US-19, ainda por implementar).
+- `success_url`/`cancel_url` do Passo 21 apontam para `/dashboard?checkout=sucesso|cancelado` como placeholder — este passo pode ajustar o destino sem alterar o backend.
+- Com este passo, o **Milestone M4 (Comercial e Pagamentos) fica formalmente concluído** — mesma disciplina de fecho já aplicada aos Milestones M1/M2/M3.
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser, obrigatória para passos de frontend) → aprovação dos resultados → sincronização de documentação → commit.

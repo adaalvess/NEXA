@@ -10,9 +10,15 @@ import { AppModule } from './app.module';
  * autenticação usa sessões do lado do servidor entregues via cookie
  * httpOnly/Secure/SameSite=Strict — nunca tokens no corpo/header geridos
  * pelo cliente.
+ *
+ * `rawBody: true` (Especificação Técnica do Passo 22, 3.2/Decisão B) —
+ * preserva `req.rawBody` em paralelo ao corpo já interpretado como JSON,
+ * exigido pela verificação de assinatura de webhooks Stripe (a assinatura é
+ * calculada sobre os bytes exatos do pedido, nunca sobre o corpo já
+ * interpretado) — não afeta o parsing de nenhuma outra rota.
  */
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(cookieParser());
 
