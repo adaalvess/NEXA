@@ -98,7 +98,7 @@ Proposta completa do M5 (objetivos, âmbito, exclusões, sequência de passos, r
 | Passo 25 | Landing Page pública (`/`) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.25 |
 | Passo 26 | Ecrã de Registo público (`/registar`) — fecha o Bloco A | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.26 |
 | Passo 27 | `PATCH /utilizadores/me` (self-edit nome/palavra-passe) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.27 |
-| Passo 28 | Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos) — fecha o Bloco B | ⏳ Pendente |
+| Passo 28 | Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos) — fecha o Bloco B | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.28 |
 | Passo 29 | Interface de email + adaptador Resend, modelo `ConviteUtilizador` | ⏳ Pendente |
 | Passo 30 | `POST /convites`, `POST /convites/:token/aceitar` | ⏳ Pendente |
 | Passo 31 | Ecrã de convite (envio + aceitação) — fecha o Bloco C, Milestone M5 formalmente concluído | ⏳ Pendente |
@@ -380,6 +380,15 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados**: `apps/api/test/perfil-self-edit.e2e-spec.ts` (7 testes novos, incluindo prova real de transação atómica — T6 confirma uma sessão diferente eliminada da BD e a `401` em `GET /auth/eu`, com a sessão do próprio pedido a continuar válida), suite completa em 180/180 testes (173 herdados + 7 novos); `npm run build` (`apps/api`) limpo. Sem ecrã neste passo (backend puro) — fica para o Passo 28.
 - **Milestone M5 em curso** — próximo: Passo 28 (Ecrã "Configurações" — Perfil, Utilizadores/Permissões, Departamentos), fecha o Bloco B.
 
+### 3.28 Registo de Conclusão — Passo 28 (2026-07-08) — fecha o Bloco B do M5
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 Decisões a Validar (A-B)** — ver [Especificação Técnica do Passo 28](docs/04-implementation-blueprint/27-especificacao-tecnica-passo-28-ecra-configuracoes.md): investigação prévia confirmou que a Information Architecture já reserva 3 sub-áreas restantes para "Configurações" ("Empresa" já implementada como `/subscricao`, Passo 23); (A) página única `/configuracoes` com 3 secções empilhadas, mesmo padrão de `/subscricao`, sem separadores/sub-rotas; (B) item "Configurações" visível a todos os papéis (incluindo `convidado`, que tem de gerir o próprio Perfil), secções internas "Utilizadores/Permissões"/"Departamentos" condicionadas por papel dentro da página. Aprovado com pedido explícito da Fundadora/CEO: cada secção como componente independente (facilita evolução futura para separadores/sub-rotas); reforço de que a diferenciação de secções é só de interface, autorização sempre garantida pelo backend.
+- **`apps/web/src/app/(autenticado)/configuracoes/page.tsx`** (orquestrador) + `SeccaoPerfil.tsx`/`SeccaoUtilizadores.tsx`/`SeccaoDepartamentos.tsx` (3 componentes independentes) — Perfil consome `PATCH /utilizadores/me` (Passo 27); Utilizadores/Permissões introduz a primeira `TabelaDados` do projeto com edição em linha (`Select` de papel/Departamento, sem `Modal` de confirmação), a própria linha do utilizador autenticado nunca mostra `Select` de papel (L1, defesa em profundidade visual); Departamentos reaproveita o mesmo `Modal` para criar/editar. Item "Configurações" adicionado a `BarraLateralNavegacao` (ícone `Settings`), sem condição de papel — primeiro item nunca gated ao nível do menu.
+- **Descoberta real durante a validação visual, corrigida antes do fecho**: a secção "Perfil" não invalidava a query `utilizadores` do TanStack Query — um `admin_empresa`/`gestor` a mudar o próprio nome não via a `TabelaDados` de "Utilizadores e Permissões" (mesma página) refletir a alteração sem refresh manual. Corrigido com `queryClient.invalidateQueries({ queryKey: ['utilizadores'] })` — as secções continuam componentes independentes (pedido da CEO), só passam a partilhar a mesma chave de cache do TanStack Query, nunca uma referência direta entre si.
+- **Resultados**: sem testes automatizados novos de API (endpoints já cobertos pelos Passos 5/8/27); regressão completa 180/180 confirmada sem impacto. `npm run build`/`npm run lint` (`apps/web`) limpos. Validação visual real no browser nos 4 papéis confirmou: item "Configurações" visível a todos; `admin_empresa` com as 3 secções (editou o próprio Perfil, mudou Departamento em linha, criou "Vendas"); `gestor` só com Perfil/Utilizadores (tentativa de promover um `colaborador` a `admin_empresa`, violação de L2, devolveu `403` sem crash); `colaborador`/`convidado` só com Perfil, ambos conseguiram atualizar o próprio nome; eliminar um Departamento com Utilizador ativo mostrou a mensagem exata do backend (RD-01); alterar a palavra-passe mostrou o aviso de sessões terminadas, login com a nova password confirmado; responsivo sem quebras em 375px/768px/1280px; zero erros de consola.
+- **Bloco B do M5 (Configurações) formalmente concluído** — Passos 27 e 28 implementados, validados e aprovados.
+- **Milestone M5 em curso** — próximo: Bloco C (UC-02, Convite por email, Passos 29-31).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -434,10 +443,11 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 28 (M5, Bloco B — Ecrã "Configurações")
+## 6. Próxima Ação Imediata — Passo 29 (M5, Bloco C — Convite por email)
 
-**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Bloco A (EP-07) formalmente concluído; Passo 27 (`PATCH /utilizadores/me`) concluído e aprovado, primeiro passo do Bloco B (ver 3.24/3.25/3.26/3.27)**. Próximo: **Passo 28 — Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos), fecha o Bloco B**.
+**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Bloco A (EP-07) e Bloco B (Configurações) formalmente concluídos; Passo 28 (Ecrã "Configurações") concluído e aprovado (ver 3.24-3.28)**. Próximo: **Passo 29 — Interface de email + adaptador Resend, modelo `ConviteUtilizador`, primeiro passo do Bloco C (UC-02)**.
 
-- Consome `PATCH /utilizadores/me` (Passo 27, novo), `GET /utilizadores`/`PATCH /utilizadores/:id/papel`/`PATCH /utilizadores/:id/departamento` (Passos 5/8/14, já existentes) e `/departamentos` (Passo 8, já existente) — na sua maioria, ecrãs novos sobre APIs já existentes.
+- Fornecedor de email Resend já aprovado (Proposta do M5, Decisão A) — atrás de interface própria, desacoplada da implementação, substituível sem impacto arquitetural (Regra não-negociável #5).
+- Novo modelo `ConviteUtilizador` (tenant-scoped, RLS) — token, papel/Departamento pretendidos, estado, expiração; mesmas regras de autoridade já fixadas no Passo 5 (L1-L6) aplicadas a quem pode convidar com que papel.
 - **Bloqueador de pré-lançamento registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD — a resolver antes do M6/M7, não faz parte do âmbito deste M5.
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser) → aprovação dos resultados → sincronização de documentação → commit.

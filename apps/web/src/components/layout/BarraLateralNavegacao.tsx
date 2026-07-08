@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ListChecks, Users, GitBranch, Sparkles, CreditCard, Menu, X as IconeFechar, LogOut } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, GitBranch, Sparkles, CreditCard, Settings, Menu, X as IconeFechar, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useSessao } from '../../lib/sessao-context';
 import { useLogout } from '../../lib/use-logout';
@@ -82,6 +82,12 @@ function Conteudo({ itens, pathname, papel, onNavegar }: { itens: ItemNav[]; pat
  * `admin_empresa` tem `comercial.ver_planos` (Especificação Técnica do
  * Passo 19); nunca uma secção "Configurações" completa, fora do âmbito
  * deste Milestone.
+ *
+ * "Configurações" adicionado no Passo 28 (Decisão B) — primeiro item
+ * visível a **todos** os papéis, incluindo `convidado`, porque toda a
+ * gente tem de conseguir gerir o próprio Perfil; as secções internas
+ * "Utilizadores/Permissões" e "Departamentos" continuam condicionadas por
+ * papel dentro da própria página, nunca ao nível deste item de navegação.
  */
 export function BarraLateralNavegacao() {
   const pathname = usePathname();
@@ -105,6 +111,8 @@ export function BarraLateralNavegacao() {
   if (papel === 'admin_empresa') {
     itens.push({ rotulo: 'Plano', href: '/subscricao', icone: CreditCard });
   }
+
+  itens.push({ rotulo: 'Configurações', href: '/configuracoes', icone: Settings });
 
   return (
     <>
