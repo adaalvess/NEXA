@@ -64,4 +64,18 @@ export class QuotaService {
       update: { contagem: { increment: 1 } },
     });
   }
+
+  /**
+   * Uso mensal atual (Especificação Técnica do Passo 23, 3.1/Decisão B) —
+   * único ponto de leitura de `UsoIAMensal`, consumido pelo módulo
+   * `comercial` (`SubscricaoService`) para o ecrã de subscrição, em vez de
+   * duplicar esta consulta/o cálculo de `anoMesAtual()` noutro módulo.
+   */
+  async obterUsoAtual(empresaId: string): Promise<number> {
+    const anoMes = anoMesAtual();
+    const uso = await this.tenantPrisma.client.usoIAMensal.findUnique({
+      where: { empresaId_anoMes: { empresaId, anoMes } },
+    });
+    return uso?.contagem ?? 0;
+  }
 }

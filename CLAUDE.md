@@ -84,7 +84,9 @@ Proposta completa do M4 (objetivos, âmbito, exclusões, arquitetura, sequência
 | Passo 20 | Enforcement de `limiteUsoIA` por plano + RN-11 (trial expirado → estado "limitada") | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.20 |
 | Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.21 |
 | Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.22 |
-| Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | 🔜 Próximo passo |
+| Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.23 |
+
+**Milestone M4 (Comercial e Pagamentos) formalmente concluído em 2026-07-08** — todos os passos previstos (19-23) implementados, validados e aprovados; ciclo completo de UC-07/UC-08 operacional de ponta a ponta: trial automático no registo → limites por plano aplicados uniformemente (RN-11) → upgrade self-service via Stripe Checkout → webhook ativa a subscrição real de forma idempotente → ecrã de subscrição expõe plano/estado/uso/upgrade ao Administrador, sem nenhum cálculo paralelo no frontend.
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
@@ -318,6 +320,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Fecha o ciclo completo de UC-07** — escolher plano (Passo 21) → pagar → subscrição ativa (Passo 22).
 - **Milestone M4 em curso** — próximo: Passo 23 (Ecrã(s) frontend — plano atual, limites/uso, upgrade), último passo do M4.
 
+### 3.23 Registo de Conclusão — Passo 23 (2026-07-08) — último passo do M4, Milestone formalmente concluído
+
+- **Especificação técnica formal aprovada antes da implementação, com 5 Decisões a Validar (A-E) e 3 requisitos de validação adicionais explícitos da Fundadora/CEO** — ver [Especificação Técnica do Passo 23](docs/04-implementation-blueprint/22-especificacao-tecnica-passo-23-ecra-subscricao.md): (A) `GET /subscricao` reaproveita `comercial.ver_planos`, sem permissão nova; (B) `IaModule` passa a exportar `QuotaService`, novo método `obterUsoAtual(empresaId)`, `ComercialModule` importa `IaModule` — primeira vez que `comercial` consome outro módulo de negócio (direção inversa à já estabelecida `ia → processos`, Passo 17); (C) item de navegação independente "Plano" (`admin_empresa` só), sem construir a secção "Configurações" completa; (D) aviso a 90% só para `limiteUsoIA` (único limite com uso real medido neste Milestone); (E) `success_url`/`cancel_url` do Passo 21 como decisão de detalhe, não arquitetural. Requisitos adicionais da CEO: nenhum cálculo paralelo no cliente, upgrade exclusivamente via checkout já implementado, estados de carregamento/erro/vazio consistentes com o Design System.
+- **`SubscricaoService.obterResumoSubscricao()`** — novo método, agrega plano/estado/`estadoEfetivo`/limites/uso de IA num único objeto. Por causa do requisito "sem cálculos paralelos no cliente", passou a calcular também `usoIAPercentagem` (`number | null`) e `avisoLimiteIAProximo` (`boolean`, `>= 90%`) no próprio backend — refinamento direto do que já estava proposto na especificação (3.4/Decisão D), tornando explícito que o cálculo nunca acontece no frontend.
+- **`GET /subscricao`** implementado, reaproveitando `@RequirePermissao('comercial', 'ver_planos')` (Decisão A) — nunca devolve `stripeCustomerId`/`stripeSubscriptionId`.
+- **Frontend**: `apps/web/src/app/(autenticado)/subscricao/page.tsx` — Cartão "Plano atual" (`BadgeEstado`, dias restantes de trial), Cartão "Uso de IA este mês" (aviso a partir de 90%, lido diretamente da API), Cartão "Limites do plano" (valores preparados, sem barra de uso), secção de upgrade (só visível quando não `ativa`, botões "Escolher" chamam exclusivamente `POST /subscricao/checkout`, redirecionam via `window.location.href`), mensagem de confirmação/cancelamento lida de `?checkout=`. `BadgeEstado` (Passo 13) estendido de forma aditiva com os 4 valores de `EstadoSubscricao`. Item "Plano" adicionado a `BarraLateralNavegacao`, condicional a `admin_empresa`.
+- **Sem descobertas técnicas emergentes que alterassem arquitetura ou âmbito** — o único ajuste (cálculo de `usoIAPercentagem`/`avisoLimiteIAProximo` no backend) é a implementação direta de um requisito já explícito na aprovação, não uma descoberta feita durante a implementação.
+- **Resultados**: backend `apps/api/test/comercial-subscricao-resumo.e2e-spec.ts` (5 testes novos), suite completa em 171/171 testes (166 herdados + 5 novos); `npm run build` (`apps/api`) limpo. Frontend `npm run build`/`npm run lint` (`apps/web`) limpos; validação visual real no browser confirmou: item "Plano" visível só para `admin_empresa`; plano/estado/dias de trial corretos; aviso de uso de IA a 90% (dados manipulados diretamente na BD para simular o cenário); fluxo de upgrade chama corretamente `POST /subscricao/checkout` (erro tratado com mensagem, sem crash — sem Price ID de teste configurado neste ambiente local); secção de upgrade ausente quando `ativa`; acesso direto por URL por `colaborador` devolve mensagem, nunca crash; responsivo sem quebras em 375px/768px/1280px; zero erros de consola. Detalhe completo em §3.8 da especificação.
+- **Milestone M4 (Comercial e Pagamentos) formalmente concluído** — Passos 19 a 23 implementados, validados e aprovados; ciclo completo de UC-07/UC-08 operacional de ponta a ponta.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -372,12 +384,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 23 (M4, ecrã de subscrição — último passo do M4)
+## 6. Próxima Ação Imediata — Próximo Milestone (M5) por Confirmar
 
-**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`), Passo 20 (enforcement uniforme de RN-11), Passo 21 (Stripe Checkout) e Passo 22 (Webhooks Stripe) concluídos e aprovados (ver 3.19/3.20/3.21/3.22)**. Próximo: **Passo 23 — Ecrã(s) frontend (plano atual, limites/uso, upgrade), último passo do M4**.
+**M1, M2, M3 e M4 formalmente concluídos.** Todos os Épicos previstos para o MVP com Especificação Técnica de módulos core (Fundação, Dashboard, Processos, CRM, IA, Comercial) estão implementados, validados e aprovados. Nenhuma Proposta de Milestone M5 foi ainda apresentada nem aprovada.
 
-- `GET /subscricao` (estado atual da própria Empresa) ainda não existe — deliberadamente adiado desde os Passos 20/22 até este momento em que o frontend precisa de facto dele; reaproveita `SubscricaoService.obterEstadoEfetivo` já construído (Passo 20), nunca duplica o cálculo.
-- Ecrã dentro da aplicação autenticada (nunca uma página pública — isso é EP-07/M5, fora de âmbito) — plano atual, limites/uso, botão de upgrade (consumindo `POST /subscricao/checkout`, Passo 21), aviso a 90% do limite (US-19, ainda por implementar).
-- `success_url`/`cancel_url` do Passo 21 apontam para `/dashboard?checkout=sucesso|cancelado` como placeholder — este passo pode ajustar o destino sem alterar o backend.
-- Com este passo, o **Milestone M4 (Comercial e Pagamentos) fica formalmente concluído** — mesma disciplina de fecho já aplicada aos Milestones M1/M2/M3.
-- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser, obrigatória para passos de frontend) → aprovação dos resultados → sincronização de documentação → commit.
+- Antes de avançar para qualquer passo novo, é necessário apresentar uma Proposta de Milestone M5 (objetivos, âmbito, exclusões, sequência de passos, riscos, DoD) para aprovação da Fundadora/CEO — mesma disciplina já usada nas propostas dos Milestones M2/M3/M4.
+- Candidatos possíveis, ainda por confirmar com a Fundadora/CEO (nenhum aprovado): EP-07 (landing/pricing pública), upgrade/downgrade/cancelamento self-service de subscrição (fora de âmbito do M4, Proposta do M4 Decisão 6.4), secção "Configurações" completa (Perfil, Utilizadores/Permissões, Departamentos — registada como Questão em Aberto na Especificação Técnica do Passo 23, §5), UC-02 (convite por email).
+- Mesma disciplina de sempre: Proposta de Milestone → aprovação → Especificação Técnica formal por passo → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.

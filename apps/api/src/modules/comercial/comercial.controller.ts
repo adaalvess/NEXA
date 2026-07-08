@@ -24,6 +24,16 @@ export class ComercialController {
     return (Object.keys(PLANOS_CONFIG) as Plano[]).map((plano) => ({ plano, ...PLANOS_CONFIG[plano] }));
   }
 
+  // Reutiliza `comercial.ver_planos` (Especificação Técnica do Passo 23,
+  // Decisão A) — ver o resumo da própria subscrição é a mesma capacidade
+  // de "ver planos", nunca uma permissão nova.
+  @UseGuards(SessionGuard, PermissaoGuard)
+  @RequirePermissao('comercial', 'ver_planos')
+  @Get('subscricao')
+  async obterSubscricao() {
+    return this.subscricaoService.obterResumoSubscricao();
+  }
+
   @UseGuards(SessionGuard, PermissaoGuard)
   @RequirePermissao('comercial', 'iniciar_checkout')
   @Post('subscricao/checkout')

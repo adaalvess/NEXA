@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ListChecks, Users, GitBranch, Sparkles, Menu, X as IconeFechar, LogOut } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, GitBranch, Sparkles, CreditCard, Menu, X as IconeFechar, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useSessao } from '../../lib/sessao-context';
 import { useLogout } from '../../lib/use-logout';
@@ -77,6 +77,11 @@ function Conteudo({ itens, pathname, papel, onNavegar }: { itens: ItemNav[]; pat
  * Architecture §3.6.6) é uma capacidade arquitetural fora do âmbito
  * funcional do MVP, não bloqueia este passo (Especificação Técnica do Passo
  * 18, Decisão E). Oculto para `convidado` (§3.4, "Não aplicável").
+ *
+ * "Plano" adicionado no Passo 23 (Decisão C) como item independente — só
+ * `admin_empresa` tem `comercial.ver_planos` (Especificação Técnica do
+ * Passo 19); nunca uma secção "Configurações" completa, fora do âmbito
+ * deste Milestone.
  */
 export function BarraLateralNavegacao() {
   const pathname = usePathname();
@@ -95,6 +100,10 @@ export function BarraLateralNavegacao() {
 
   if (papel !== 'convidado') {
     itens.push({ rotulo: 'Assistente de IA', href: '/ia', icone: Sparkles });
+  }
+
+  if (papel === 'admin_empresa') {
+    itens.push({ rotulo: 'Plano', href: '/subscricao', icone: CreditCard });
   }
 
   return (

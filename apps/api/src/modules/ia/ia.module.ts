@@ -36,6 +36,6 @@ import { IaService } from './ia.service';
     IaService,
     { provide: AI_ADAPTER, useClass: AnthropicAdapter },
   ],
-  exports: [AiGatewayService],
+  exports: [AiGatewayService, QuotaService],
 })
 export class IaModule {}

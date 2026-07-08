@@ -53,3 +53,34 @@ export interface Interacao {
 }
 
 export type Pipeline = Record<EstadoOportunidade, Cliente[]>;
+
+export type Plano = 'starter' | 'professional' | 'enterprise';
+
+export type EstadoSubscricao = 'trial' | 'ativa' | 'limitada' | 'cancelada';
+
+export interface PlanoConfig {
+  plano: Plano;
+  limiteUtilizadores: number | null;
+  limiteArmazenamentoMb: number | null;
+  limiteUsoIA: number | null;
+}
+
+/**
+ * `GET /subscricao` (Especificação Técnica do Passo 23, 3.2) — todos os
+ * valores derivados (`usoIAPercentagem`, `avisoLimiteIAProximo`,
+ * `diasRestantesTrial`) já vêm calculados pelo backend; o frontend nunca
+ * os recalcula.
+ */
+export interface ResumoSubscricao {
+  plano: Plano;
+  estado: EstadoSubscricao;
+  estadoEfetivo: EstadoSubscricao;
+  limiteUtilizadores: number | null;
+  limiteArmazenamentoMb: number | null;
+  limiteUsoIA: number | null;
+  usoIAMensalAtual: number;
+  usoIAPercentagem: number | null;
+  avisoLimiteIAProximo: boolean;
+  trialIniciadoEm: string | null;
+  diasRestantesTrial: number | null;
+}

@@ -1,14 +1,33 @@
 import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { EstadoSubscricao, Papel } from '@prisma/client';
+import { EstadoSubscricao, Papel, Plano } from '@prisma/client';
 import type Stripe from 'stripe';
 import { TenantPrismaService } from '../fundacao/prisma/tenant-prisma.service';
 import { tenantContext } from '../fundacao/tenant/tenant-context';
+import { QuotaService } from '../ia/gateway/quota.service';
 import { STRIPE_CLIENT } from './stripe-client.provider';
 import { obterPrecoStripe } from './precos-stripe';
 import type { PlanoCheckout } from './dto/criar-checkout.dto';
 
 // FR-30, literal — não uma configuração de negócio em aberto.
 const TRIAL_DURACAO_DIAS = 14;
+
+// Especificação Técnica do Passo 23, 3.2/Decisão D — só `limiteUsoIA` tem
+// consumo real acompanhado neste Milestone.
+const LIMIAR_AVISO_USO_IA_PERCENTAGEM = 90;
+
+export interface ResumoSubscricao {
+  plano: Plano;
+  estado: EstadoSubscricao;
+  estadoEfetivo: EstadoSubscricao;
+  limiteUtilizadores: number | null;
+  limiteArmazenamentoMb: number | null;
+  limiteUsoIA: number | null;
+  usoIAMensalAtual: number;
+  usoIAPercentagem: number | null;
+  avisoLimiteIAProximo: boolean;
+  trialIniciadoEm: Date | null;
+  diasRestantesTrial: number | null;
+}
 
 /**
  * Único ponto de cálculo do estado efetivo de subscrição (Especificação
@@ -28,6 +47,7 @@ export class SubscricaoService {
   constructor(
     private readonly tenantPrisma: TenantPrismaService,
     @Inject(STRIPE_CLIENT) private readonly stripe: Stripe,
+    private readonly quotaService: QuotaService,
   ) {}
 
   async obterEstadoEfetivo(empresaId: string): Promise<EstadoSubscricao> {
@@ -116,5 +136,70 @@ export class SubscricaoService {
 
       await this.tenantPrisma.client.webhookStripeProcessado.create({ data: { empresaId, stripeEventId } });
     });
+  }
+
+  /**
+   * Resumo de subscrição para o ecrã de subscrição (Especificação Técnica
+   * do Passo 23, 3.1/3.2) — único ponto de agregação de plano, estado
+   * efetivo, limites e uso de IA. Todos os valores derivados
+   * (`usoIAPercentagem`, `avisoLimiteIAProximo`, `diasRestantesTrial`) são
+   * calculados aqui, nunca no frontend — o cliente só apresenta o que a API
+   * devolve, sem cálculos paralelos (requisito explícito da Fundadora/CEO
+   * na aprovação deste passo). Nunca devolve `stripeCustomerId`/
+   * `stripeSubscriptionId` (dados internos de faturação, sem uso no ecrã).
+   */
+  async obterResumoSubscricao(): Promise<ResumoSubscricao> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const subscricao = await this.tenantPrisma.client.subscricaoPlano.findUnique({ where: { empresaId: ctx.empresaId } });
+
+    // Fail Secure — mesma salvaguarda de `obterEstadoEfetivo`: nunca deveria
+    // faltar desde o Passo 19, mas a ausência de dados nunca é lida como
+    // acesso total nem faz este método rebentar.
+    if (!subscricao) {
+      return {
+        plano: Plano.starter,
+        estado: 'limitada',
+        estadoEfetivo: 'limitada',
+        limiteUtilizadores: null,
+        limiteArmazenamentoMb: null,
+        limiteUsoIA: null,
+        usoIAMensalAtual: 0,
+        usoIAPercentagem: null,
+        avisoLimiteIAProximo: false,
+        trialIniciadoEm: null,
+        diasRestantesTrial: null,
+      };
+    }
+
+    const estadoEfetivo = await this.obterEstadoEfetivo(ctx.empresaId);
+    const usoIAMensalAtual = await this.quotaService.obterUsoAtual(ctx.empresaId);
+
+    const usoIAPercentagem =
+      subscricao.limiteUsoIA === null ? null : Math.min(100, Math.round((usoIAMensalAtual / subscricao.limiteUsoIA) * 100));
+    const avisoLimiteIAProximo = usoIAPercentagem !== null && usoIAPercentagem >= LIMIAR_AVISO_USO_IA_PERCENTAGEM;
+
+    let diasRestantesTrial: number | null = null;
+    if (estadoEfetivo === 'trial') {
+      const diasDesde = (Date.now() - subscricao.trialIniciadoEm.getTime()) / (1000 * 60 * 60 * 24);
+      diasRestantesTrial = Math.max(0, Math.ceil(TRIAL_DURACAO_DIAS - diasDesde));
+    }
+
+    return {
+      plano: subscricao.plano,
+      estado: subscricao.estado,
+      estadoEfetivo,
+      limiteUtilizadores: subscricao.limiteUtilizadores,
+      limiteArmazenamentoMb: subscricao.limiteArmazenamentoMb,
+      limiteUsoIA: subscricao.limiteUsoIA,
+      usoIAMensalAtual,
+      usoIAPercentagem,
+      avisoLimiteIAProximo,
+      trialIniciadoEm: subscricao.trialIniciadoEm,
+      diasRestantesTrial,
+    };
   }
 }
