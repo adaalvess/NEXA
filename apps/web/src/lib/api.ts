@@ -9,6 +9,30 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Extrai `message` do corpo JSON de erro do NestJS (`{ statusCode, message,
+ * error }`) — `message` pode ser uma string (exceções lançadas manualmente,
+ * ex. `ConflictException`) ou um array de strings (`ValidationPipe`).
+ * Descoberta real (Especificação Técnica do Passo 26): `ApiError.message`
+ * guardava o corpo JSON em bruto, nunca extraído — nenhum ecrã antes deste
+ * passo mostrava `erro.message` diretamente ao utilizador, por isso o
+ * problema nunca se tinha manifestado.
+ */
+function extrairMensagemErro(corpo: string): string {
+  try {
+    const json = JSON.parse(corpo) as { message?: string | string[] };
+    if (Array.isArray(json.message)) {
+      return json.message.join(' ');
+    }
+    if (typeof json.message === 'string') {
+      return json.message;
+    }
+  } catch {
+    // corpo não é JSON — devolve o texto tal como veio.
+  }
+  return corpo;
+}
+
 interface OpcoesPedido {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -41,7 +65,7 @@ export async function api<T>(path: string, opcoes: OpcoesPedido = {}): Promise<T
 
   if (!res.ok) {
     const texto = await res.text().catch(() => '');
-    throw new ApiError(res.status, texto || res.statusText);
+    throw new ApiError(res.status, extrairMensagemErro(texto) || res.statusText);
   }
 
   if (res.status === 204) {

@@ -27,8 +27,8 @@ function formatarLimite(valor: number | null, sufixo = ''): string {
  * feito através do cliente único `api()` (nunca `fetch` direto num ecrã,
  * Especificação Técnica do Passo 14, 3.4), mesmo sem sessão.
  *
- * CTA de cada plano aponta para `/login` nesta fase (Decisão D1) —
- * `/registar` só existe a partir do Passo 26.
+ * CTA de cada plano aponta para `/registar` desde o Passo 26 (antes
+ * apontava para `/login`, decisão intermédia até o Registo existir).
  */
 export default async function PaginaPrecos() {
   let planos: PlanoConfig[] | null = null;
@@ -63,7 +63,7 @@ export default async function PaginaPrecos() {
                 <p className="text-small text-nexa-gray">IA/mês: {formatarLimite(p.limiteUsoIA)}</p>
               </div>
               <Link
-                href="/login"
+                href="/registar"
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-gradient-to-br from-nexa-purple to-nexa-violet px-4 text-body font-medium text-nexa-white shadow-glow-purple transition-colors hover:brightness-110"
               >
                 Começar

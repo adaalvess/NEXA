@@ -40,6 +40,9 @@ const CTA_SECUNDARIO = 'inline-flex h-12 items-center justify-center gap-2 round
  * `cookies()`, por isso esta rota é automaticamente dinâmica — sem
  * `export const dynamic = 'force-dynamic'` explícito (Decisão D2,
  * diferente de `/precos`, Passo 24, que não lê nenhum cookie).
+ *
+ * CTA "Começar" atualizado no Passo 26 para `/registar` (antes apontava
+ * para `/login`, decisão intermédia até o Registo existir).
  */
 export default async function Home() {
   const sessao = await obterSessaoServidor();
@@ -56,7 +59,7 @@ export default async function Home() {
           entende o negócio como um todo e ajuda a executá-lo, sempre sob o controlo do utilizador.
         </h1>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/login" className={CTA_PRIMARIO}>
+          <Link href="/registar" className={CTA_PRIMARIO}>
             Começar
           </Link>
           <Link href="/precos" className={CTA_SECUNDARIO}>
@@ -87,7 +90,7 @@ export default async function Home() {
       </section>
 
       <section className="text-center">
-        <Link href="/login" className={CTA_PRIMARIO}>
+        <Link href="/registar" className={CTA_PRIMARIO}>
           Começar
         </Link>
       </section>
