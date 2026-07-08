@@ -1,9 +1,12 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import * as argon2 from 'argon2';
 import { Papel } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { tenantContext } from '../tenant/tenant-context';
 import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
+import { AtualizarPerfilDto } from './dto/atualizar-perfil.dto';
 
 /**
  * Hierarquia de privilégio dentro de uma Empresa (Especificação Técnica do
@@ -23,6 +26,11 @@ const PRIVILEGIO: Record<Exclude<Papel, 'super_admin'>, number> = {
 export class UtilizadoresService {
   constructor(
     private readonly tenantPrisma: TenantPrismaService,
+    // Bruto, exceção documentada (mesmo padrão de AuthService.registar) —
+    // só para a transação multi-operação genuína de atualizarPerfil()
+    // (Especificação Técnica do Passo 27, 3.1); scoping por empresaId feito
+    // manualmente aqui, TenantPrismaService nunca é usado dentro dela.
+    private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -151,5 +159,81 @@ export class UtilizadoresService {
       orderBy: { nome: 'asc' },
     });
     return utilizadores;
+  }
+
+  /**
+   * Self-edit de perfil (Especificação Técnica do Passo 27, 3.1) — o alvo é
+   * sempre `ctx.utilizadorId`, nunca um `alvoId` (Decisão D1). Nunca
+   * `email`/`papel` (Decisão C da Proposta do M5).
+   *
+   * Alteração de palavra-passe (Decisão A) invalida todas as outras sessões
+   * ativas do Utilizador, mantendo só a que fez este pedido — feito na mesma
+   * transação da atualização da password (pedido explícito da Fundadora/CEO:
+   * nunca um estado onde a password muda mas as sessões antigas continuam
+   * válidas, ou vice-versa, em caso de erro a meio).
+   */
+  async atualizarPerfil(dto: AtualizarPerfilDto, sessaoAtualId: string) {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    if (dto.nome === undefined && dto.passwordNova === undefined) {
+      throw new BadRequestException('Nada para atualizar.');
+    }
+
+    const utilizador = await this.tenantPrisma.client.utilizador.findUnique({ where: { id: ctx.utilizadorId } });
+    if (!utilizador) {
+      throw new NotFoundException();
+    }
+
+    let novoPasswordHash: string | undefined;
+    if (dto.passwordNova) {
+      const passwordAtualValida = await argon2.verify(utilizador.passwordHash, dto.passwordAtual!).catch(() => false);
+      if (!passwordAtualValida) {
+        throw new UnauthorizedException('Palavra-passe atual incorreta.');
+      }
+      novoPasswordHash = await argon2.hash(dto.passwordNova, {
+        type: argon2.argon2id,
+        memoryCost: Number(process.env.ARGON2_MEMORY_COST ?? 19456),
+        timeCost: Number(process.env.ARGON2_TIME_COST ?? 2),
+      });
+    }
+
+    // Transação real via PrismaService bruto (nunca TenantPrismaService —
+    // cada operação sua já corre na sua própria transação interna de
+    // scoping, Especificação Técnica do Passo 4, 3.2.4, incompatível com uma
+    // transação multi-operação genuína); scoping por empresaId feito
+    // manualmente via a chave composta `id_empresaId` (ADR-003 §3.3).
+    const atualizado = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.utilizador.update({
+        where: { id_empresaId: { id: ctx.utilizadorId, empresaId: ctx.empresaId } },
+        data: {
+          nome: dto.nome,
+          passwordHash: novoPasswordHash,
+          atualizadoPor: ctx.utilizadorId,
+        },
+      });
+
+      if (novoPasswordHash) {
+        await tx.sessao.deleteMany({
+          where: { utilizadorId: ctx.utilizadorId, empresaId: ctx.empresaId, id: { not: sessaoAtualId } },
+        });
+      }
+
+      return u;
+    });
+
+    // Nunca a password (nem antiga nem nova, texto plano ou hash) em auditoria.
+    await this.eventEmitter.emitAsync(EVENTO_AUDITORIA, {
+      empresaId: ctx.empresaId,
+      ator: ctx.utilizadorId,
+      acao: 'atualizar_perfil',
+      entidade: 'Utilizador',
+      entidadeId: ctx.utilizadorId,
+      detalhe: { nomeAlterado: dto.nome !== undefined, passwordAlterada: !!novoPasswordHash },
+    } satisfies EventoAuditoria);
+
+    return { utilizadorId: atualizado.id, nome: atualizado.nome };
   }
 }

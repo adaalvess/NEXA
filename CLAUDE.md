@@ -97,7 +97,7 @@ Proposta completa do M5 (objetivos, âmbito, exclusões, sequência de passos, r
 | Passo 24 | `GET /planos/publico` + Página de Preços (`/precos`) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.24 |
 | Passo 25 | Landing Page pública (`/`) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.25 |
 | Passo 26 | Ecrã de Registo público (`/registar`) — fecha o Bloco A | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.26 |
-| Passo 27 | `PATCH /utilizadores/me` (self-edit nome/palavra-passe) | ⏳ Pendente |
+| Passo 27 | `PATCH /utilizadores/me` (self-edit nome/palavra-passe) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.27 |
 | Passo 28 | Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos) — fecha o Bloco B | ⏳ Pendente |
 | Passo 29 | Interface de email + adaptador Resend, modelo `ConviteUtilizador` | ⏳ Pendente |
 | Passo 30 | `POST /convites`, `POST /convites/:token/aceitar` | ⏳ Pendente |
@@ -372,6 +372,14 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Bloco A do M5 (EP-07 — Landing/Pricing/Registo público) formalmente concluído** — Passos 24, 25 e 26 implementados, validados e aprovados; percurso "Landing → Registo → Trial" (Business Goals H1.4) operacional de ponta a ponta.
 - **Milestone M5 em curso** — próximo: Bloco B (Passo 27, `PATCH /utilizadores/me`, self-edit nome/palavra-passe).
 
+### 3.27 Registo de Conclusão — Passo 27 (2026-07-08) — primeiro passo do Bloco B do M5
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 Decisões a Validar (A-B) e um requisito adicional explícito da Fundadora/CEO** — ver [Especificação Técnica do Passo 27](docs/04-implementation-blueprint/26-especificacao-tecnica-passo-27-perfil-self-edit.md): (A) alterar a palavra-passe invalida todas as outras sessões ativas, mantendo só a atual (postura conservadora de segurança); (B) `PATCH /utilizadores/me` só com `SessionGuard`, sem `PermissaoGuard` — primeira mutação do projeto sem verificação de permissão de papel, justificada por o alvo ser sempre `ctx.utilizadorId`, nunca um `alvoId` de outro Utilizador (nenhuma escalada de privilégio possível). Requisito adicional da CEO: toda operação auditada, password nunca em logs/auditoria, invalidação de sessões efetuada de forma transacional.
+- **Descoberta técnica real, resolvida antes de escrever código**: o requisito de transacionalidade real revelou que `TenantPrismaService` é estruturalmente incompatível com uma transação multi-operação genuína — cada operação sua já corre dentro da sua própria transação interna de scoping (`SET LOCAL`, Passo 4). Resolvido reaproveitando o mesmo padrão já estabelecido em `AuthService.registar` (Passo 3) — `PrismaService` bruto injetado como exceção documentada dentro do próprio `UtilizadoresService`, scoping manual por `empresaId` via a chave composta `id_empresaId` (`@@unique([id, empresaId])`, ADR-003 §3.3).
+- **`AtualizarPerfilDto`** (`nome`/`passwordAtual`/`passwordNova`, `@ValidateIf` mútuo) e **`UtilizadoresService.atualizarPerfil()`** implementados — `passwordAtual` verificada via `argon2.verify` antes de qualquer alteração; nova password hasheada com os mesmos parâmetros Argon2id já usados no registo; `update` + `deleteMany` (invalidação de sessões) na mesma transação real; auditoria (`atualizar_perfil`) regista só `{ nomeAlterado, passwordAlterada }`, nunca a password em nenhuma forma.
+- **Resultados**: `apps/api/test/perfil-self-edit.e2e-spec.ts` (7 testes novos, incluindo prova real de transação atómica — T6 confirma uma sessão diferente eliminada da BD e a `401` em `GET /auth/eu`, com a sessão do próprio pedido a continuar válida), suite completa em 180/180 testes (173 herdados + 7 novos); `npm run build` (`apps/api`) limpo. Sem ecrã neste passo (backend puro) — fica para o Passo 28.
+- **Milestone M5 em curso** — próximo: Passo 28 (Ecrã "Configurações" — Perfil, Utilizadores/Permissões, Departamentos), fecha o Bloco B.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -426,10 +434,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 27 (M5, Bloco B — Configurações)
+## 6. Próxima Ação Imediata — Passo 28 (M5, Bloco B — Ecrã "Configurações")
 
-**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Bloco A (EP-07) formalmente concluído: Passo 24 (`GET /planos/publico`, `/precos`), Passo 25 (Landing Page, `/`) e Passo 26 (Registo público, `/registar`) concluídos e aprovados (ver 3.24/3.25/3.26)**. Próximo: **Passo 27 — `PATCH /utilizadores/me` (self-edit nome/palavra-passe), primeiro passo do Bloco B (Configurações)**.
+**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Bloco A (EP-07) formalmente concluído; Passo 27 (`PATCH /utilizadores/me`) concluído e aprovado, primeiro passo do Bloco B (ver 3.24/3.25/3.26/3.27)**. Próximo: **Passo 28 — Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos), fecha o Bloco B**.
 
-- Nova capacidade de backend — não existe ainda nenhum endpoint de self-edit de perfil; palavra-passe atual obrigatória para confirmar a alteração (Proposta do M5, Decisão C), nunca email nem papel.
+- Consome `PATCH /utilizadores/me` (Passo 27, novo), `GET /utilizadores`/`PATCH /utilizadores/:id/papel`/`PATCH /utilizadores/:id/departamento` (Passos 5/8/14, já existentes) e `/departamentos` (Passo 8, já existente) — na sua maioria, ecrãs novos sobre APIs já existentes.
 - **Bloqueador de pré-lançamento registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD — a resolver antes do M6/M7, não faz parte do âmbito deste M5.
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser) → aprovação dos resultados → sincronização de documentação → commit.
