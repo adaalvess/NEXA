@@ -95,7 +95,7 @@ Proposta completa do M5 (objetivos, âmbito, exclusões, sequência de passos, r
 | Passo | Conteúdo | Estado |
 |---|---|---|
 | Passo 24 | `GET /planos/publico` + Página de Preços (`/precos`) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.24 |
-| Passo 25 | Landing Page pública (`/`) | 🔜 Próximo passo |
+| Passo 25 | Landing Page pública (`/`) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.25 |
 | Passo 26 | Ecrã de Registo público (`/registar`) — fecha o Bloco A | ⏳ Pendente |
 | Passo 27 | `PATCH /utilizadores/me` (self-edit nome/palavra-passe) | ⏳ Pendente |
 | Passo 28 | Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos) — fecha o Bloco B | ⏳ Pendente |
@@ -353,6 +353,16 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados**: `apps/api/test/comercial-planos-publico.e2e-spec.ts` (2 testes, incluindo comparação byte-a-byte com `GET /planos`), suite completa em 173/173 testes (171 herdados + 2 novos); `npm run build` (`apps/api`) limpo. Frontend `npm run build`/`npm run lint` (`apps/web`) limpos; validação visual real no browser confirmou: `/precos` acessível sem sessão nenhuma; os 3 planos com os limites corretos (Enterprise com "Ilimitado" em todos os campos); os 3 CTAs a apontar para `/login`; responsivo sem quebras em 375px/768px/1280px; zero erros de consola.
 - **Milestone M5 em curso** — próximo: Passo 25 (Landing Page pública, `/`).
 
+### 3.25 Registo de Conclusão — Passo 25 (2026-07-08) — segundo passo do M5
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 Decisões a Validar (A-B)** — ver [Especificação Técnica do Passo 25](docs/04-implementation-blueprint/24-especificacao-tecnica-passo-25-landing-page.md): (A) hero só com gradiente/glow CSS (tokens já existentes no Design System), sem capturas de ecrã nem fotografia — produção de assets fica fora do âmbito de uma implementação de código; (B) usar literalmente as frases já aprovadas do Brand Book (coluna "Preferir", §3.9) e a frase de posicionamento do Product Vision (§3.1) como copy do hero, em vez de escrever copy nova. **Toda a copy da página é citação direta de documentos já aprovados** (Product Vision §3.1/3.5, Brand Book §3.9, PRD §3.4) — nenhuma frase nova inventada, confirmado por investigação prévia dedicada aos documentos de estratégia/produto antes de escrever a especificação.
+- **Decisão tomada, documentada**: sem testemunhos de clientes nem citações de Persona — o documento de Personas marca explicitamente as suas citações como "ilustrativa, não literal", nunca validadas com clientes reais; nenhum concorrente nomeado (Competitive Analysis é estratégia interna, nunca aprovada para comparação pública).
+- **`apps/web/src/app/page.tsx`** editado (não um novo ficheiro) — comportamento com sessão válida inalterado (`redirect('/dashboard')`, Passo 14); sem sessão, renderiza a Landing Page completa (hero com CTA duplo `/precos`/`/login`, 3 cartões de Pilares, 4 cartões de Módulos, CTA final). Sem `export const dynamic` explícito — `obterSessaoServidor()` já lê `cookies()`, o que o Next.js já trata como dinâmico automaticamente (diferente do Passo 24, `/precos`, que não lia nenhum cookie e por isso precisou do flag explícito) — confirmado na saída do build (`ƒ Dynamic`).
+- **Descoberta operacional real durante a validação (não um bug de código)**: a meio da validação visual, `/` e `/precos` deixaram subitamente de aplicar qualquer estilo (CSS/JS a devolver `404`) — diagnosticado como cache do servidor de desenvolvimento (`.next`) corrompido por `npm run build` a correr em paralelo com `npm run dev` no mesmo diretório, mesma classe de problema já documentada no Passo 13. Corrigido apagando `.next` e reiniciando o servidor de desenvolvimento; sem impacto no build de produção (já tinha corrido limpo antes do incidente) nem no código entregue.
+- **Resultados**: sem testes automatizados de API (página sem `fetch`, mesmo padrão de UI pura); `npm run build`/`npm run lint` (`apps/web`) limpos. Validação visual real no browser confirmou: Landing Page completa sem sessão; redirecionamento para `/dashboard` inalterado com sessão válida (Empresa de teste criada/eliminada via API); os 3 CTAs a apontar para `/precos`/`/login`; responsivo sem quebras em 375px/768px/1280px; zero erros de consola.
+- **Correção pós-aprovação da Decisão B, pedida pela Fundadora/CEO**: a frase da coluna "Preferir" do Brand Book §3.9, usada inicialmente como headline, era só um exemplo ilustrativo de tom nesse documento — nunca pensada como headline definitivo, e duplicava o conteúdo do subheadline (citação do Product Vision §3.1). Corrigido: o headline passou a ser a própria citação do Product Vision §3.1 ("O Produto em Uma Frase"), removendo o subheadline redundante — hero com um único headline, `max-w-3xl` aplicado para manter a legibilidade com o texto mais longo. O subtítulo do cartão "Assistente de IA" ("A IA da NEXA sugere; você decide.") mantido — é descrição factual do comportamento real da IA, já citada no PRD/Competitive Analysis, não um mero exemplo de tom. Build/lint limpos e validação visual repetida sem regressão. Detalhe em §3.7 da especificação.
+- **Milestone M5 em curso** — próximo: Passo 26 (Ecrã de Registo público, `/registar`), fecha o Bloco A.
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -407,10 +417,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 25 (M5, Landing Page pública)
+## 6. Próxima Ação Imediata — Passo 26 (M5, Ecrã de Registo público)
 
-**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Passo 24 (`GET /planos/publico`, página `/precos`) concluído e aprovado (ver 3.24)**. Próximo: **Passo 25 — Landing Page pública (`/`), segundo passo do Bloco A**.
+**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Passo 24 (`GET /planos/publico`, página `/precos`) e Passo 25 (Landing Page pública, `/`) concluídos e aprovados (ver 3.24/3.25)**. Próximo: **Passo 26 — Ecrã de Registo público (`/registar`), fecha o Bloco A (EP-07)**.
 
-- `apps/web/src/app/page.tsx` hoje só redireciona consoante a sessão (`/dashboard` ou `/login`) — passa a mostrar a Landing Page real quando não há sessão, mantendo o redirecionamento para `/dashboard` quando há.
-- CTA de preços aponta para `/precos` (Passo 24, já implementado); CTA principal de conversão aponta para `/login` nesta fase, mesma decisão intermédia do Passo 24, até `/registar` existir (Passo 26).
+- Consome `POST /auth/registar`, já implementado desde o Passo 3 — sem alteração de backend prevista neste passo, salvo descoberta técnica emergente.
+- Fecha o percurso "Landing → Trial" (Business Goals H1.4): CTA "Começar" de `/` e `/precos` passa a apontar para `/registar` em vez de `/login` (ajuste aditivo aos dois ecrãs já implementados, sem alterar a sua estrutura).
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser) → aprovação dos resultados → sincronização de documentação → commit.

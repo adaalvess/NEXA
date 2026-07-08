@@ -4,10 +4,10 @@
 |---|---|
 | **Documento** | Blueprint de Implementação do MVP (compactação das Fases 4-6) |
 | **Fase** | 4-6 compactadas — Planeamento, Arquitetura Técnica Detalhada, UI/UX |
-| **Versão** | 3.5 |
+| **Versão** | 3.6 |
 | **Estado** | ✅ Aprovado — vivo; M1, M2, M3 e M4 formalmente concluídos; M5 em curso |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
-| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 24 |
+| **Documentos de referência** | Todos os documentos aprovados (Fases 1, 2, 3); Especificações Técnicas dos Passos 3 a 25 |
 | **Última atualização** | 2026-07-08 |
 
 ---
@@ -326,6 +326,8 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 **Especificação técnica detalhada do Passo 24 (`GET /planos/publico` + Página de Preços):** ver [Especificação Técnica do Passo 24](23-especificacao-tecnica-passo-24-precos-publico.md) — primeiro passo do M5. `GET /planos/publico` reaproveita `listarPlanos()` literalmente, no mesmo `ComercialController`, primeira rota pública desde o webhook Stripe (Passo 22), sem `@Throttle` dedicado (herda o limite global). Página `/precos` como Server Component — primeira página pública a usar este padrão em vez de Client Component + TanStack Query (decisão técnica, não altera o padrão dos ecrãs autenticados). **Descoberta técnica real corrigida**: o Next.js pré-renderia `/precos` estaticamente no build, congelando a resposta de `GET /planos/publico` até ao próximo deploy — corrigido com `export const dynamic = 'force-dynamic'`. `GET /planos/publico` marcado implementado na Superfície de API (§4). 173/173 testes (171 herdados + 2 novos).
 
+**Especificação técnica detalhada do Passo 25 (Landing Page pública):** ver [Especificação Técnica do Passo 25](24-especificacao-tecnica-passo-25-landing-page.md) — segundo passo do M5, segundo passo do Bloco A. `apps/web/src/app/page.tsx` editado — comportamento com sessão inalterado (`redirect('/dashboard')`); sem sessão, renderiza a Landing Page (hero, 3 Pilares, 4 Módulos, CTA duplo `/precos`/`/login`). Toda a copy é citação direta de documentos já aprovados (Product Vision §3.1/3.5, Brand Book §3.9, PRD §3.4), sem frase nova — sem testemunhos de clientes nem citações de Persona (marcadas "ilustrativa, não literal" no documento de origem), sem concorrentes nomeados. Sem `export const dynamic` explícito — `cookies()`, já lido por `obterSessaoServidor()`, é suficiente para o Next.js optar por renderização dinâmica automaticamente (diferente do Passo 24). **Descoberta operacional real, sem impacto no código**: cache do servidor de desenvolvimento corrompido por `npm run build` a correr em paralelo com `npm run dev` — mesma classe de problema do Passo 13, corrigido apagando `.next`. Ecrãs "Landing Page" e "Pricing" marcados implementados no Inventário de Ecrãs (§5.2).
+
 ---
 
 ## 5. Design System e Inventário de Ecrãs
@@ -340,16 +342,16 @@ Todos os endpoints exigem sessão autenticada (ADR-004) e passam pelo serviço �
 
 | Ecrã | Prioridade de construção |
 |---|---|
-| Landing Page | M5 |
-| Pricing | M5 |
-| Registo / Login | M1 (Login ✅ implementado no Passo 14; Registo continua via API, UI fora de âmbito) |
+| Landing Page | M5 — ✅ Implementado (Passo 25) |
+| Pricing | M5 — ✅ Implementado (Passo 24) |
+| Registo / Login | M1 (Login ✅ implementado no Passo 14); Registo público — M5, Passo 26 |
 | Dashboard | M2 — ✅ Implementado (Passo 14) |
 | Processos (lista + detalhe) | M2 — ✅ Implementado (Passo 14) |
 | CRM (lista + detalhe + pipeline) | M2 — ✅ Implementado (Passo 14) |
-| Assistente de IA (conversa + sugestões pendentes) | M3 |
-| Configurações da Empresa / Utilizadores | M1 |
-| Checkout / Confirmação de Subscrição | M4 |
-| Centro de Ajuda (estático) | M5 |
+| Assistente de IA (conversa + sugestões pendentes) | M3 — ✅ Implementado (Passo 18) |
+| Configurações da Empresa / Utilizadores | M5, Passo 28 (Proposta do M5, Bloco B — atualizado face ao literal "M1" deste documento, nunca construído nesse Milestone) |
+| Checkout / Confirmação de Subscrição | M4 — ✅ Implementado (Checkout via Stripe Checkout hospedado, Passo 21; Confirmação via ecrã `/subscricao`, Passo 23) |
+| Centro de Ajuda (estático) | M5 — fora do âmbito aprovado deste M5 (Especificação Técnica do Passo 24, §5); registado para milestone futuro |
 
 ---
 
@@ -409,3 +411,4 @@ Sempre que existir mais do que uma solução tecnicamente válida para um proble
 | 3.3 | 2026-07-08 | **Passo 22 (Webhooks Stripe) concluído e formalmente aprovado pela Fundadora/CEO — fecha o ciclo completo de UC-07.** `POST /webhooks/stripe` (ADR-008 §3.4); só `checkout.session.completed` tratado (decisão consciente de âmbito); `rawBody: true` para verificação de assinatura; `tenantContext.run()` reutilizado do Passo 19; idempotência real via `WebhookStripeProcessado`; eventos não tratados sempre `200`; testes com o SDK real da Stripe (prova genuína de rejeição criptográfica e de deduplicação). `SubscricaoService.processarCheckoutConcluido` extensão do mesmo serviço. Sem descobertas técnicas emergentes. `POST /webhooks/stripe` marcado implementado na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
 | 3.4 | 2026-07-08 | **Passo 23 (Ecrã de Subscrição, frontend) concluído e formalmente aprovado pela Fundadora/CEO — Milestone M4 (Comercial e Pagamentos) formalmente concluído.** Último passo do M4, com Especificação Técnica própria (docs/04-implementation-blueprint/22-especificacao-tecnica-passo-23-ecra-subscricao.md): `GET /subscricao` (extensão aditiva, reaproveita `comercial.ver_planos`), `usoIAPercentagem`/`avisoLimiteIAProximo` calculados no backend (exigência explícita da Fundadora/CEO: nenhum cálculo paralelo no frontend); `IaModule` exporta `QuotaService`, consumido por `ComercialModule` (primeira vez que `comercial` consome outro módulo de negócio); ecrã `/subscricao` (plano atual, aviso a 90% de uso de IA, limites preparados, upgrade exclusivamente via `POST /subscricao/checkout` já existente); item "Plano" na `BarraLateralNavegacao` (`admin_empresa` só); `BadgeEstado` estendido com os 4 valores de `EstadoSubscricao`. `GET /subscricao` marcado implementado na Superfície de API (§4). Validado por inspeção visual real no browser. Todos os passos previstos para o M4 (19-23) implementados, validados e aprovados | CTO (Claude) + Fundadora/CEO |
 | 3.5 | 2026-07-08 | **Proposta do Milestone M5 (Camada Comercial e Produto) aprovada pela Fundadora/CEO; Passo 24 (`GET /planos/publico` + Página de Preços) concluído e formalmente aprovado** — primeiro passo do M5, com Especificação Técnica própria (docs/04-implementation-blueprint/23-especificacao-tecnica-passo-24-precos-publico.md): âmbito do M5 em 3 blocos (EP-07 Landing/Pricing/Registo, Configurações, UC-02 Convite por email); `GET /planos/publico` reaproveita `listarPlanos()` literalmente, primeira rota pública desde o webhook Stripe; página `/precos` como Server Component. Descoberta técnica real corrigida (Next.js pré-renderaria `/precos` estaticamente no build, congelando os dados — corrigido com `dynamic = 'force-dynamic'`). `GET /planos/publico` marcado implementado na Superfície de API (§4) | CTO (Claude) + Fundadora/CEO |
+| 3.6 | 2026-07-08 | **Passo 25 (Landing Page pública) concluído e formalmente aprovado pela Fundadora/CEO** — segundo passo do M5, com Especificação Técnica própria (docs/04-implementation-blueprint/24-especificacao-tecnica-passo-25-landing-page.md): `apps/web/src/app/page.tsx` editado, toda a copy citação direta de documentos já aprovados (Product Vision, Brand Book, PRD), sem testemunhos/Persona/concorrentes. Sem `export const dynamic` explícito — `cookies()` já suficiente. Descoberta operacional real sem impacto no código (cache do servidor de desenvolvimento, mesma classe do Passo 13). Ecrãs "Landing Page" e "Pricing" marcados implementados no Inventário de Ecrãs (§5.2); linhas obsoletas do mesmo inventário corrigidas (Assistente de IA, Checkout/Confirmação de Subscrição, Configurações da Empresa) | CTO (Claude) + Fundadora/CEO |
