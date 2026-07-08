@@ -7,20 +7,7 @@ import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { tenantContext } from '../tenant/tenant-context';
 import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
 import { AtualizarPerfilDto } from './dto/atualizar-perfil.dto';
-
-/**
- * Hierarquia de privilégio dentro de uma Empresa (Especificação Técnica do
- * Passo 5, 3.4, L2) — número menor = mais privilegiado. `super_admin` fica
- * fora desta hierarquia: nunca atribuível por ninguém dentro de uma Empresa
- * cliente (RN-04), por isso não tem entrada aqui — qualquer tentativa de o
- * atribuir já foi rejeitada na fronteira única (DTO, L4) antes de chegar aqui.
- */
-const PRIVILEGIO: Record<Exclude<Papel, 'super_admin'>, number> = {
-  [Papel.admin_empresa]: 1,
-  [Papel.gestor]: 2,
-  [Papel.colaborador]: 3,
-  [Papel.convidado]: 4,
-};
+import { PRIVILEGIO } from '../autorizacao/privilegio';
 
 @Injectable()
 export class UtilizadoresService {

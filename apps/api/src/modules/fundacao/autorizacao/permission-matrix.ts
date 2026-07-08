@@ -36,6 +36,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       // RBAC por entidade (não há "dono" de um Utilizador do ponto de vista
       // de posse).
       listar_utilizadores: true,
+      // UC-02 (Especificação Técnica do Passo 30, 3.1) — sem restrição de
+      // instância aqui; CV-03 (âmbito do Gestor) verificado à parte.
+      convidar_utilizador: true,
     },
     // Módulo de negócio próprio (Especificação Técnica do Passo 9, D4) —
     // distinto de `fundacao` (capacidades transversais). `ver` é o gate
@@ -107,6 +110,8 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       // Gestor também precisa de escolher responsável/owner ao criar
       // Processos/Clientes para a sua equipa (Passo 14, 3.2.1).
       listar_utilizadores: true,
+      // RN-03 — âmbito (só o seu Departamento) verificado à parte (CV-03).
+      convidar_utilizador: true,
     },
     processos: {
       criar: true,
@@ -160,6 +165,8 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       // Colaborador cria sempre Processos/Clientes para si próprio — nunca
       // precisa de escolher responsável/owner entre terceiros (Passo 14, 3.2.1).
       listar_utilizadores: false,
+      // Colaborador nunca convida (só admin_empresa/gestor, UC-02).
+      convidar_utilizador: false,
     },
     processos: {
       criar: true,
@@ -218,6 +225,8 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
       atribuir_departamento: false,
       // Convidado nunca cria Processos/Clientes (Passo 14, 3.2.1).
       listar_utilizadores: false,
+      // Convidado nunca convida (RN-03/RN-04 nem se aplicam).
+      convidar_utilizador: false,
     },
     processos: {
       criar: false,

@@ -21,6 +21,8 @@ import { DepartamentoService } from './departamento/departamento.service';
 import { NotificacaoListener } from './notificacao/notificacao.listener';
 import { EMAIL_ADAPTER } from './email/adapters/email-adapter.interface';
 import { ResendAdapter } from './email/adapters/resend.adapter';
+import { ConviteController } from './convite/convite.controller';
+import { ConviteService } from './convite/convite.service';
 
 /**
  * Módulo Fundação (Blueprint EP-01) — Passos 3 (Autenticação), 4 (Camada 1),
@@ -43,12 +45,19 @@ import { ResendAdapter } from './email/adapters/resend.adapter';
  * (Regra não-negociável #5, Substituibilidade Controlada), mesmo desenho
  * do `AI_ADAPTER` (Passo 15); `ResendAdapter` é o único adaptador real
  * registado aqui. Sem `EmailGatewayService` intermédio (Especificação
- * Técnica do Passo 29, 3.2/Decisão D2) — futuros consumidores (ex:
- * `ConviteService`, Passo 30) injetam `EMAIL_ADAPTER` diretamente.
+ * Técnica do Passo 29, 3.2/Decisão D2) — `ConviteService` (Passo 30) injeta
+ * `EMAIL_ADAPTER` diretamente, primeiro consumidor real.
  */
 @Module({
   imports: [EventEmitterModule.forRoot()],
-  controllers: [AuthController, UtilizadoresController, AuditoriaController, PartilhaController, DepartamentoController],
+  controllers: [
+    AuthController,
+    UtilizadoresController,
+    AuditoriaController,
+    PartilhaController,
+    DepartamentoController,
+    ConviteController,
+  ],
   providers: [
     PrismaService,
     TenantPrismaService,
@@ -65,6 +74,7 @@ import { ResendAdapter } from './email/adapters/resend.adapter';
     DepartamentoService,
     NotificacaoListener,
     { provide: EMAIL_ADAPTER, useClass: ResendAdapter },
+    ConviteService,
   ],
   exports: [TenantPrismaService, AuthorizationService, PermissaoGuard, SessionGuard, EMAIL_ADAPTER],
 })
