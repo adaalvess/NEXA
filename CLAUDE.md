@@ -99,7 +99,7 @@ Proposta completa do M5 (objetivos, âmbito, exclusões, sequência de passos, r
 | Passo 26 | Ecrã de Registo público (`/registar`) — fecha o Bloco A | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.26 |
 | Passo 27 | `PATCH /utilizadores/me` (self-edit nome/palavra-passe) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.27 |
 | Passo 28 | Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos) — fecha o Bloco B | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.28 |
-| Passo 29 | Interface de email + adaptador Resend, modelo `ConviteUtilizador` | ⏳ Pendente |
+| Passo 29 | Interface de email + adaptador Resend, modelo `ConviteUtilizador` | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.29 |
 | Passo 30 | `POST /convites`, `POST /convites/:token/aceitar` | ⏳ Pendente |
 | Passo 31 | Ecrã de convite (envio + aceitação) — fecha o Bloco C, Milestone M5 formalmente concluído | ⏳ Pendente |
 
@@ -389,6 +389,15 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Bloco B do M5 (Configurações) formalmente concluído** — Passos 27 e 28 implementados, validados e aprovados.
 - **Milestone M5 em curso** — próximo: Bloco C (UC-02, Convite por email, Passos 29-31).
 
+### 3.29 Registo de Conclusão — Passo 29 (2026-07-08) — primeiro passo do Bloco C do M5
+
+- **Especificação técnica formal aprovada antes da implementação, com 2 Decisões a Validar (A-B)** — ver [Especificação Técnica do Passo 29](docs/04-implementation-blueprint/28-especificacao-tecnica-passo-29-email-convite.md): investigação prévia confirmou UC-02 completo e os dois padrões já estabelecidos de Substituibilidade Controlada (interface completa do AI Gateway vs. token de DI simples da Stripe, este último justificado explicitamente no código por a Stripe nunca ter sido decidida como substituível); (A) prazo de expiração do convite fixado em **7 dias**, alinhado com a duração da sessão (ADR-007 §3.5) — questão nunca antes resolvida (Use Cases, UC-02, Q2); (B) confirmado que o bloqueador RGPD do Passo 26 (consentimento no registo público) **não se estende** ao convite por email — bases legais distintas (registo público não solicitado vs. convite iniciado por um Administrador a uma pessoa concreta).
+- **`apps/api/src/modules/fundacao/email/`** — interface própria (`EmailAdapterInterface`, token `EMAIL_ADAPTER`), mesmo desenho do `AIAdapterInterface` (Passo 15), não o padrão mais simples da Stripe (Passo 21) — a própria aprovação da Proposta do M5 já usava "interface própria" para este fornecedor. `ResendAdapter` único adaptador real; `FakeEmailAdapter` nunca faz chamada de rede real. **Sem `EmailGatewayService` intermédio** — ao contrário do AI Gateway, sem circuit breaker/quota (nenhuma preocupação de custo/fiabilidade documentada para email); futuros consumidores injetam `EMAIL_ADAPTER` diretamente, mesmo nível de simplicidade já usado pela Stripe.
+- **Modelo `ConviteUtilizador`/`EstadoConvite`** — `estado` nunca guarda "expirado" (mesmo princípio já validado em `SubscricaoPlano`/`obterEstadoEfetivo`, Passo 20 — expiração sempre derivada de `expiraEm` em tempo real); `token` gerado por `crypto.randomBytes`, nunca `cuid()` (precisa de imprevisibilidade criptográfica real de "magic link", não só unicidade). Duas migrações (criação + RLS), mesmo padrão de sempre.
+- **Duas descobertas reais durante a implementação**: (1) `prisma generate` falhou com `EPERM` — o servidor de preview da API estava a correr em paralelo e detinha o DLL do query engine; corrigido parando o servidor antes de gerar o cliente, mesma classe de interferência dev-server-vs-CLI já documentada nos Passos 13/25. (2) Os testes falhavam com "TenantContext ausente" mesmo dentro de `tenantContext.run()` correto — a causa raiz genuína só apareceu depois de alinhar o `comoTenant()` do teste com o padrão exato já estabelecido (`async () => await fn()`): as migrações nunca tinham sido aplicadas a `nexa_test`, só a `nexa_dev` — corrigido com `prisma migrate deploy` via `DATABASE_ADMIN_URL`, mesma descoberta D9 já documentada no Passo 7.
+- **Resultados**: `apps/api/test/email-convite.e2e-spec.ts` (4 testes novos, incluindo prova real de isolamento de tenant e de unicidade do `token`), suite completa em 184/184 testes (180 herdados + 4 novos); `npm run build` (`apps/api`) limpo; app confirmada a arrancar sem `RESEND_API_KEY` real, mesma garantia já estabelecida para IA e Stripe. Sem ecrã neste passo (backend puro) — fica para o Passo 31.
+- **Milestone M5 em curso** — próximo: Passo 30 (`POST /convites`, `POST /convites/:token/aceitar`).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -443,11 +452,11 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 29 (M5, Bloco C — Convite por email)
+## 6. Próxima Ação Imediata — Passo 30 (M5, Bloco C — `POST /convites`)
 
-**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Bloco A (EP-07) e Bloco B (Configurações) formalmente concluídos; Passo 28 (Ecrã "Configurações") concluído e aprovado (ver 3.24-3.28)**. Próximo: **Passo 29 — Interface de email + adaptador Resend, modelo `ConviteUtilizador`, primeiro passo do Bloco C (UC-02)**.
+**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Bloco A (EP-07) e Bloco B (Configurações) formalmente concluídos; Passo 29 (Interface de email + `ConviteUtilizador`) concluído e aprovado, primeiro passo do Bloco C (ver 3.24-3.29)**. Próximo: **Passo 30 — `POST /convites`, `POST /convites/:token/aceitar`, segundo passo do Bloco C (UC-02)**.
 
-- Fornecedor de email Resend já aprovado (Proposta do M5, Decisão A) — atrás de interface própria, desacoplada da implementação, substituível sem impacto arquitetural (Regra não-negociável #5).
-- Novo modelo `ConviteUtilizador` (tenant-scoped, RLS) — token, papel/Departamento pretendidos, estado, expiração; mesmas regras de autoridade já fixadas no Passo 5 (L1-L6) aplicadas a quem pode convidar com que papel.
-- **Bloqueador de pré-lançamento registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD — a resolver antes do M6/M7, não faz parte do âmbito deste M5.
+- Consome `EMAIL_ADAPTER`/`ConviteUtilizador` (Passo 29, novos) — envio real do email de convite, aceitação com definição da própria palavra-passe pelo convidado (Proposta do M5, Decisão D — nunca atribuída pelo Administrador).
+- Mesmas regras de autoridade já fixadas no Passo 5 (L1-L6) aplicadas a quem pode convidar com que papel — RN-03 (Gestor só no seu Departamento), RN-04 (nunca `super_admin`).
+- **Bloqueador de pré-lançamento registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD — a resolver antes do M6/M7, não faz parte do âmbito deste M5. Confirmado que este bloqueador **não se estende** ao convite por email (Passo 29, Decisão B).
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser) → aprovação dos resultados → sincronização de documentação → commit.

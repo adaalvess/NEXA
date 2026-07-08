@@ -19,6 +19,8 @@ import { PartilhaService } from './partilha/partilha.service';
 import { DepartamentoController } from './departamento/departamento.controller';
 import { DepartamentoService } from './departamento/departamento.service';
 import { NotificacaoListener } from './notificacao/notificacao.listener';
+import { EMAIL_ADAPTER } from './email/adapters/email-adapter.interface';
+import { ResendAdapter } from './email/adapters/resend.adapter';
 
 /**
  * Módulo Fundação (Blueprint EP-01) — Passos 3 (Autenticação), 4 (Camada 1),
@@ -36,6 +38,13 @@ import { NotificacaoListener } from './notificacao/notificacao.listener';
  * `SessionGuard` são o ponto de acesso a dados de negócio e a autorização
  * exportado para módulos de negócio (Especificação Técnica do Passo 9, 3.4
  * — necessário a partir do primeiro módulo fora da Fundação: Processos).
+ *
+ * `EMAIL_ADAPTER` (Passo 29) — interface própria de envio de email
+ * (Regra não-negociável #5, Substituibilidade Controlada), mesmo desenho
+ * do `AI_ADAPTER` (Passo 15); `ResendAdapter` é o único adaptador real
+ * registado aqui. Sem `EmailGatewayService` intermédio (Especificação
+ * Técnica do Passo 29, 3.2/Decisão D2) — futuros consumidores (ex:
+ * `ConviteService`, Passo 30) injetam `EMAIL_ADAPTER` diretamente.
  */
 @Module({
   imports: [EventEmitterModule.forRoot()],
@@ -55,8 +64,9 @@ import { NotificacaoListener } from './notificacao/notificacao.listener';
     PartilhaService,
     DepartamentoService,
     NotificacaoListener,
+    { provide: EMAIL_ADAPTER, useClass: ResendAdapter },
   ],
-  exports: [TenantPrismaService, AuthorizationService, PermissaoGuard, SessionGuard],
+  exports: [TenantPrismaService, AuthorizationService, PermissaoGuard, SessionGuard, EMAIL_ADAPTER],
 })
 export class FundacaoModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -64,6 +64,7 @@ model Empresa {
   regrasPermissao   RegraPermissao[]
   subscricaoPlano   SubscricaoPlano?
   webhooksStripeProcessados WebhookStripeProcessado[]
+  convites          ConviteUtilizador[]
 }
 
 /// Papel RBAC predefinido (Vision Document, RBAC; Passo 5) — enum, não String
@@ -102,12 +103,13 @@ model Utilizador {
   updatedAt     DateTime @updatedAt
 
   sessoes              Sessao[]
-  processosResponsavel Processo[]    @relation("ProcessoResponsavel")
-  clientesOwner        Cliente[]     @relation("ClienteOwner")
+  processosResponsavel Processo[]           @relation("ProcessoResponsavel")
+  clientesOwner        Cliente[]            @relation("ClienteOwner")
   sugestoesIA          SugestaoIA[]
   notificacoes         Notificacao[]
-  partilhasRecebidas   Partilha[]    @relation("PartilhaConvidado")
-  partilhasConcedidas  Partilha[]    @relation("PartilhaConcedidaPor")
+  partilhasRecebidas   Partilha[]           @relation("PartilhaConvidado")
+  partilhasConcedidas  Partilha[]           @relation("PartilhaConcedidaPor")
+  convitesEnviados     ConviteUtilizador[]  @relation("ConviteConvidadoPor")
 
   // Unicidade de email com escopo de tenant — o mesmo email pode existir em
   // Empresas diferentes (Data & Consistency Rules, 3.2), nunca duplicado dentro
@@ -152,6 +154,7 @@ model Departamento {
 
   utilizadores Utilizador[]
   processos    Processo[]
+  convites     ConviteUtilizador[]
 
   @@unique([id, empresaId])
   @@index([empresaId])
@@ -456,6 +459,40 @@ model WebhookStripeProcessado {
   empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   stripeEventId String   @unique
   processadoEm  DateTime @default(now())
+
+  @@index([empresaId])
+}
+
+/// Estado guardado de um convite (Especificação Técnica do Passo 29,
+/// 3.3/Decisão D4) — nunca inclui "expirado": mesmo princípio já validado
+/// em `SubscricaoPlano`/`obterEstadoEfetivo` (Passo 20), a expiração é
+/// sempre derivada de `expiraEm` em tempo real, nunca escrita por um
+/// scheduler.
+enum EstadoConvite {
+  pendente
+  aceite
+  revogado
+}
+
+/// Convite de um Utilizador por email (UC-02; Especificação Técnica do
+/// Passo 29) — primeiro passo do Bloco C do M5. `token` nunca é `cuid()`
+/// (Decisão D3) — gerado com imprevisibilidade criptográfica real
+/// (`crypto.randomBytes`), por ser, na prática, um "magic link": adivinhar
+/// o token equivaleria a entrar numa Empresa sem convite.
+model ConviteUtilizador {
+  id                       String         @id @default(cuid())
+  empresaId                String
+  empresa                  Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  email                    String
+  papelPretendido          Papel
+  departamentoPretendidoId String?
+  departamentoPretendido   Departamento?  @relation(fields: [departamentoPretendidoId, empresaId], references: [id, empresaId])
+  token                    String         @unique
+  estado                   EstadoConvite  @default(pendente)
+  convidadoPorId           String
+  convidadoPor             Utilizador     @relation("ConviteConvidadoPor", fields: [convidadoPorId, empresaId], references: [id, empresaId])
+  expiraEm                 DateTime
+  criadoEm                 DateTime       @default(now())
 
   @@index([empresaId])
 }
