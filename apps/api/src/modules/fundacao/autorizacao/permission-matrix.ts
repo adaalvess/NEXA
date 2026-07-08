@@ -81,6 +81,9 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     // com planos/faturação.
     comercial: {
       ver_planos: true,
+      // iniciar_checkout (Especificação Técnica do Passo 21, 3.4) — UC-07
+      // descreve só o Administrador a escolher plano.
+      iniciar_checkout: true,
     },
   },
   [Papel.gestor]: {
@@ -136,6 +139,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     },
     comercial: {
       ver_planos: false,
+      iniciar_checkout: false,
     },
   },
   [Papel.colaborador]: {
@@ -191,6 +195,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     },
     comercial: {
       ver_planos: false,
+      iniciar_checkout: false,
     },
   },
   [Papel.convidado]: {
@@ -243,6 +248,7 @@ export const DEFAULT_PERMISSION_MATRIX: Partial<Record<Papel, Record<string, Rec
     },
     comercial: {
       ver_planos: false,
+      iniciar_checkout: false,
     },
   },
   [Papel.super_admin]: {

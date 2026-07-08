@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { EstadoSubscricao } from '@prisma/client';
+import type Stripe from 'stripe';
 import { TenantPrismaService } from '../fundacao/prisma/tenant-prisma.service';
+import { tenantContext } from '../fundacao/tenant/tenant-context';
+import { STRIPE_CLIENT } from './stripe-client.provider';
+import { obterPrecoStripe } from './precos-stripe';
+import type { PlanoCheckout } from './dto/criar-checkout.dto';
 
 // FR-30, literal — não uma configuração de negócio em aberto.
 const TRIAL_DURACAO_DIAS = 14;
@@ -20,7 +25,10 @@ const TRIAL_DURACAO_DIAS = 14;
  */
 @Injectable()
 export class SubscricaoService {
-  constructor(private readonly tenantPrisma: TenantPrismaService) {}
+  constructor(
+    private readonly tenantPrisma: TenantPrismaService,
+    @Inject(STRIPE_CLIENT) private readonly stripe: Stripe,
+  ) {}
 
   async obterEstadoEfetivo(empresaId: string): Promise<EstadoSubscricao> {
     const subscricao = await this.tenantPrisma.client.subscricaoPlano.findUnique({ where: { empresaId } });
@@ -38,5 +46,44 @@ export class SubscricaoService {
     }
 
     return subscricao.estado;
+  }
+
+  /**
+   * Cria uma sessão de Stripe Checkout (UC-07; Especificação Técnica do
+   * Passo 21, 3.3) — único ponto responsável por esta lógica (pedido
+   * explícito da Fundadora/CEO, single source of truth). Nunca invocado
+   * antes deste momento (RN-02, ADR-008 §3.3) — este método é a primeira
+   * vez que a Stripe é contactada em todo o projeto.
+   */
+  async criarCheckout(plano: PlanoCheckout): Promise<{ url: string }> {
+    const ctx = tenantContext.getStore();
+    if (!ctx) {
+      throw new UnauthorizedException();
+    }
+
+    const precoId = obterPrecoStripe(plano);
+    if (!precoId) {
+      throw new BadRequestException('Plano inválido ou não configurado para checkout self-service.');
+    }
+
+    const estadoAtual = await this.obterEstadoEfetivo(ctx.empresaId);
+    if (estadoAtual === 'ativa') {
+      throw new ConflictException('Esta Empresa já tem uma subscrição ativa.');
+    }
+
+    const subscricao = await this.tenantPrisma.client.subscricaoPlano.findUnique({ where: { empresaId: ctx.empresaId } });
+
+    const sessao = await this.stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: precoId, quantity: 1 }],
+      customer: subscricao?.stripeCustomerId ?? undefined,
+      // Único elo entre a sessão Stripe e a Empresa (ADR-008 §3.3) — o
+      // Passo 22 (webhook) usa isto para saber qual Empresa atualizar.
+      metadata: { empresaId: ctx.empresaId },
+      success_url: `${process.env.WEB_APP_URL}/dashboard?checkout=sucesso&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.WEB_APP_URL}/dashboard?checkout=cancelado`,
+    });
+
+    return { url: sessao.url! };
   }
 }

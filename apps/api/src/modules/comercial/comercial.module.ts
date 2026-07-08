@@ -6,6 +6,7 @@ import { SubscricaoListener } from './subscricao.listener';
 import { SubscricaoService } from './subscricao.service';
 import { SubscricaoGuard } from './subscricao.guard';
 import { SubscricaoExceptionFilter } from './subscricao-exception.filter';
+import { stripeClientProvider } from './stripe-client.provider';
 
 /**
  * Módulo `comercial` (Especificações Técnicas dos Passos 19 e 20) — já
@@ -29,6 +30,7 @@ import { SubscricaoExceptionFilter } from './subscricao-exception.filter';
   providers: [
     SubscricaoListener,
     SubscricaoService,
+    stripeClientProvider,
     { provide: APP_GUARD, useClass: SubscricaoGuard },
     { provide: APP_FILTER, useClass: SubscricaoExceptionFilter },
   ],

@@ -82,8 +82,8 @@ Proposta completa do M4 (objetivos, âmbito, exclusões, arquitetura, sequência
 |---|---|---|
 | Passo 19 | `SubscricaoPlano` real (trial automático), `GET /planos` | ✅ **Concluído e aprovado** (2026-07-07) — ver 3.19 |
 | Passo 20 | Enforcement de `limiteUsoIA` por plano + RN-11 (trial expirado → estado "limitada") | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.20 |
-| Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | 🔜 Próximo passo |
-| Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | Por iniciar |
+| Passo 21 | Stripe Checkout — `POST /subscricao/checkout` | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.21 |
+| Passo 22 | Webhooks Stripe — `POST /webhooks/stripe`, idempotentes | 🔜 Próximo passo |
 | Passo 23 | Ecrã(s) frontend — plano atual, limites/uso, upgrade | Por iniciar |
 
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
@@ -299,6 +299,15 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **RN-11 aplicada de forma estruturalmente uniforme em toda a aplicação.**
 - **Milestone M4 em curso** — próximo: Passo 21 (Stripe Checkout, `POST /subscricao/checkout`).
 
+### 3.21 Registo de Conclusão — Passo 21 (2026-07-08) — primeiro contacto real com a Stripe
+
+- **Especificação técnica formal aprovada antes da implementação, com 6 decisões emergentes validadas antecipadamente** — ver [Especificação Técnica do Passo 21](docs/04-implementation-blueprint/20-especificacao-tecnica-passo-21-stripe-checkout.md): (A) só planos `starter`/`professional` self-service — Enterprise fica processo comercial, sem preço fixo definível; (B) Stripe Price IDs só via variáveis de ambiente; (C) Cliente Stripe reaproveitado via `stripeCustomerId` se já existir, nunca criado explicitamente neste passo; (D) `409` se a subscrição já está `ativa` — evita subscrição Stripe duplicada, consistente com upgrade/downgrade fora de âmbito do M4; (E) `STRIPE_CLIENT` injetado via DI, `FakeStripeClient` nos testes — mais leve que o AI Gateway, sem interface de adaptador completa, porque o ADR-008 nunca exigiu a Stripe substituível por outro processador; (F) `POST /subscricao/checkout` nunca decorado com `@BloqueadoPorSubscricao()` — seria a via de escape do próprio acesso limitado.
+- **`SubscricaoService.criarCheckout`** — único ponto responsável por esta lógica (pedido explícito da Fundadora/CEO, single source of truth), lê `tenantContext` internamente, primeira vez que a Stripe é contactada em todo o projeto.
+- **`POST /subscricao/checkout`** implementado — nova permissão `comercial.iniciar_checkout`, só `admin_empresa`.
+- **Descoberta técnica real, corrigida antes do fecho**: o SDK da Stripe lança uma exceção no próprio construtor quando a `apiKey` é uma string vazia (ao contrário do SDK da Anthropic, Passo 15) — quebrava a compilação de `comercial.e2e-spec.ts`/`comercial-enforcement.e2e-spec.ts` (Passos 19/20), que nunca chamam a Stripe. Corrigido com um valor de reserva inofensivo quando `STRIPE_SECRET_KEY` está vazia — nunca usado numa chamada real, mesma garantia de "arranca sem credencial real" já estabelecida para a IA, agora também confirmada para a Stripe. Correção de implementação, não uma alteração de âmbito ou arquitetura.
+- **Resultados**: `apps/api/test/comercial-checkout.e2e-spec.ts` (7 testes, T1-T7, via HTTP real com `FakeStripeClient`, zero chamada de rede real), suite completa em 160/160 testes (153 herdados + 7 novos); `npm run build` limpo.
+- **Milestone M4 em curso** — próximo: Passo 22 (Webhooks Stripe, `POST /webhooks/stripe`, idempotentes).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -353,11 +362,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 21 (M4, Stripe Checkout)
+## 6. Próxima Ação Imediata — Passo 22 (M4, Webhooks Stripe)
 
-**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`) e Passo 20 (enforcement uniforme de RN-11) concluídos e aprovados (ver 3.19/3.20)**. Próximo: **Passo 21 — Stripe Checkout, `POST /subscricao/checkout` (UC-07, ADR-008)**.
+**M1, M2 e M3 formalmente concluídos.** **M4 (Comercial e Pagamentos) aprovado e em curso — Passo 19 (`SubscricaoPlano` real, `GET /planos`), Passo 20 (enforcement uniforme de RN-11) e Passo 21 (Stripe Checkout) concluídos e aprovados (ver 3.19/3.20/3.21)**. Próximo: **Passo 22 — Webhooks Stripe, `POST /webhooks/stripe` (ADR-008 §3.4)**.
 
-- Sessão de Stripe Checkout associando `empresaId` como metadado (ADR-008 §3.3) — nunca invocado antes de UC-07 (RN-02, ADR-008 D3), consistente com o facto de o registo/trial nunca exigir dados de pagamento.
-- Credenciais Stripe só via variáveis de ambiente (`STRIPE_SECRET_KEY`, já em `.env.example` desde o scaffolding) — nunca em código, mesma disciplina já aplicada às credenciais de IA (Security & Access Principles §3.8).
-- Testes sem credenciais Stripe reais — mesma disciplina já usada no M3 (`FakeAdapter`), a definir em Especificação Técnica própria como se traduz para a integração Stripe.
+- Endpoint sem sessão, verificado por assinatura (`STRIPE_WEBHOOK_SECRET`, já em `.env.example`) — Fail Secure explícito (Security & Access Principles §3.9): um webhook não verificado é rejeitado, nunca processado.
+- Processamento idempotente por identificador único do evento Stripe (Event & Notification Architecture Rules §3.5) — mesmo princípio já aplicado ao `SubscricaoListener` (Passo 19), agora para eventos externos, não internos.
+- Atualiza `SubscricaoPlano.estado`/`stripeCustomerId`/`stripeSubscriptionId` a partir de `metadata.empresaId` (Passo 21) — aplica RN-10/RN-11 já decididas (ADR-008 §3.4), nunca as redefine.
+- Testes sem credenciais Stripe reais — assinatura de webhook calculada localmente com um segredo de teste, payloads sintéticos, mesma disciplina já aplicada ao Passo 21 (`FakeStripeClient`).
 - Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
