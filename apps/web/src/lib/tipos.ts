@@ -4,6 +4,20 @@
  */
 export type Papel = 'super_admin' | 'admin_empresa' | 'gestor' | 'colaborador' | 'convidado';
 
+/**
+ * Papéis atribuíveis (nunca `super_admin`, já reforçado no backend —
+ * `PAPEIS_ATRIBUIVEIS`, Passo 5) — lista partilhada, extraída no Passo 31
+ * de `SeccaoUtilizadores.tsx` para evitar uma segunda definição no novo
+ * formulário de Convite (mesmo espírito da extração de `PRIVILEGIO` no
+ * backend, Passo 30).
+ */
+export const PAPEIS_ATRIBUIVEIS: { valor: Exclude<Papel, 'super_admin'>; rotulo: string }[] = [
+  { valor: 'admin_empresa', rotulo: 'Administrador' },
+  { valor: 'gestor', rotulo: 'Gestor' },
+  { valor: 'colaborador', rotulo: 'Colaborador' },
+  { valor: 'convidado', rotulo: 'Convidado' },
+];
+
 export type EstadoProcesso = 'por_fazer' | 'em_curso' | 'concluida';
 
 export interface Processo {
@@ -83,4 +97,18 @@ export interface ResumoSubscricao {
   avisoLimiteIAProximo: boolean;
   trialIniciadoEm: string | null;
   diasRestantesTrial: number | null;
+}
+
+export type EstadoConvite = 'pendente' | 'aceite' | 'revogado';
+
+/**
+ * `GET /convites/:token` (Especificação Técnica do Passo 30, 3.2) — nunca
+ * inclui `token` nem dados de outro Utilizador.
+ */
+export interface PreviewConvite {
+  empresaNome: string;
+  email: string;
+  papelPretendido: Papel;
+  estado: EstadoConvite;
+  expirado: boolean;
 }
