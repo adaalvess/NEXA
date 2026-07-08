@@ -24,6 +24,15 @@ export class ComercialController {
     return (Object.keys(PLANOS_CONFIG) as Plano[]).map((plano) => ({ plano, ...PLANOS_CONFIG[plano] }));
   }
 
+  // Sem sessão nem permissão (Especificação Técnica do Passo 24, 3.1) —
+  // reaproveita `listarPlanos()` literalmente, nunca duplica a leitura de
+  // `PLANOS_CONFIG`; resposta byte-idêntica à de `GET /planos`, só sem
+  // exigir sessão. Consumido pela página pública `/precos` (Passo 24).
+  @Get('planos/publico')
+  async listarPlanosPublico() {
+    return this.listarPlanos();
+  }
+
   // Reutiliza `comercial.ver_planos` (Especificação Técnica do Passo 23,
   // Decisão A) — ver o resumo da própria subscrição é a mesma capacidade
   // de "ver planos", nunca uma permissão nova.

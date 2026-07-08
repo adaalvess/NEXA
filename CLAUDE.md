@@ -88,6 +88,21 @@ Proposta completa do M4 (objetivos, âmbito, exclusões, arquitetura, sequência
 
 **Milestone M4 (Comercial e Pagamentos) formalmente concluído em 2026-07-08** — todos os passos previstos (19-23) implementados, validados e aprovados; ciclo completo de UC-07/UC-08 operacional de ponta a ponta: trial automático no registo → limites por plano aplicados uniformemente (RN-11) → upgrade self-service via Stripe Checkout → webhook ativa a subscrição real de forma idempotente → ecrã de subscrição expõe plano/estado/uso/upgrade ao Administrador, sem nenhum cálculo paralelo no frontend.
 
+### M5 (Camada Comercial e Produto) — Aprovado e em Curso (2026-07-08)
+
+Proposta completa do M5 (objetivos, âmbito, exclusões, sequência de passos, riscos, DoD) apresentada e aprovada pela Fundadora/CEO, com 4 decisões adicionais validadas (fornecedor de email Resend, atrás de interface própria, substituível sem impacto arquitetural; `GET /planos/publico` reutiliza integralmente `PLANOS_CONFIG`, sem duplicação; Perfil edita só nome/palavra-passe, com palavra-passe atual obrigatória, nunca email/papel; convidado define a própria palavra-passe ao aceitar, nunca atribuída por um Administrador). Âmbito em 3 blocos: **Bloco A** — EP-07, Landing/Pricing pública + Registo público (Passos 24-26); **Bloco B** — Configurações completa, Perfil/Utilizadores-Permissões/Departamentos (Passos 27-28); **Bloco C** — UC-02, Convite de Utilizadores por email (Passos 29-31). Upgrade/downgrade/cancelamento self-service e edição granular de `RegraPermissao` ficam fora do M5. Numeração de passos continua a partir do M4.
+
+| Passo | Conteúdo | Estado |
+|---|---|---|
+| Passo 24 | `GET /planos/publico` + Página de Preços (`/precos`) | ✅ **Concluído e aprovado** (2026-07-08) — ver 3.24 |
+| Passo 25 | Landing Page pública (`/`) | 🔜 Próximo passo |
+| Passo 26 | Ecrã de Registo público (`/registar`) — fecha o Bloco A | ⏳ Pendente |
+| Passo 27 | `PATCH /utilizadores/me` (self-edit nome/palavra-passe) | ⏳ Pendente |
+| Passo 28 | Ecrã "Configurações" (Perfil, Utilizadores/Permissões, Departamentos) — fecha o Bloco B | ⏳ Pendente |
+| Passo 29 | Interface de email + adaptador Resend, modelo `ConviteUtilizador` | ⏳ Pendente |
+| Passo 30 | `POST /convites`, `POST /convites/:token/aceitar` | ⏳ Pendente |
+| Passo 31 | Ecrã de convite (envio + aceitação) — fecha o Bloco C, Milestone M5 formalmente concluído | ⏳ Pendente |
+
 **Decisões arquitetónicas do M2 já validadas (2026-07-06):** (A) M2 inclui frontend (`apps/web`), mantendo API-first — nenhuma UI construída antes da respetiva API estar implementada, testada e aprovada; (B) lógica de visibilidade RBAC (admin tudo / gestor por Departamento / colaborador por posse / convidado via Partilha) fica **centralizada na Fundação** como mecanismo reutilizável (opção B1), nunca duplicada entre Processos e CRM; (C) `Processo.estado` e `Cliente.estadoOportunidade` serão promovidos a `enum` (mesmo padrão do `Papel` no Passo 5), reforçando validação ao nível da BD.
 
 O scaffolding do Passo 1 já inclui: monorepo com npm workspaces, ESLint/Prettier partilhados, NestJS mínimo (`main.ts` com cookie-parser, `app.module.ts` com EventEmitter), Next.js mínimo com Tailwind já configurado com os tokens exatos do Brand Book.
@@ -330,6 +345,14 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Resultados**: backend `apps/api/test/comercial-subscricao-resumo.e2e-spec.ts` (5 testes novos), suite completa em 171/171 testes (166 herdados + 5 novos); `npm run build` (`apps/api`) limpo. Frontend `npm run build`/`npm run lint` (`apps/web`) limpos; validação visual real no browser confirmou: item "Plano" visível só para `admin_empresa`; plano/estado/dias de trial corretos; aviso de uso de IA a 90% (dados manipulados diretamente na BD para simular o cenário); fluxo de upgrade chama corretamente `POST /subscricao/checkout` (erro tratado com mensagem, sem crash — sem Price ID de teste configurado neste ambiente local); secção de upgrade ausente quando `ativa`; acesso direto por URL por `colaborador` devolve mensagem, nunca crash; responsivo sem quebras em 375px/768px/1280px; zero erros de consola. Detalhe completo em §3.8 da especificação.
 - **Milestone M4 (Comercial e Pagamentos) formalmente concluído** — Passos 19 a 23 implementados, validados e aprovados; ciclo completo de UC-07/UC-08 operacional de ponta a ponta.
 
+### 3.24 Registo de Conclusão — Passo 24 (2026-07-08) — primeiro passo do M5
+
+- **Proposta formal do Milestone M5 aprovada antes de qualquer Especificação Técnica** — objetivos, âmbito em 3 blocos (A: EP-07 Landing/Pricing/Registo; B: Configurações; C: UC-02 Convite por email), exclusões, sequência de passos (24-31), riscos, DoD; 4 decisões adicionais validadas (fornecedor de email Resend atrás de interface própria; `GET /planos/publico` reutiliza integralmente `PLANOS_CONFIG`; Perfil edita só nome/palavra-passe com palavra-passe atual obrigatória; convidado define a própria palavra-passe ao aceitar, nunca atribuída pelo Administrador).
+- **Especificação técnica formal aprovada antes da implementação, sem novas decisões de âmbito além do que a Proposta do M5 já fixou** — ver [Especificação Técnica do Passo 24](docs/04-implementation-blueprint/23-especificacao-tecnica-passo-24-precos-publico.md): `GET /planos/publico` reaproveita `listarPlanos()` literalmente, no mesmo `ComercialController`, sem `@UseGuards` (primeira rota pública desde o webhook Stripe, Passo 22) e sem `@Throttle` dedicado (herda o limite global); página `/precos` como Server Component (decisão técnica, não uma alteração ao padrão Client Component + TanStack Query já usado nos ecrãs autenticados); CTA de cada plano aponta para `/login` nesta fase intermédia (até `/registar` existir, Passo 26).
+- **Descoberta técnica real, corrigida antes do fecho**: o Next.js pré-renderia `/precos` estaticamente no build (`○ Static`) — um Server Component sem API dinâmica explícita é elegível a Static Site Generation por defeito, o que congelaria a resposta de `GET /planos/publico` (ou o estado de erro) no momento do `next build`, nunca refletindo alterações a `PLANOS_CONFIG` sem novo deploy. Corrigido com `export const dynamic = 'force-dynamic'` — `/precos` passou a `ƒ Dynamic`, mesmo comportamento de todas as outras páginas. Correção de implementação, não uma alteração à decisão de Server Component nem ao âmbito.
+- **Resultados**: `apps/api/test/comercial-planos-publico.e2e-spec.ts` (2 testes, incluindo comparação byte-a-byte com `GET /planos`), suite completa em 173/173 testes (171 herdados + 2 novos); `npm run build` (`apps/api`) limpo. Frontend `npm run build`/`npm run lint` (`apps/web`) limpos; validação visual real no browser confirmou: `/precos` acessível sem sessão nenhuma; os 3 planos com os limites corretos (Enterprise com "Ilimitado" em todos os campos); os 3 CTAs a apontar para `/login`; responsivo sem quebras em 375px/768px/1280px; zero erros de consola.
+- **Milestone M5 em curso** — próximo: Passo 25 (Landing Page pública, `/`).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -384,10 +407,10 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Próximo Milestone (M5) por Confirmar
+## 6. Próxima Ação Imediata — Passo 25 (M5, Landing Page pública)
 
-**M1, M2, M3 e M4 formalmente concluídos.** Todos os Épicos previstos para o MVP com Especificação Técnica de módulos core (Fundação, Dashboard, Processos, CRM, IA, Comercial) estão implementados, validados e aprovados. Nenhuma Proposta de Milestone M5 foi ainda apresentada nem aprovada.
+**M1, M2, M3 e M4 formalmente concluídos.** **M5 (Camada Comercial e Produto) aprovado e em curso — Passo 24 (`GET /planos/publico`, página `/precos`) concluído e aprovado (ver 3.24)**. Próximo: **Passo 25 — Landing Page pública (`/`), segundo passo do Bloco A**.
 
-- Antes de avançar para qualquer passo novo, é necessário apresentar uma Proposta de Milestone M5 (objetivos, âmbito, exclusões, sequência de passos, riscos, DoD) para aprovação da Fundadora/CEO — mesma disciplina já usada nas propostas dos Milestones M2/M3/M4.
-- Candidatos possíveis, ainda por confirmar com a Fundadora/CEO (nenhum aprovado): EP-07 (landing/pricing pública), upgrade/downgrade/cancelamento self-service de subscrição (fora de âmbito do M4, Proposta do M4 Decisão 6.4), secção "Configurações" completa (Perfil, Utilizadores/Permissões, Departamentos — registada como Questão em Aberto na Especificação Técnica do Passo 23, §5), UC-02 (convite por email).
-- Mesma disciplina de sempre: Proposta de Milestone → aprovação → Especificação Técnica formal por passo → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
+- `apps/web/src/app/page.tsx` hoje só redireciona consoante a sessão (`/dashboard` ou `/login`) — passa a mostrar a Landing Page real quando não há sessão, mantendo o redirecionamento para `/dashboard` quando há.
+- CTA de preços aponta para `/precos` (Passo 24, já implementado); CTA principal de conversão aponta para `/login` nesta fase, mesma decisão intermédia do Passo 24, até `/registar` existir (Passo 26).
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser) → aprovação dos resultados → sincronização de documentação → commit.
