@@ -423,6 +423,29 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 - **Bloco C do M5 (UC-02, Convite por email) formalmente concluído** — Passos 29, 30 e 31 implementados, validados e aprovados; fluxo completo operacional de ponta a ponta: envio → pré-visualização pública → aceitação com palavra-passe própria → login automático.
 - **Milestone M5 (Camada Comercial e Produto) formalmente concluído** — todos os passos previstos (24-31) implementados, validados e aprovados; os 3 blocos (A, B, C) fechados de ponta a ponta.
 
+### M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) — Aprovado e em Curso (2026-07-09)
+
+Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, decisão sobre RN-10, sequência de passos, riscos, justificação da ordem de execução) apresentada e aprovada pela Fundadora/CEO em 2026-07-09, com 4 achados prévios registados: (A) a cobertura automatizada do NFR-17 já existe de forma distribuída em M1-M5 — falta consolidar, não construir; (B) o Use Cases v1.0 tem uma inconsistência interna (afirma "9 Use Cases", só existem 8, UC-01 a UC-08) — âmbito do M6 são os 8 reais, discrepância registada sem alterar o documento de origem; (C) UC-08 não pode ser honestamente validado sem resolver primeiro a lacuna RN-10 (`limiteUtilizadores`), já identificada como Questão em Aberto no Passo 30; (D) três Requisitos Funcionais aprovados nunca implementados e sem decisão arquitetural (FR-08 telemetria, FR-09 i18n PT/EN, FR-27 políticas de autonomia de IA configuráveis) — fora do âmbito dos Use Cases, registados como Questões em Aberto explícitas, nunca absorvidos silenciosamente pelo M6. Numeração de passos continua a partir do M5.
+
+| Passo | Conteúdo | Estado |
+|---|---|---|
+| Passo 32 | Consolidação NFR-17 — mapeamento explícito fluxo crítico → testes → lacunas identificadas | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.32 |
+| Passo 33 | Enforcement de `limiteUtilizadores` (RN-10), viabilizando validação integral de UC-02/UC-08 | ⏳ Pendente |
+| Passo 34 | Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador) | ⏳ Pendente |
+| Passo 35 | Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação) | ⏳ Pendente |
+| Passo 36 | Validação manual UC-05 (Consultar Assistente de IA) + UC-06 (Confirmar Sugestão de IA) | ⏳ Pendente |
+| Passo 37 | Validação manual UC-07 (Converter Trial em Subscrição) + UC-08 (Atingir Limite do Plano) | ⏳ Pendente |
+| Passo 38 | Relatório final de encerramento do M6 — resumo executivo (Use Cases, FR, NFR, bugs, Questões em Aberto, sincronização documental) | ⏳ Pendente |
+
+### 3.32 Registo de Conclusão — Passo 32 (2026-07-09) — primeiro passo do M6
+
+- **Especificação técnica formal aprovada antes da implementação, sem Decisões a Validar** — ver [Consolidação NFR-17](docs/04-implementation-blueprint/31-consolidacao-nfr-17.md): o conteúdo já estava integralmente fixado pela Proposta do M6 já aprovada; único acréscimo pedido pela Fundadora/CEO na aprovação — coluna "Lacunas identificadas" explícita por fluxo (mesmo quando "nenhuma"), tornando claro que a análise procurou ativamente falhas, não só confirmou cobertura.
+- **Suite completa (`npm run test:e2e`) corrida em 2 execuções consecutivas, 202/202 testes, estável**, sem nenhuma alteração de código entre as duas execuções.
+- **Mapeamento fluxo→testes→lacunas produzido para os 4 fluxos do NFR-17**, com inspeção manual real das asserções (não só os nomes dos testes) e raciocínio explícito sobre o que aconteceria a cada teste se a proteção correspondente fosse removida — confirmado, para os 4 fluxos, que os testes falhariam genuinamente perante uma regressão real.
+- **Duas lacunas honestas identificadas e registadas, nenhuma corrigida neste passo** (âmbito de verificação, não de implementação): (1) isolamento multi-tenant — Camada 1 (`TenantPrismaService`) e Camada 2 (RLS) correm sempre em conjunto em todos os testes, nunca isoladas uma da outra; defesa em profundidade genuína (se uma regredisse, a outra continuaria a proteger), mas os testes não conseguem hoje atribuir a proteção a uma camada específica; (2) RN-10 (`limiteUtilizadores`) sem nenhum teste, porque a funcionalidade ainda não existe — resolvido pelo Passo 33, já planeado.
+- **Sem descobertas técnicas emergentes** — passo de verificação pura, sem código de produção alterado.
+- **Milestone M6 em curso** — próximo: Passo 33 (enforcement de `limiteUtilizadores`, RN-10).
+
 ---
 
 ## 4. Regras Não-Negociáveis — Nunca Violar
@@ -477,11 +500,12 @@ Ao preparar a Especificação Técnica do Passo 4 (o passo mais crítico do M1),
 
 ---
 
-## 6. Próxima Ação Imediata — Proposta do Milestone M6
+## 6. Próxima Ação Imediata — Passo 33 (M6 — Enforcement de `limiteUtilizadores`, RN-10)
 
-**M1, M2, M3, M4 e M5 formalmente concluídos.** M5 (Camada Comercial e Produto) fechado em 2026-07-08 com os Passos 24-31 implementados, validados e aprovados — os 3 blocos (A: EP-07 Landing/Pricing/Registo público; B: Configurações completa; C: UC-02 Convite por email) operacionais de ponta a ponta (ver 3.24-3.31).
+**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17) concluído e aprovado (ver 3.32)**. Próximo: **Passo 33 — Enforcement de `limiteUtilizadores` (RN-10), segundo passo do M6**.
 
-- **Bloqueador de pré-lançamento continua registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD — a resolver antes do M6/M7. Convite por email (Passo 29, Decisão B) não está sujeito a este bloqueador.
-- **`limiteUtilizadores` (RN-10/RN-11) continua deliberadamente sem enforcement** (Questão em Aberto Q1 do Passo 30) — mecanismo próprio, a decidir num passo dedicado, possivelmente dentro do M6/M7.
-- Próximo passo do método de trabalho: **apresentar a Proposta formal do Milestone M6** (Blueprint §2.2: "Testes dos 4 fluxos críticos (NFR-17) + validação manual dos Use Cases principais") para validação da Fundadora/CEO, antes de qualquer Especificação Técnica — mesma disciplina já seguida no arranque de M2/M3/M4/M5, nunca avançar direto para implementação sem essa aprovação prévia.
-- Mesma disciplina de sempre: Proposta de Milestone → Especificação Técnica formal → aprovação → implementação → validação (incluindo verificação visual real no browser para frontend) → aprovação dos resultados → sincronização de documentação → commit.
+- Resolve a Questão em Aberto Q1 do Passo 30 — bloqueio ao atingir o limite de Utilizadores do plano ativo, aplicado no ponto real de criação (aceitação de convite, `ConviteService.aceitar`), nunca um bloqueio total da plataforma (RN-10 exige explicitamente isto).
+- Viabiliza a validação integral de UC-02 (Exceção E1) e UC-08 nos Passos 34 e 37 — sem esta implementação, ambos só poderiam ser validados parcialmente.
+- **Bloqueador de pré-lançamento continua registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD.
+- Três Requisitos Funcionais (FR-08 telemetria, FR-09 i18n, FR-27 políticas de autonomia de IA) permanecem registados como Questões em Aberto explícitas (achado D da Proposta do M6) — fora do âmbito do M6, nunca absorvidos silenciosamente.
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
