@@ -430,7 +430,7 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 | Passo | Conteúdo | Estado |
 |---|---|---|
 | Passo 32 | Consolidação NFR-17 — mapeamento explícito fluxo crítico → testes → lacunas identificadas | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.32 |
-| Passo 33 | Enforcement de `limiteUtilizadores` (RN-10), viabilizando validação integral de UC-02/UC-08 | ⏳ Pendente |
+| Passo 33 | Enforcement de `limiteUtilizadores` (RN-10), viabilizando validação integral de UC-02/UC-08 | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.33 |
 | Passo 34 | Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador) | ⏳ Pendente |
 | Passo 35 | Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação) | ⏳ Pendente |
 | Passo 36 | Validação manual UC-05 (Consultar Assistente de IA) + UC-06 (Confirmar Sugestão de IA) | ⏳ Pendente |
@@ -445,6 +445,18 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 - **Duas lacunas honestas identificadas e registadas, nenhuma corrigida neste passo** (âmbito de verificação, não de implementação): (1) isolamento multi-tenant — Camada 1 (`TenantPrismaService`) e Camada 2 (RLS) correm sempre em conjunto em todos os testes, nunca isoladas uma da outra; defesa em profundidade genuína (se uma regredisse, a outra continuaria a proteger), mas os testes não conseguem hoje atribuir a proteção a uma camada específica; (2) RN-10 (`limiteUtilizadores`) sem nenhum teste, porque a funcionalidade ainda não existe — resolvido pelo Passo 33, já planeado.
 - **Sem descobertas técnicas emergentes** — passo de verificação pura, sem código de produção alterado.
 - **Milestone M6 em curso** — próximo: Passo 33 (enforcement de `limiteUtilizadores`, RN-10).
+
+### 3.33 Registo de Conclusão — Passo 33 (2026-07-09) — segundo passo do M6
+
+- **Especificação técnica formal aprovada antes da implementação, com 3 Decisões a Validar (A-C)** — ver [Especificação Técnica do Passo 33](docs/04-implementation-blueprint/32-especificacao-tecnica-passo-33-limite-utilizadores.md): investigação prévia revelou uma tensão real com a frase "reutiliza a infraestrutura comercial já existente" da Proposta do M6 — `ConviteService` vive em `fundacao/`, e chamar `SubscricaoService`/qualquer classe de `comercial` inverteria pela primeira vez a regra estrutural "`FundacaoModule` nunca importa `ComercialModule`"; (A) RN-10 implementado **inteiramente dentro de `fundacao/convite/`**, leitura direta de `SubscricaoPlano.limiteUtilizadores`, sem depender de `comercial` — preserva a regra sem exceção; (B) contagem em `POST /convites` = Utilizadores ativos + Convites pendentes não expirados (evita sobre-envio além da capacidade); em `POST /convites/:token/aceitar`, só Utilizadores ativos; (C) verificação nos dois pontos (convidar e aceitar) — defesa em profundidade, mesma disciplina de CV-05 (Passo 30).
+- **`fundacao/convite/errors.ts`** (novo) — `LimiteUtilizadoresAtingidoError extends HttpException` (`402`, `code: LIMITE_UTILIZADORES_ATINGIDO`, mensagem com o valor concreto do limite, UC-08 exige clareza), inteiramente autocontida em `fundacao`, nunca reutiliza `SubscricaoLimitadaError`/`SubscricaoExceptionFilter` de `comercial` (que ficam exclusivos de RN-11).
+- **`ConviteService.criar()`/`aceitar()`** — nova verificação RN-10 em ambos, exatamente como decidido (B/C).
+- **Refinamento encontrado durante a escrita dos testes (não uma alteração de decisão)**: aceitar um convite pendente **não liberta espaço** para um novo convite — converte uma reserva em uso real, a capacidade total comprometida mantém-se igual. O que genuinamente liberta espaço é a expiração natural de um convite pendente. A formulação inicial do plano de testes estava imprecisa nesse ponto — corrigida na implementação real, sem impacto nas Decisões A-C.
+- **Resultados**: `apps/api/test/convites.e2e-spec.ts` ganhou 8 testes novos (T19-T26 — plano sem limite, bloqueio por ativos, bloqueio por ativos+pendentes, expiração a libertar espaço, caso positivo, mensagem com o valor do limite, revalidação na aceitação, exclusão de Utilizadores eliminados da contagem); suite completa em 210/210 testes (202 herdados + 8 novos), estável em 2 execuções consecutivas; `npm run build` (`apps/api`) limpo; app confirmada a arrancar sem alterações de configuração.
+- **Descoberta técnica menor**: `convites.e2e-spec.ts` passou a importar `ComercialModule`/`IaModule` (além de `FundacaoModule`) para que o `SubscricaoListener` criasse `SubscricaoPlano` reativamente no registo — pré-requisito para testar o limite; confirmado que isto nunca ativa `@BloqueadoPorSubscricao()`/RN-11 em nenhum endpoint de Convite (T1-T18 continuam a passar sem bloqueio adicional).
+- **Sem ecrã novo** — o formulário de Convite (Passo 31) já mostra a mensagem exata do backend através do toast de erro genérico.
+- **UC-02 (Exceção E1) e UC-08 agora integralmente viabilizados para validação manual** — sem lacuna de funcionalidade a impedir os Passos 34/37.
+- **Milestone M6 em curso** — próximo: Passo 34 (validação manual UC-01 + UC-02).
 
 ---
 
@@ -500,12 +512,12 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 33 (M6 — Enforcement de `limiteUtilizadores`, RN-10)
+## 6. Próxima Ação Imediata — Passo 34 (M6 — Validação Manual UC-01 + UC-02)
 
-**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17) concluído e aprovado (ver 3.32)**. Próximo: **Passo 33 — Enforcement de `limiteUtilizadores` (RN-10), segundo passo do M6**.
+**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17) e Passo 33 (Enforcement de `limiteUtilizadores`, RN-10) concluídos e aprovados (ver 3.32-3.33)**. Próximo: **Passo 34 — Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador), terceiro passo do M6**.
 
-- Resolve a Questão em Aberto Q1 do Passo 30 — bloqueio ao atingir o limite de Utilizadores do plano ativo, aplicado no ponto real de criação (aceitação de convite, `ConviteService.aceitar`), nunca um bloqueio total da plataforma (RN-10 exige explicitamente isto).
-- Viabiliza a validação integral de UC-02 (Exceção E1) e UC-08 nos Passos 34 e 37 — sem esta implementação, ambos só poderiam ser validados parcialmente.
+- UC-02 (Exceção E1, limite atingido) e UC-08 (RN-10) estão agora integralmente viabilizados para validação — sem lacuna de funcionalidade a impedir os Passos 34/37.
+- Cada Use Case validado precisa de um registo escrito (pré-condições, fluxo principal, alternativas/exceções relevantes, regras de negócio confirmadas no sistema real) — mesma disciplina fixada na Proposta do M6, nunca uma aprovação verbal sem registo.
 - **Bloqueador de pré-lançamento continua registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD.
 - Três Requisitos Funcionais (FR-08 telemetria, FR-09 i18n, FR-27 políticas de autonomia de IA) permanecem registados como Questões em Aberto explícitas (achado D da Proposta do M6) — fora do âmbito do M6, nunca absorvidos silenciosamente.
-- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação → validação → aprovação dos resultados → sincronização de documentação → commit.
+- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação/validação → aprovação dos resultados → sincronização de documentação → commit.

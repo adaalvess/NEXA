@@ -5,6 +5,8 @@ import * as argon2 from 'argon2';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { FundacaoModule } from '../src/modules/fundacao/fundacao.module';
+import { ComercialModule } from '../src/modules/comercial/comercial.module';
+import { IaModule } from '../src/modules/ia/ia.module';
 import { EMAIL_ADAPTER } from '../src/modules/fundacao/email/adapters/email-adapter.interface';
 import { FakeEmailAdapter } from '../src/modules/fundacao/email/adapters/fake.adapter';
 import { limparEmpresasDeTeste } from './utils/limpar-empresa';
@@ -15,6 +17,12 @@ const SENHA = 'senha1234';
  * `POST /convites`, `GET /convites/:token`, `POST /convites/:token/aceitar`
  * (UC-02; Especificação Técnica do Passo 30) — corre contra `nexa_test` via
  * HTTP real, `FakeEmailAdapter` nunca faz uma chamada de rede real.
+ *
+ * `ComercialModule`/`IaModule` importados desde o Passo 33 (RN-10, T19-T26)
+ * — necessário para o `SubscricaoListener` criar `SubscricaoPlano`
+ * reativamente no registo (Passo 19), pré-requisito para testar o limite de
+ * Utilizadores. Nunca ativa `@BloqueadoPorSubscricao()` (RN-11) em nenhum
+ * endpoint de Convite — decisão já fixada no Passo 30, sem alteração.
  */
 describe('Convites (Passo 30)', () => {
   let app: INestApplication;
@@ -26,7 +34,7 @@ describe('Convites (Passo 30)', () => {
     passwordHash = await argon2.hash(SENHA, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2 });
     fakeAdapter = new FakeEmailAdapter();
 
-    const moduleRef = await Test.createTestingModule({ imports: [FundacaoModule] })
+    const moduleRef = await Test.createTestingModule({ imports: [FundacaoModule, ComercialModule, IaModule] })
       .overrideProvider(EMAIL_ADAPTER)
       .useValue(fakeAdapter)
       .compile();
@@ -79,6 +87,10 @@ describe('Convites (Passo 30)', () => {
       throw new Error('Token não encontrado no corpo do email simulado.');
     }
     return match[1];
+  }
+
+  async function definirLimiteUtilizadores(empresaId: string, limite: number | null) {
+    await adminClient.subscricaoPlano.update({ where: { empresaId }, data: { limiteUtilizadores: limite } });
   }
 
   it('T1 — admin_empresa convida com sucesso, email enviado, token nunca na resposta', async () => {
@@ -373,5 +385,155 @@ describe('Convites (Passo 30)', () => {
     expect(convitesEmpresa1[0].id).not.toBe(convitesEmpresa2[0].id);
 
     await limparEmpresasDeTeste(adminClient, [empresaId, outraEmpresaId]);
+  });
+
+  // RN-10 (Especificação Técnica do Passo 33) — bloqueio ao atingir
+  // `limiteUtilizadores`. Toda Empresa nasce com trial Professional
+  // (limite 20, Passo 19) — `definirLimiteUtilizadores` ajusta para um
+  // valor pequeno e previsível em cada teste.
+
+  it('T19 — plano sem limite (null) permite convidar independentemente da contagem', async () => {
+    const { cookie, empresaId } = await registarELogin('t19');
+    await definirLimiteUtilizadores(empresaId, null);
+    await criarUtilizador(empresaId, Papel.colaborador, 't19-extra');
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'sem-limite-t19@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T20 — ativos == limite bloqueia POST /convites com 402/LIMITE_UTILIZADORES_ATINGIDO', async () => {
+    const { cookie, empresaId } = await registarELogin('t20');
+    await definirLimiteUtilizadores(empresaId, 1); // só o próprio admin já atinge o limite.
+
+    const res = await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'bloqueado-t20@teste.pt', papelPretendido: 'colaborador' })
+      .expect(402);
+
+    expect(res.body.code).toBe('LIMITE_UTILIZADORES_ATINGIDO');
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T21 — (ativos + convites pendentes) == limite bloqueia, mesmo com ativos < limite', async () => {
+    const { cookie, empresaId } = await registarELogin('t21');
+    await definirLimiteUtilizadores(empresaId, 2); // admin (1 ativo) + 1 convite pendente já atinge.
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'primeiro-t21@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'segundo-t21@teste.pt', papelPretendido: 'colaborador' })
+      .expect(402);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T22 — expiração natural de um convite pendente liberta espaço para um novo convite', async () => {
+    const { cookie, empresaId } = await registarELogin('t22');
+    await definirLimiteUtilizadores(empresaId, 2);
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'expira-t22@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+
+    // Confirma o bloqueio enquanto o convite anterior continua pendente.
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'bloqueado-t22@teste.pt', papelPretendido: 'colaborador' })
+      .expect(402);
+
+    await adminClient.conviteUtilizador.updateMany({ where: { empresaId, email: 'expira-t22@teste.pt' }, data: { expiraEm: new Date(Date.now() - 1000) } });
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'novo-t22@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T23 — (ativos + pendentes) < limite permite convidar normalmente', async () => {
+    const { cookie, empresaId } = await registarELogin('t23');
+    await definirLimiteUtilizadores(empresaId, 5);
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'com-espaco-t23@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T24 — mensagem de erro inclui o valor concreto do limite', async () => {
+    const { cookie, empresaId } = await registarELogin('t24');
+    await definirLimiteUtilizadores(empresaId, 1);
+
+    const res = await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'mensagem-t24@teste.pt', papelPretendido: 'colaborador' })
+      .expect(402);
+
+    expect(res.body.message).toContain('1');
+    expect(res.body.message.toLowerCase()).toContain('limite');
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T25 — aceitação bloqueada com 402 se o limite for atingido entre o envio e a aceitação', async () => {
+    const { cookie, empresaId } = await registarELogin('t25');
+    await definirLimiteUtilizadores(empresaId, 2); // admin (1) + este convite (2) cabem exatamente.
+
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'tardio-t25@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+    const token = extrairToken();
+
+    // Outro Utilizador é criado diretamente (simula outro convite aceite
+    // entretanto, ou um upgrade/downgrade de plano) — o limite já não tem espaço.
+    await criarUtilizador(empresaId, Papel.colaborador, 't25-entretanto');
+
+    const res = await request(app.getHttpServer())
+      .post(`/convites/${token}/aceitar`)
+      .send({ nome: 'Pessoa Tardia', password: 'novaSenha1234' })
+      .expect(402);
+    expect(res.body.code).toBe('LIMITE_UTILIZADORES_ATINGIDO');
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
+  });
+
+  it('T26 — Utilizador eliminado (soft-delete) não conta como ativo', async () => {
+    const { cookie, empresaId } = await registarELogin('t26');
+    await definirLimiteUtilizadores(empresaId, 2);
+    const eliminado = await criarUtilizador(empresaId, Papel.colaborador, 't26-eliminado');
+    await adminClient.utilizador.update({ where: { id: eliminado.id }, data: { eliminadoEm: new Date() } });
+
+    // admin (1 ativo) + eliminado (não conta) = 1 < limite(2) — convite permitido.
+    await request(app.getHttpServer())
+      .post('/convites')
+      .set('Cookie', cookie)
+      .send({ email: 'apesar-eliminado-t26@teste.pt', papelPretendido: 'colaborador' })
+      .expect(201);
+
+    await limparEmpresasDeTeste(adminClient, [empresaId]);
   });
 });

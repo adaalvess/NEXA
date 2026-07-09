@@ -22,6 +22,7 @@ import { EMAIL_ADAPTER } from '../email/adapters/email-adapter.interface';
 import type { EmailAdapterInterface } from '../email/adapters/email-adapter.interface';
 import { CriarConviteDto } from './dto/criar-convite.dto';
 import { AceitarConviteDto } from './dto/aceitar-convite.dto';
+import { LimiteUtilizadoresAtingidoError } from './errors';
 
 const EXPIRACAO_CONVITE_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias (Especificação Técnica do Passo 29, Decisão A).
 
@@ -114,6 +115,23 @@ export class ConviteService {
     });
     if (conviteExistente) {
       throw new ConflictException('Já existe um convite pendente para este email.');
+    }
+
+    // RN-10 (Especificação Técnica do Passo 33, 3.1/Decisão B) — bloqueia
+    // especificamente esta ação se (Utilizadores ativos + Convites
+    // pendentes não expirados) já atingiu o limite do plano. Implementado
+    // inteiramente aqui, nunca chamando `comercial` (Decisão A) — leitura
+    // direta de `SubscricaoPlano.limiteUtilizadores`, `null` = sem limite
+    // (mesma convenção de `limiteUsoIA`, Passo 19).
+    const subscricao = await this.tenantPrisma.client.subscricaoPlano.findUnique({ where: { empresaId: ctx.empresaId } });
+    if (subscricao && subscricao.limiteUtilizadores !== null) {
+      const [ativos, pendentes] = await Promise.all([
+        this.tenantPrisma.client.utilizador.count({ where: { eliminadoEm: null } }),
+        this.tenantPrisma.client.conviteUtilizador.count({ where: { estado: 'pendente', expiraEm: { gt: new Date() } } }),
+      ]);
+      if (ativos + pendentes >= subscricao.limiteUtilizadores) {
+        throw new LimiteUtilizadoresAtingidoError(subscricao.limiteUtilizadores);
+      }
     }
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -216,6 +234,18 @@ export class ConviteService {
     const utilizadorExistente = await this.prisma.utilizador.findFirst({ where: { email: convite.email } });
     if (utilizadorExistente) {
       throw new ConflictException('Este email já está associado a uma conta existente. Inicia sessão em vez de aceitar este convite.');
+    }
+
+    // RN-10 revalidado (Especificação Técnica do Passo 33, 3.2/Decisão C) —
+    // o estado pode ter mudado entre o envio e a aceitação (até 7 dias de
+    // validade). Só Utilizadores ativos aqui (Decisão B) — este convite
+    // ainda não é "pendente" nem "ativo", está a tornar-se real agora.
+    const subscricao = await this.prisma.subscricaoPlano.findUnique({ where: { empresaId: convite.empresaId } });
+    if (subscricao && subscricao.limiteUtilizadores !== null) {
+      const ativos = await this.prisma.utilizador.count({ where: { empresaId: convite.empresaId, eliminadoEm: null } });
+      if (ativos >= subscricao.limiteUtilizadores) {
+        throw new LimiteUtilizadoresAtingidoError(subscricao.limiteUtilizadores);
+      }
     }
 
     const passwordHash = await argon2.hash(dto.password, {
