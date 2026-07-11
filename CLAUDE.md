@@ -432,7 +432,7 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 | Passo 32 | Consolidação NFR-17 — mapeamento explícito fluxo crítico → testes → lacunas identificadas | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.32 |
 | Passo 33 | Enforcement de `limiteUtilizadores` (RN-10), viabilizando validação integral de UC-02/UC-08 | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.33 |
 | Passo 34 | Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador) | ✅ **Concluído e aprovado** (2026-07-11) — ver 3.34 |
-| Passo 35 | Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação) | ⏳ Pendente |
+| Passo 35 | Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação) | ✅ **Concluído e aprovado** (2026-07-11) — ver 3.35 |
 | Passo 36 | Validação manual UC-05 (Consultar Assistente de IA) + UC-06 (Confirmar Sugestão de IA) | ⏳ Pendente |
 | Passo 37 | Validação manual UC-07 (Converter Trial em Subscrição) + UC-08 (Atingir Limite do Plano) | ⏳ Pendente |
 | Passo 38 | Relatório final de encerramento do M6 — resumo executivo (Use Cases, FR, NFR, bugs, Questões em Aberto, sincronização documental) | ⏳ Pendente |
@@ -468,6 +468,16 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 - **Zero bugs encontrados** — zero erros de consola em toda a sessão, todos os fluxos (incluindo os dois casos de exceção testados ao vivo) comportaram-se exatamente como documentado.
 - **Descoberta operacional real, sem impacto no código**: os servidores de preview (web/API) precisaram de ser reiniciados a meio da sessão (gap de tempo real entre mensagens fez os processos anteriores caducarem) — mesma classe de reinício operacional já vivida noutros passos, sem qualquer relação com o código entregue; dados de teste confirmados persistentes em `nexa_dev` durante o intervalo.
 - **Milestone M6 em curso** — próximo: Passo 35 (validação manual UC-03 + UC-04).
+
+### 3.35 Registo de Conclusão — Passo 35 (2026-07-11) — quarto passo do M6
+
+- **Sem Especificação Técnica prévia** — passo de validação manual, âmbito já fixado pela Proposta do M6; nenhuma decisão de arquitetura ou de produto em aberto.
+- **Método**: UC-04 executado primeiro (criar Cliente) para viabilizar a associação em UC-03; validação real via browser + chamadas diretas à API (a última, para provar proteções do backend independentemente do que a UI já filtra). Ver [Validação Manual UC-03 + UC-04](docs/04-implementation-blueprint/34-validacao-uc-03-uc-04.md) para o registo completo.
+- **UC-04 — todos os itens confirmados**: Fluxo Principal 1-4 (Cliente criado com nome/contacto mínimo, estado "existe, vazia por escolha" visível sem erro, Interação registada e visível no histórico), RN-06 (Cliente existiu sem nenhuma Interação, sem erro, antes do registo).
+- **UC-03 — todos os itens confirmados**: Fluxo Principal 1-3 (tarefa, Departamento opcional, Cliente opcional já filtrado pelo escopo RBAC), Alternativo 3a (`POST /processos` sem `clienteId` → `201`, tarefa independente), Exceção E1 (`403`, mensagem exata, confirmada com pedido direto à API contornando o dropdown já filtrado da UI — prova que a proteção é do backend), RN-05 (visibilidade segue quem consulta, não quem criou — confirmado nos dois sentidos: `admin_empresa` criador vê a tarefa, um `colaborador` sem relação com ela vê lista vazia).
+- **2 achados registados**: (A, menor) Fluxo Alternativo 1a do UC-04 (preencher oportunidade/notas no mesmo momento da criação) não tem caminho de um único passo — o formulário de criação de Cliente só recolhe nome/tipo/contacto/owner, a oportunidade só é editável depois, num segundo passo; (B, **substantivo**) FR-18 (referência bidirecional Processo↔Cliente) está **parcialmente implementado** — Processo→Cliente mostra o nome como texto estático, nunca um link clicável; Cliente→Processo não mostra absolutamente nada sobre Processos associados, em nenhuma forma. Confirmado ao vivo (Processo criado associado a um Cliente; o Cliente, visitado a seguir, não mencionou o Processo). Recomenda-se registar como item a corrigir num passo dedicado, fora do âmbito deste M6 (validação, não implementação).
+- **Zero bugs encontrados** — zero erros de consola em toda a sessão; a única falha real (Achado B) é uma lacuna de funcionalidade confirmada, não um erro/crash.
+- **Milestone M6 em curso** — próximo: Passo 36 (validação manual UC-05 + UC-06).
 
 ---
 
@@ -523,11 +533,11 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 35 (M6 — Validação Manual UC-03 + UC-04)
+## 6. Próxima Ação Imediata — Passo 36 (M6 — Validação Manual UC-05 + UC-06)
 
-**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17), Passo 33 (Enforcement de `limiteUtilizadores`, RN-10) e Passo 34 (Validação manual UC-01 + UC-02) concluídos e aprovados (ver 3.32-3.34)**. Próximo: **Passo 35 — Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação), quarto passo do M6**.
+**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17), Passo 33 (Enforcement de `limiteUtilizadores`, RN-10), Passo 34 (Validação manual UC-01 + UC-02) e Passo 35 (Validação manual UC-03 + UC-04) concluídos e aprovados (ver 3.32-3.35)**. Próximo: **Passo 36 — Validação manual UC-05 (Consultar Assistente de IA) + UC-06 (Confirmar Sugestão de IA), quinto passo do M6**.
 
-- 4 achados registados no Passo 34 (nenhum bloqueante): campo "setor" nunca recolhido no registo (divergência literal menor face ao UC-01); envio real de email continua não observável (limitação já conhecida); Fluxo Alternativo 2a do UC-02 (`RegraPermissao` granular) sem interface (consistente com exclusão já decidida no M5); Exceção E2 (reenvio de convite) continua sem implementação (Questão em Aberto Q2 já registada).
+- **Achado substantivo do Passo 35, a reter para o relatório final (Passo 38)**: FR-18 (referência bidirecional Processo↔Cliente) parcialmente implementado — Processo→Cliente é texto estático, nunca um link; Cliente→Processo não mostra nada. Recomenda-se um passo dedicado fora do M6 para corrigir.
 - Cada Use Case validado precisa de um registo escrito (pré-condições, fluxo principal, alternativas/exceções relevantes, regras de negócio confirmadas no sistema real) — mesma disciplina fixada na Proposta do M6, nunca uma aprovação verbal sem registo.
 - **Bloqueador de pré-lançamento continua registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD.
 - Três Requisitos Funcionais (FR-08 telemetria, FR-09 i18n, FR-27 políticas de autonomia de IA) permanecem registados como Questões em Aberto explícitas (achado D da Proposta do M6) — fora do âmbito do M6, nunca absorvidos silenciosamente.
