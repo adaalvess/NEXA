@@ -516,7 +516,7 @@ Proposta completa do M7 apresentada e aprovada pela Fundadora/CEO em 2026-07-11 
 | Passo | Conteúdo | Estado |
 |---|---|---|
 | Passo 39 | Repositório remoto GitHub (preparação) + correção do rate limiting (ADR-007 §3.6) | 🔶 Parte B concluída — ver 3.39; Parte A (push) pendente de confirmação do destino |
-| Passo 40 | Base de dados Neon (staging) — schema, roles, RLS, triggers migrados | ⏳ Pendente |
+| Passo 40 | Base de dados Neon (staging) — schema, roles, RLS, triggers migrados | 🔶 Especificação Técnica aprovada (ver [doc](docs/04-implementation-blueprint/39-especificacao-tecnica-passo-40-neon-staging.md)) — execução aguarda confirmação da conta/projeto Neon |
 | Passo 41 | Backend em Render (staging) | ⏳ Pendente |
 | Passo 42 | Frontend em Vercel (staging) | ⏳ Pendente |
 | Passo 43 | Observabilidade — Sentry + monitorização de disponibilidade (uptime) | ⏳ Pendente |
@@ -588,11 +588,11 @@ Proposta completa do M7 apresentada e aprovada pela Fundadora/CEO em 2026-07-11 
 
 ---
 
-## 6. Próxima Ação Imediata — Concluir o Passo 39 (M7 — Confirmar Destino do GitHub)
+## 6. Próxima Ação Imediata — Aguardar Contas Externas (GitHub + Neon)
 
-**M1 a M6 formalmente concluídos. M7 (Deploy em Staging, ADR-007) aprovado e em curso (2026-07-11)** — Proposta aprovada, sequência de Passos 39-45 confirmada (ver secção 3, "M7"). **Passo 39 parcialmente concluído** (ver 3.39): a correção do rate limiting (ADR-007 §3.6, Parte B) está implementada, testada (9 testes novos, suite completa 219/219) e validada no browser. **A Parte A (repositório remoto GitHub) continua bloqueada** — falta só a confirmação da conta ou organização GitHub de destino antes de executar `git remote add`/`git push`; nada mais impede avançar para o Passo 40 assim que essa informação for fornecida e o push concluído.
+**M1 a M6 formalmente concluídos. M7 (Deploy em Staging, ADR-007) aprovado e em curso (2026-07-11)** — Proposta aprovada, sequência de Passos 39-45 confirmada (ver secção 3, "M7"). **Passo 39 aprovado, estado inalterado por pedido explícito da Fundadora/CEO** (ver 3.39): Parte B (rate limiting, ADR-007 §3.6) concluída, testada (9 testes novos, suite completa 219/219) e validada no browser; **Parte A (repositório remoto GitHub) continua bloqueada**, pendente só da confirmação da conta/organização de destino. **Especificação Técnica do Passo 40 (base de dados Neon em staging) aprovada** (ver [documento](docs/04-implementation-blueprint/39-especificacao-tecnica-passo-40-neon-staging.md)) — implementação autorizada a avançar assim que a conta/projeto Neon estiver disponível.
 
-- **Pendente de decisão explícita da Fundadora/CEO**: conta ou organização GitHub de destino do repositório `nexa` (privado, já decidido) — sem isto, o Passo 39 não pode ser formalmente encerrado nem o Passo 40 iniciado (a base de dados Neon do Passo 40 não depende do GitHub, mas o CI/CD do Passo 44 sim).
+- **Pendente de duas decisões externas independentes da Fundadora/CEO**, nenhuma bloqueia a outra: (1) conta/organização GitHub de destino do repositório `nexa` (privado, já decidido) — Passo 39, Parte A; (2) conta/projeto Neon (região UE, nome proposto `nexa-staging`) — Passo 40. O CI/CD do Passo 44 depende do GitHub; a base de dados do Passo 40 não depende do GitHub nem vice-versa — ambos podem avançar em qualquer ordem assim que a respetiva informação chegar.
 - **2 achados substantivos do M6, a reter, fora do âmbito do M7** (achado explícito da Proposta do M7, confirmado pela Fundadora/CEO — "salvo dependência técnica objetiva", nenhuma identificada): (1) FR-18 (referência bidirecional Processo↔Cliente) parcialmente implementado (Passo 35); (2) UC-07 Fluxo Principal 1 (notificação proativa de fim de trial) nunca implementado — o M7 viabiliza tecnicamente o mecanismo de agendamento que essa funcionalidade precisaria (ADR-007 §3.5), mas não a implementa.
 - **Bloqueador de pré-lançamento continua registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD — nunca resolvido pelo M7 (infraestrutura, não questão legal/produto).
 - Três Requisitos Funcionais (FR-08 telemetria, FR-09 i18n, FR-27 políticas de autonomia de IA) permanecem registados como Questões em Aberto explícitas — fora do âmbito do M6 e do M7, nunca absorvidos silenciosamente.
