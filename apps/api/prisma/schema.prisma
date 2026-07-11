@@ -139,6 +139,22 @@ model Sessao {
   @@index([utilizadorId])
 }
 
+/// Rate limiting de autenticação por IP+conta (ADR-007 §3.6; Especificação
+/// Técnica do Passo 39) — deliberadamente sem `empresaId`: no momento de uma
+/// tentativa de login, a Empresa do email ainda não é conhecida (nem deve
+/// ser inferível por esta tabela — mensagem de erro sempre genérica). Tabela
+/// de bootstrap global, no mesmo espírito estrutural de `Utilizador.email`
+/// (unicidade global) — nunca sujeita a RLS (Camada 2), só acedida por
+/// `nexa_fundacao` (já BYPASSRLS), antes de qualquer `TenantContext` existir.
+model TentativaLoginFalhada {
+  id       String   @id @default(cuid())
+  email    String
+  ip       String
+  criadoEm DateTime @default(now())
+
+  @@index([email, ip, criadoEm])
+}
+
 model Departamento {
   id        String  @id @default(cuid())
   empresaId String

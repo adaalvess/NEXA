@@ -15,19 +15,24 @@ import { SESSION_COOKIE_NAME } from './auth.constants';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Proteção conservadora contra brute force (3.2.4) — valores provisórios,
-  // a rever no ADR-007 (Q1 da Especificação Técnica do Passo 3).
+  // Proteção contra spam de registo (3.2.4) — modelo de ameaça diferente do
+  // login (nenhuma conta existe ainda para combinar com o IP), mantido
+  // inalterado pela correção do Passo 39 (Especificação Técnica do Passo 39,
+  // 3.5).
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('registar')
   async registar(@Body() dto: RegistarDto) {
     return this.authService.registar(dto);
   }
 
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  // Rate limiting por IP+conta, aplicado dentro de AuthService.login
+  // (ADR-007 §3.6; Especificação Técnica do Passo 39) — substitui o
+  // @Throttle genérico anterior, que não suportava a chave IP+conta, a
+  // contagem só de falhas, nem o bloqueio progressivo exigidos pelo ADR-007.
   @HttpCode(200)
   @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { utilizador, sessao } = await this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { utilizador, sessao } = await this.authService.login(dto, req.ip ?? '');
 
     res.cookie(SESSION_COOKIE_NAME, sessao.id, {
       httpOnly: true,

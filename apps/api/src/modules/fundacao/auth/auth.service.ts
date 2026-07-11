@@ -1,11 +1,16 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as argon2 from 'argon2';
 import type { Sessao, Utilizador } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegistarDto } from './dto/registar.dto';
 import { LoginDto } from './dto/login.dto';
-import { DECOY_PASSWORD_HASH, SESSION_DURATION_MS } from './auth.constants';
+import {
+  DECOY_PASSWORD_HASH,
+  LOGIN_ATTEMPT_CLEANUP_AGE_MS,
+  LOGIN_LOCKOUT_TIERS,
+  SESSION_DURATION_MS,
+} from './auth.constants';
 import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
 
 /**
@@ -90,7 +95,41 @@ export class AuthService {
     return { empresaId: empresa.id, utilizadorId: utilizador.id };
   }
 
-  async login(dto: LoginDto): Promise<{ utilizador: Utilizador; sessao: Sessao }> {
+  /**
+   * Verifica se a combinação IP+conta está atualmente bloqueada (Especificação
+   * Técnica do Passo 39, 3.3/3.4) — cada camada usa a sua própria duração
+   * como janela de contagem, por isso o bloqueio decai sozinho à medida que
+   * tentativas antigas saem da janela dessa camada, sem precisar de guardar
+   * um timestamp explícito de "fim do bloqueio".
+   */
+  private async estaBloqueado(email: string, ip: string): Promise<boolean> {
+    for (const tier of LOGIN_LOCKOUT_TIERS) {
+      const desde = new Date(Date.now() - tier.janelaMs);
+      const total = await this.prisma.tentativaLoginFalhada.count({
+        where: { email, ip, criadoEm: { gte: desde } },
+      });
+      if (total >= tier.minTentativas) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async login(dto: LoginDto, ip: string): Promise<{ utilizador: Utilizador; sessao: Sessao }> {
+    const email = dto.email.toLowerCase();
+
+    // Rate limiting por IP+conta (ADR-007 §3.6) — verificado antes de
+    // qualquer custo computacional de verificação de password. Se já estava
+    // bloqueado por tentativas anteriores, nunca executa `argon2.verify`
+    // aqui — nem por custo computacional, nem para não criar um oráculo de
+    // temporização que distinguisse uma password certa de uma errada
+    // enquanto já bloqueado — mas regista esta tentativa também, senão o
+    // bloqueio nunca escalaria para a camada seguinte ("progressivo").
+    if (await this.estaBloqueado(email, ip)) {
+      await this.prisma.tentativaLoginFalhada.create({ data: { email, ip } });
+      throw new HttpException('Demasiadas tentativas. Tenta novamente mais tarde.', 429);
+    }
+
     const utilizador = await this.prisma.utilizador.findFirst({
       where: { email: dto.email },
     });
@@ -103,9 +142,27 @@ export class AuthService {
     const passwordValida = await argon2.verify(hashParaVerificar, dto.password).catch(() => false);
 
     if (!utilizador || utilizador.eliminadoEm || !passwordValida) {
+      // Regista a falha e faz limpeza oportunista de tentativas antigas
+      // para esta combinação — evita depender do agendador do Render (só
+      // chega no Passo 43+). Se esta falha, por si só, já atinge o limiar
+      // da primeira camada, esta resposta já é o 429 (ADR-007: "5
+      // tentativas... bloqueia" — a própria 5ª conta como bloqueada, não só
+      // a 6ª em diante).
+      await this.prisma.tentativaLoginFalhada.create({ data: { email, ip } });
+      await this.prisma.tentativaLoginFalhada.deleteMany({
+        where: { email, ip, criadoEm: { lt: new Date(Date.now() - LOGIN_ATTEMPT_CLEANUP_AGE_MS) } },
+      });
+
+      if (await this.estaBloqueado(email, ip)) {
+        throw new HttpException('Demasiadas tentativas. Tenta novamente mais tarde.', 429);
+      }
+
       // Mensagem genérica — nunca revela se o email existe (3.2.5).
       throw new UnauthorizedException('Credenciais inválidas.');
     }
+
+    // Login bem-sucedido — reset do contador para esta combinação (3.3).
+    await this.prisma.tentativaLoginFalhada.deleteMany({ where: { email, ip } });
 
     const sessao = await this.prisma.sessao.create({
       data: {

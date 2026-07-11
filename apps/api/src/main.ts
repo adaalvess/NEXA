@@ -20,6 +20,12 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
+  // Confia no primeiro hop de proxy (Render fica sempre atrás de um load
+  // balancer, ADR-007 §3.2) — sem isto, `req.ip` veria sempre o IP interno
+  // do proxy, colapsando o rate limiting por IP+conta (Especificação Técnica
+  // do Passo 39, 3.3) para todos os clientes na mesma chave.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.use(cookieParser());
 
   // Fronteira única de validação (Data & Consistency Rules, 3.6) — DTOs com
