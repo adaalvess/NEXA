@@ -431,7 +431,7 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 |---|---|---|
 | Passo 32 | Consolidação NFR-17 — mapeamento explícito fluxo crítico → testes → lacunas identificadas | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.32 |
 | Passo 33 | Enforcement de `limiteUtilizadores` (RN-10), viabilizando validação integral de UC-02/UC-08 | ✅ **Concluído e aprovado** (2026-07-09) — ver 3.33 |
-| Passo 34 | Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador) | ⏳ Pendente |
+| Passo 34 | Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador) | ✅ **Concluído e aprovado** (2026-07-11) — ver 3.34 |
 | Passo 35 | Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação) | ⏳ Pendente |
 | Passo 36 | Validação manual UC-05 (Consultar Assistente de IA) + UC-06 (Confirmar Sugestão de IA) | ⏳ Pendente |
 | Passo 37 | Validação manual UC-07 (Converter Trial em Subscrição) + UC-08 (Atingir Limite do Plano) | ⏳ Pendente |
@@ -457,6 +457,17 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 - **Sem ecrã novo** — o formulário de Convite (Passo 31) já mostra a mensagem exata do backend através do toast de erro genérico.
 - **UC-02 (Exceção E1) e UC-08 agora integralmente viabilizados para validação manual** — sem lacuna de funcionalidade a impedir os Passos 34/37.
 - **Milestone M6 em curso** — próximo: Passo 34 (validação manual UC-01 + UC-02).
+
+### 3.34 Registo de Conclusão — Passo 34 (2026-07-11) — terceiro passo do M6
+
+- **Sem Especificação Técnica prévia** — passo de validação manual, âmbito já integralmente fixado pela Proposta do M6 (UC-01 + UC-02, registo escrito por Use Case); nenhuma decisão de arquitetura ou de produto em aberto.
+- **Método**: validação real no browser, nunca simulada — Empresa de demonstração criada através do próprio ecrã de registo público (`/registar`), não via API, para exercitar UC-01 literalmente; continuidade direta para UC-02 com a mesma Empresa (Fluxo Alternativo 3a). Estado confirmado por leitura direta da BD em cada passo relevante, nunca só pela resposta HTTP. Ver [Validação Manual UC-01 + UC-02](docs/04-implementation-blueprint/33-validacao-uc-01-uc-02.md) para o registo completo.
+- **UC-01 — todos os itens confirmados**: Fluxo Principal 1-5 (incluindo RN-01, exatamente 1 Administrador, e RN-02, trial automático sem dados de pagamento), Alternativo 3a (continuidade para UC-02), Alternativo 3b (Departamento criado antes de qualquer convite, ordem nunca imposta), Exceção E1 (`409`, mensagem exata a sugerir login).
+- **UC-02 — todos os itens confirmados**: Fluxo Principal 1-5 (papel/Departamento corretos na BD, login automático), Exceção E1 (limite de Utilizadores, `402`/`LIMITE_UTILIZADORES_ATINGIDO` confirmado ao vivo via API e via UI, mensagem com o valor do limite), RN-03 (Gestor bloqueado fora do seu Departamento, `403`, permitido dentro), RN-04 (`super_admin` rejeitado, `400`, fronteira única).
+- **4 achados registados, nenhum bloqueante**: (A) o ecrã de registo nunca recolhe "setor", apesar de UC-01 o mencionar no fluxo principal — divergência literal menor, nunca antes assinalada, campo é opcional e nada quebra; (B) envio real de email continua não observável neste ambiente (sem `RESEND_API_KEY` real) — mesma limitação honesta já registada desde o Passo 18/31, não um achado novo; (C) o Fluxo Alternativo 2a (`RegraPermissao` granular no convite) não tem interface — consistente com a decisão já tomada de excluir edição granular de `RegraPermissao` do M5, reconfirmado aqui como literalmente verdadeiro para UC-02; (D) Exceção E2 (reenvio de convite expirado) continua sem implementação — já registada como Questão em Aberto Q2 desde o Passo 30/31, reconfirmada.
+- **Zero bugs encontrados** — zero erros de consola em toda a sessão, todos os fluxos (incluindo os dois casos de exceção testados ao vivo) comportaram-se exatamente como documentado.
+- **Descoberta operacional real, sem impacto no código**: os servidores de preview (web/API) precisaram de ser reiniciados a meio da sessão (gap de tempo real entre mensagens fez os processos anteriores caducarem) — mesma classe de reinício operacional já vivida noutros passos, sem qualquer relação com o código entregue; dados de teste confirmados persistentes em `nexa_dev` durante o intervalo.
+- **Milestone M6 em curso** — próximo: Passo 35 (validação manual UC-03 + UC-04).
 
 ---
 
@@ -512,12 +523,12 @@ Proposta completa do M6 (achados prévios, objetivos, critérios de conclusão, 
 
 ---
 
-## 6. Próxima Ação Imediata — Passo 34 (M6 — Validação Manual UC-01 + UC-02)
+## 6. Próxima Ação Imediata — Passo 35 (M6 — Validação Manual UC-03 + UC-04)
 
-**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17) e Passo 33 (Enforcement de `limiteUtilizadores`, RN-10) concluídos e aprovados (ver 3.32-3.33)**. Próximo: **Passo 34 — Validação manual UC-01 (Criar Empresa) + UC-02 (Convidar Utilizador), terceiro passo do M6**.
+**M1, M2, M3, M4 e M5 formalmente concluídos.** **M6 (Testes dos 4 Fluxos Críticos + Validação Manual dos Use Cases) aprovado e em curso — Passo 32 (Consolidação NFR-17), Passo 33 (Enforcement de `limiteUtilizadores`, RN-10) e Passo 34 (Validação manual UC-01 + UC-02) concluídos e aprovados (ver 3.32-3.34)**. Próximo: **Passo 35 — Validação manual UC-03 (Tarefa associada a Cliente) + UC-04 (Registar Cliente e Interação), quarto passo do M6**.
 
-- UC-02 (Exceção E1, limite atingido) e UC-08 (RN-10) estão agora integralmente viabilizados para validação — sem lacuna de funcionalidade a impedir os Passos 34/37.
+- 4 achados registados no Passo 34 (nenhum bloqueante): campo "setor" nunca recolhido no registo (divergência literal menor face ao UC-01); envio real de email continua não observável (limitação já conhecida); Fluxo Alternativo 2a do UC-02 (`RegraPermissao` granular) sem interface (consistente com exclusão já decidida no M5); Exceção E2 (reenvio de convite) continua sem implementação (Questão em Aberto Q2 já registada).
 - Cada Use Case validado precisa de um registo escrito (pré-condições, fluxo principal, alternativas/exceções relevantes, regras de negócio confirmadas no sistema real) — mesma disciplina fixada na Proposta do M6, nunca uma aprovação verbal sem registo.
 - **Bloqueador de pré-lançamento continua registado e confirmado pela Fundadora/CEO** (Especificação Técnica do Passo 26, §5, Questão 1): o registo público (`/registar`) não pode ser disponibilizado a utilizadores reais em produção enquanto não existirem Termos de Serviço, Política de Privacidade e captura de consentimento RGPD.
 - Três Requisitos Funcionais (FR-08 telemetria, FR-09 i18n, FR-27 políticas de autonomia de IA) permanecem registados como Questões em Aberto explícitas (achado D da Proposta do M6) — fora do âmbito do M6, nunca absorvidos silenciosamente.
-- Mesma disciplina de sempre: Especificação Técnica formal → aprovação → implementação/validação → aprovação dos resultados → sincronização de documentação → commit.
+- Mesma disciplina de sempre: Especificação Técnica formal (quando aplicável) → implementação/validação → aprovação dos resultados → sincronização de documentação → commit.
