@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { HealthController } from './health.controller';
 import { FundacaoModule } from './modules/fundacao/fundacao.module';
 import { ProcessosModule } from './modules/processos/processos.module';
@@ -24,6 +25,7 @@ import { ComercialModule } from './modules/comercial/comercial.module';
  */
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     // Rate limiting de base (Especificação Técnica do Passo 3, 3.2.4) —
     // valores por rota via @Throttle, este é só o limite por defeito global.
@@ -36,6 +38,13 @@ import { ComercialModule } from './modules/comercial/comercial.module';
     ComercialModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    // Tem de ser o primeiro APP_FILTER (Sentry, requisito documentado) —
+    // filtro catch-all (`@Catch()` sem argumentos), só intercepta exceções
+    // que nenhum filtro mais específico (SubscricaoExceptionFilter,
+    // IaExceptionFilter) já tenha tratado, nunca duplica captura.
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
