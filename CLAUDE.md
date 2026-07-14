@@ -517,7 +517,7 @@ Proposta completa do M7 apresentada e aprovada pela Fundadora/CEO em 2026-07-11 
 |---|---|---|
 | Passo 39 | Repositório remoto GitHub (preparação) + correção do rate limiting (ADR-007 §3.6) | ✅ **Concluído e aprovado** (2026-07-11) — ver 3.39 |
 | Passo 40 | Base de dados Neon (staging) — schema, roles, RLS, triggers migrados | ✅ **Concluído e aprovado** (2026-07-12) — ver 3.40 |
-| Passo 41 | Backend em Render (staging) | ⏳ Pendente |
+| Passo 41 | Backend em Render (staging) | 🔶 Especificação Técnica aprovada (ver [doc](docs/04-implementation-blueprint/41-especificacao-tecnica-passo-41-render-backend.md)) — execução aguarda API key da Render |
 | Passo 42 | Frontend em Vercel (staging) | ⏳ Pendente |
 | Passo 43 | Observabilidade — Sentry + monitorização de disponibilidade (uptime) | ⏳ Pendente |
 | Passo 44 | CI/CD — GitHub Actions, suite de testes como portão antes de deploy | ⏳ Pendente |
@@ -601,9 +601,9 @@ Proposta completa do M7 apresentada e aprovada pela Fundadora/CEO em 2026-07-11 
 
 ---
 
-## 6. Próxima Ação Imediata — Especificação Técnica do Passo 41 (Backend em Render)
+## 6. Próxima Ação Imediata — Aguardar API Key da Render (Passo 41)
 
-**M1 a M6 formalmente concluídos. M7 (Deploy em Staging, ADR-007) aprovado e em curso (2026-07-11)** — Proposta aprovada, sequência de Passos 39-45 confirmada (ver secção 3, "M7"). **Passo 39 formalmente concluído** (ver 3.39): repositório remoto GitHub + rate limiting corrigido. **Passo 40 formalmente concluído** (ver 3.40): base de dados Neon em staging, região UE (`aws-eu-central-1`), schema/roles/RLS/trigger replicados e validados por teste de fumo real. Próximo: **Passo 41 — Backend em Render (staging)**.
+**M1 a M6 formalmente concluídos. M7 (Deploy em Staging, ADR-007) aprovado e em curso (2026-07-11)** — Proposta aprovada, sequência de Passos 39-45 confirmada (ver secção 3, "M7"). **Passo 39 e Passo 40 formalmente concluídos** (ver 3.39/3.40): repositório remoto GitHub + rate limiting corrigido; base de dados Neon em staging, região UE (`aws-eu-central-1`), schema/roles/RLS/trigger replicados e validados por teste de fumo real. **Especificação Técnica do Passo 41 (Backend em Render) aprovada** (ver [documento](docs/04-implementation-blueprint/41-especificacao-tecnica-passo-41-render-backend.md)), com as 3 Decisões a Validar confirmadas (A: API key da Render, nunca versionada; B: Passo 41 não bloqueado pela ausência de credenciais Anthropic/Resend/Stripe; C: `WEB_APP_URL` provisório até ao Passo 42) — **execução pendente só da API key da Render (ou criação manual do serviço na consola pela Fundadora/CEO)**, único bloqueio operacional restante.
 
 - **Exceção temporária ativa, a monitorizar**: retenção de PITR do plano Neon Free em staging é de 6h (abaixo do mínimo de 7 dias do ADR-007 §3.8) — aceite pela Fundadora/CEO exclusivamente para staging, registada como Questão em Aberto Q4 do ADR-007 (v1.2): **upgrade do plano obrigatório antes de qualquer lançamento em produção**, nunca a esquecer.
 - **2 achados substantivos do M6, a reter, fora do âmbito do M7** (achado explícito da Proposta do M7, confirmado pela Fundadora/CEO — "salvo dependência técnica objetiva", nenhuma identificada): (1) FR-18 (referência bidirecional Processo↔Cliente) parcialmente implementado (Passo 35); (2) UC-07 Fluxo Principal 1 (notificação proativa de fim de trial) nunca implementado — o M7 viabiliza tecnicamente o mecanismo de agendamento que essa funcionalidade precisaria (ADR-007 §3.5), mas não a implementa.
