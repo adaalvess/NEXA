@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: nexa-api-staging
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: FUNDACAO_DATABASE_URL
+        sync: false
+      - key: AUDITORIA_INTERNA_DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: ARGON2_MEMORY_COST
+        value: 19456
+      - key: ARGON2_TIME_COST
+        value: 2
+      - key: WEB_APP_URL
+        sync: false
