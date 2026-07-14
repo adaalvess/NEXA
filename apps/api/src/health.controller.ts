@@ -13,4 +13,11 @@ export class HealthController {
   check() {
     return { status: 'ok', service: 'nexa-api', timestamp: new Date().toISOString() };
   }
+
+  // TEMPORÁRIO — validação real de captura de erros da Sentry (Passo 43).
+  // Removido no commit seguinte, imediatamente após a confirmação.
+  @Get('erro-teste-sentry-passo-43')
+  erroTesteSentry() {
+    throw new Error('Erro deliberado — validação real do Passo 43 (Sentry, M7)');
+  }
 }
