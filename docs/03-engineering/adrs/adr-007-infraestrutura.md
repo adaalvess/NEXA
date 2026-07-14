@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | ADR-007 — Infraestrutura, Hosting e Observabilidade |
 | **Fase** | 3b — Architecture Decision Records (7 de 7 — último ADR planeado) |
-| **Versão** | 1.1 |
+| **Versão** | 1.2 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
 | **Documentos de referência** | ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-008 · Vision Document v1.1 (3.10) · Security & Access Principles v1.1 (3.8) · NFR-09, NFR-10, NFR-11, NFR-12, NFR-20, NFR-21 |
-| **Última atualização** | 2026-07-02 |
+| **Última atualização** | 2026-07-12 |
 
 ---
 
@@ -86,6 +86,8 @@ Consistente com Security & Access Principles (3.8): todos os segredos são gerid
 
 Backups automáticos diários com retenção mínima de 7 dias, e recuperação num ponto no tempo, incluídos nativamente na oferta gerida do Neon — sem configuração manual. **Testes periódicos de recuperação (restore)** são exigidos como prática obrigatória, não apenas os backups em si — um backup nunca testado é uma garantia não verificada; a cadência exata (ex: trimestral) fica a definir na Fase 5, mas o requisito de a exercitar periodicamente é fixado já aqui.
 
+**Exceção temporária, aprovada pela Fundadora/CEO (2026-07-12, Passo 40, M7):** o ambiente de **staging** usa o plano Neon Free, cuja retenção de recuperação num ponto no tempo (PITR) é de **6 horas**, abaixo do mínimo de 7 dias fixado acima. Esta exceção aplica-se **exclusivamente a staging** — nunca a produção. **Antes de qualquer lançamento em produção, o plano Neon tem de ser atualizado para garantir a retenção mínima de 7 dias já decidida nesta secção**, sem exceção. Ver Questão em Aberto Q4 (secção 5).
+
 ### 3.9 CI/CD
 
 Deployment automático a partir do repositório git principal (suportado nativamente por Vercel e Render). Uma verificação automática dos testes obrigatórios (NFR-17) corre antes de cada deployment via GitHub Actions, como último portão antes de produção.
@@ -124,6 +126,7 @@ Sempre que existir uma escolha entre gerir manualmente uma capacidade de infraes
 | Q1 | Estratégia exata de armazenamento de baixo custo para partições de auditoria arquivadas | Fase 5 | CTO |
 | Q2 | Momento exato de introdução de um serviço de agregação de logs dedicado | Revisão futura, orientada por evidência | CTO |
 | Q3 | Parâmetros exatos de calibração do rate limiting | Coding Standards / observação pós-lançamento | CTO |
+| Q4 | Upgrade do plano Neon (Free → pago) para elevar a retenção de PITR de 6h para o mínimo de 7 dias já exigido em 3.8 — **obrigatório antes de qualquer lançamento em produção**, aceite temporariamente só para staging (Passo 40, M7, 2026-07-12) | Bloqueante para produção, não para staging | Fundadora/CEO (decisão de custo) |
 
 ---
 
@@ -151,3 +154,4 @@ Sempre que existir uma escolha entre gerir manualmente uma capacidade de infraes
 | 1.0 | 2026-07-02 | Criação do ADR, decidindo Vercel + Render + Neon como infraestrutura gerida em região UE, resolvendo 3 questões herdadas do ADR-004 e ADR-005, e confirmando suporte à Camada Comercial (ADR-008). Fecha os 7 ADRs planeados da Fase 3b | CTO / Arquiteto Principal (Claude) + Fundadora/CEO |
 | 1.1 | 2026-07-02 | Cloudflare reformulado como camada de rede opcional (não decisão definitiva); adicionada monitorização de disponibilidade (uptime) como prática recomendada; adicionados testes periódicos de recuperação de backups; formalizado o Princípio Operacional de privilegiar serviços geridos e automação (3.11) | CTO (Claude) + Fundadora/CEO |
 | 1.1 | 2026-07-02 | **Aprovação oficial.** Documento passa a estado Aprovado. Fecha os 7 ADRs planeados da Fase 3b (mais o ADR-008 adicional) | Fundadora/CEO |
+| 1.2 | 2026-07-12 | **Exceção temporária registada em 3.8, aprovada pela Fundadora/CEO (Passo 40, M7)**: staging usa o plano Neon Free (retenção de PITR de 6h, abaixo do mínimo de 7 dias já decidido nesta secção) — exceção exclusiva de staging, nunca de produção; upgrade do plano obrigatório antes de qualquer lançamento em produção. Nova Questão em Aberto Q4 (secção 5), com responsável e critério de bloqueio explícitos, para que a exceção nunca seja esquecida | CTO (Claude) + Fundadora/CEO |
