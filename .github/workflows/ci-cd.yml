@@ -1,0 +1,161 @@
+name: CI/CD (staging)
+
+on:
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test-backend:
+    name: Backend — build + suite e2e (219 testes)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nexa_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependências (workspace root)
+        run: npm ci
+
+      # Réplica exata do padrão já validado localmente (nexa_test) e na Neon
+      # de staging (Passo 40) — base de dados efémera do próprio runner,
+      # nunca a Neon real (nem staging, nem produção).
+      - name: Aplicar as 18 migrações (schema, RLS, trigger de imutabilidade)
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nexa_ci
+        run: npx prisma migrate deploy
+
+      - name: Criar os 3 roles de runtime (mesmos privilégios do Passo 4/40)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d nexa_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE nexa_app LOGIN PASSWORD 'ci_nexa_app';
+          GRANT USAGE ON SCHEMA public TO nexa_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO nexa_app;
+
+          CREATE ROLE nexa_fundacao LOGIN PASSWORD 'ci_nexa_fundacao' BYPASSRLS;
+          GRANT USAGE ON SCHEMA public TO nexa_fundacao;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO nexa_fundacao;
+
+          CREATE ROLE nexa_auditoria_interna LOGIN PASSWORD 'ci_nexa_auditoria' BYPASSRLS;
+          GRANT USAGE ON SCHEMA public TO nexa_auditoria_interna;
+          GRANT SELECT ON "RegistoAuditoria" TO nexa_auditoria_interna;
+          SQL
+
+      - name: Build (nest build)
+        working-directory: apps/api
+        run: npm run build
+
+      # Segredos de teste gerados inline — a base de dados é efémera e
+      # descartada no fim da execução, não protegem nada real (Decisão C
+      # da Especificação Técnica do Passo 44).
+      - name: Escrever .env.test efémero
+        working-directory: apps/api
+        run: |
+          cat > .env.test <<EOF
+          DATABASE_URL=postgresql://nexa_app:ci_nexa_app@localhost:5432/nexa_ci
+          FUNDACAO_DATABASE_URL=postgresql://nexa_fundacao:ci_nexa_fundacao@localhost:5432/nexa_ci
+          AUDITORIA_INTERNA_DATABASE_URL=postgresql://nexa_auditoria_interna:ci_nexa_auditoria@localhost:5432/nexa_ci
+          SESSION_SECRET=$(openssl rand -hex 32)
+          ARGON2_MEMORY_COST=19456
+          ARGON2_TIME_COST=2
+          WEB_APP_URL=http://localhost:3000
+          EOF
+
+      - name: Suite e2e (219 testes — 4 fluxos críticos incluídos)
+        working-directory: apps/api
+        run: npm run test:e2e
+
+  build-frontend:
+    name: Frontend — build + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependências (workspace root)
+        run: npm ci
+
+      - name: Build (next build)
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Lint (next lint)
+        working-directory: apps/web
+        run: npm run lint
+
+  deploy:
+    name: Deploy (Render + Vercel) — só se os dois portões acima passarem
+    needs: [test-backend, build-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Disparar deploy no Render e aguardar confirmação real de "live"
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: srv-d9b0u358nd3s739uavd0
+        run: |
+          set -e
+          DEPLOY_ID=$(curl -s -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+            -d '{}' | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).id')
+          echo "Deploy Render disparado: $DEPLOY_ID"
+
+          for i in $(seq 1 40); do
+            STATUS=$(curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys/$DEPLOY_ID" \
+              | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).status')
+            echo "Estado do deploy Render: $STATUS"
+            if [ "$STATUS" = "live" ]; then
+              echo "Deploy Render confirmado live."
+              exit 0
+            fi
+            if [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "update_failed" ] || [ "$STATUS" = "canceled" ]; then
+              echo "Deploy Render falhou: $STATUS"
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "Timeout à espera do deploy Render ficar live."
+          exit 1
+
+      - name: Deploy no Vercel (produção de staging)
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_P5DI8ZBypnJHmzFN6wkIRYyf
+          VERCEL_PROJECT_ID: prj_kJeUxGw2fCEZ0bzFCZv1CW8EmDKD
+        run: npx vercel deploy --prod --token "$VERCEL_TOKEN" --yes
