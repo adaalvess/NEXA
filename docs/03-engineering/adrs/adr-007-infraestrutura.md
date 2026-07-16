@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | ADR-007 — Infraestrutura, Hosting e Observabilidade |
 | **Fase** | 3b — Architecture Decision Records (7 de 7 — último ADR planeado) |
-| **Versão** | 1.2 |
+| **Versão** | 1.3 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
 | **Documentos de referência** | ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-008 · Vision Document v1.1 (3.10) · Security & Access Principles v1.1 (3.8) · NFR-09, NFR-10, NFR-11, NFR-12, NFR-20, NFR-21 |
-| **Última atualização** | 2026-07-12 |
+| **Última atualização** | 2026-07-14 |
 
 ---
 
@@ -127,6 +127,7 @@ Sempre que existir uma escolha entre gerir manualmente uma capacidade de infraes
 | Q2 | Momento exato de introdução de um serviço de agregação de logs dedicado | Revisão futura, orientada por evidência | CTO |
 | Q3 | Parâmetros exatos de calibração do rate limiting | Coding Standards / observação pós-lançamento | CTO |
 | Q4 | Upgrade do plano Neon (Free → pago) para elevar a retenção de PITR de 6h para o mínimo de 7 dias já exigido em 3.8 — **obrigatório antes de qualquer lançamento em produção**, aceite temporariamente só para staging (Passo 40, M7, 2026-07-12) | Bloqueante para produção, não para staging | Fundadora/CEO (decisão de custo) |
+| Q5 | Criação dos 2 monitores UptimeRobot (backend `nexa-api-staging`, frontend `nexa-web-staging`, ambos já identificados no Passo 43, M7, 2026-07-14) — bloqueada por `access_denied` da API da UptimeRobot na conta da Fundadora/CEO (leitura funciona, escrita não; conta com `active_subscription: null`, criada horas antes, indício de verificação pendente do lado do fornecedor); Sentry (rastreio de erros) já concluído e validado, não afetado por esta questão | **Obrigatório antes de qualquer lançamento com empresas piloto/produção** (ADR-007 §3.4/D6), não bloqueante para o encerramento do M7 nem do Passo 43 | Fundadora/CEO (ação na conta UptimeRobot) |
 
 ---
 
@@ -155,3 +156,4 @@ Sempre que existir uma escolha entre gerir manualmente uma capacidade de infraes
 | 1.1 | 2026-07-02 | Cloudflare reformulado como camada de rede opcional (não decisão definitiva); adicionada monitorização de disponibilidade (uptime) como prática recomendada; adicionados testes periódicos de recuperação de backups; formalizado o Princípio Operacional de privilegiar serviços geridos e automação (3.11) | CTO (Claude) + Fundadora/CEO |
 | 1.1 | 2026-07-02 | **Aprovação oficial.** Documento passa a estado Aprovado. Fecha os 7 ADRs planeados da Fase 3b (mais o ADR-008 adicional) | Fundadora/CEO |
 | 1.2 | 2026-07-12 | **Exceção temporária registada em 3.8, aprovada pela Fundadora/CEO (Passo 40, M7)**: staging usa o plano Neon Free (retenção de PITR de 6h, abaixo do mínimo de 7 dias já decidido nesta secção) — exceção exclusiva de staging, nunca de produção; upgrade do plano obrigatório antes de qualquer lançamento em produção. Nova Questão em Aberto Q4 (secção 5), com responsável e critério de bloqueio explícitos, para que a exceção nunca seja esquecida | CTO (Claude) + Fundadora/CEO |
+| 1.3 | 2026-07-14 | **Passo 43 (M7, Observabilidade) concluído e formalmente aprovado pela Fundadora/CEO — Sentry (§3.4/D2) implementado e validado ao vivo** nos dois componentes de staging. Monitorização de disponibilidade (§3.4/D6, UptimeRobot) bloqueada por `access_denied` na conta da Fundadora/CEO (leitura funciona, escrita não — indício de verificação de conta pendente do lado do fornecedor); decisão explícita da Fundadora/CEO de encerrar o Passo 43 sem esta dependência externa, registando-a como nova Questão em Aberto Q5 (secção 5) — **obrigatória antes de qualquer lançamento com empresas piloto/produção**, nunca esquecida | CTO (Claude) + Fundadora/CEO |
