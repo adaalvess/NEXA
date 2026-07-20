@@ -5,7 +5,7 @@
 | **Documento** | Relatório de execução — Passo 46: Triagem e Correção de Vulnerabilidades de Dependências |
 | **Fase** | 7 — Desenvolvimento da Plataforma, M8 (Preparação para Lançamento), Passo 46 — primeiro passo do M8 |
 | **Versão** | 1.0 |
-| **Estado** | 🔶 Aguarda aprovação formal da Fundadora/CEO |
+| **Estado** | ✅ Concluído e aprovado |
 | **Owner** | CTO / Arquiteto Principal |
 | **Documentos de referência** | [Especificação Técnica do Passo 46](53-especificacao-tecnica-passo-46-dependencias.md); Proposta e Especificação Técnica do M8 |
 | **Última atualização** | 2026-07-20 |
@@ -97,11 +97,51 @@ O resíduo de 3 no frontend é a mesma classe já identificada na especificaçã
 
 - [x] Decisões A-D confirmadas pela Fundadora/CEO antes de qualquer alteração de código.
 - [x] Next.js atualizado (16.2.10), build/lint limpos, validação manual exaustiva sem regressão de comportamento (2 incompatibilidades reais encontradas, diagnosticadas e resolvidas dentro do âmbito aprovado).
-- [x] Deploy a confirmar via o pipeline real de staging (secção 7 — ainda pendente neste relatório, a fazer antes do encerramento formal do passo).
+- [x] Deploy real a staging confirmado via o pipeline de CI/CD, sem qualquer intervenção manual — ver secção 7.
 - [x] Lista completa das 32 vulnerabilidades originais classificada — 26 aceites com justificação (backend), 3 corrigidas + 3 residuais aceites com justificação (frontend).
 
 ---
 
-## 7. Próximo Passo Antes de Considerar Este Encerrado
+## 7. Deploy a Staging Via Pipeline Real — Concluído e Validado
 
-Falta ainda: deploy real a staging via o pipeline CI/CD (nunca manual, disciplina do M7/M8), com validação de que os 219 testes do backend continuam 100% verdes (inalterados, já que o backend não foi tocado) e que o frontend deployado em staging real reflete as mesmas correções já validadas localmente. Proponho avançar com isto assim que este relatório for revisto, antes de o Passo 46 ser formalmente encerrado.
+Commit `661056d` (todas as alterações deste passo) enviado ao `main`; deploy feito **exclusivamente pelo pipeline de CI/CD** (`.github/workflows/ci-cd.yml`, Passo 44), sem nenhuma intervenção manual — mesma disciplina do M7.
+
+### 7.1 Resultado do Pipeline (run `29775901816`)
+
+Os 3 jobs concluídos com sucesso:
+
+| Job | Resultado |
+|---|---|
+| `test-backend` | ✅ `success` — Postgres efémero, 18 migrações replicadas, 3 roles recriados, **219/219 testes e2e** inalterados (backend não foi tocado neste passo) |
+| `build-frontend` | ✅ `success` — `next build --webpack` + `eslint .` limpos, confirmando em CI o que já tinha sido validado localmente |
+| `deploy` | ✅ `success` — Render confirmado `live` por polling, seguido de deploy no Vercel |
+
+### 7.2 Validação Independente Contra o Staging Ao Vivo
+
+Confirmação feita separadamente do próprio relatório do pipeline, contra os serviços reais:
+
+- `GET /health` (Render) → `200`
+- `GET /` (Vercel) → `200`
+- `GET /precos` (Vercel) → `200`
+- `GET /login` (Vercel) → `200`
+- Deploy do Render confirmado, via API, no commit exato `661056d0` — a versão correta está de facto em produção de staging, não apenas o pipeline a reportar sucesso
+
+### 7.3 Teste de Fumo Real Contra o Staging Atualizado
+
+Executado diretamente contra o staging já com o Next.js 16 em produção (nunca simulado):
+
+1. Duas Empresas de demonstração registadas ("Passo46 Staging Next16 A" e "B") via `/registar` real.
+2. Login bem-sucedido como Empresa A.
+3. Processo real criado pela Empresa A.
+4. Isolamento multi-tenant confirmado: `GET /processos` da Empresa B devolveu `[]`; o mesmo endpoint na Empresa A mostrou o Processo criado.
+5. Ambas as Empresas de teste eliminadas no final (mesmo mecanismo de sempre — trigger de imutabilidade da auditoria desativado/reativado à volta da eliminação); confirmado por consulta direta que restam **0 Empresas de teste** na base de dados de staging.
+
+**Nenhuma regressão encontrada em staging — o upgrade do Next.js 14→16 está agora deployado e validado no ambiente real, não apenas localmente.**
+
+---
+
+## 8. Encerramento Formal
+
+Com o deploy via pipeline confirmado, a validação independente do staging ao vivo e o teste de fumo real sem qualquer regressão, o **Passo 46 está formalmente concluído** — primeiro passo do M8 encerrado. Documentação sincronizada (CLAUDE.md, ambas as cópias; Blueprint de Implementação do MVP; Master Roadmap) para refletir o M8 aprovado e o Passo 46 concluído, mantendo o mesmo padrão de disciplina documental usado em todos os passos anteriores.
+
+**Próximo: Passo 47 (Documentos Legais e Consentimento RGPD)** — conforme a sequência já aprovada do M8.
