@@ -46,7 +46,7 @@ describe('Auth — Rate Limiting de Login (ADR-007 §3.6)', () => {
     email = `rate-limit-${Date.now()}-${Math.random()}@teste.pt`;
     const res = await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'Rate Limit Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA } })
+      .send({ empresa: { nome: 'Rate Limit Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     empresaId = res.body.empresaId;
   });

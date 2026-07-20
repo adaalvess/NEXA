@@ -12,6 +12,7 @@ import {
   SESSION_DURATION_MS,
 } from './auth.constants';
 import { EVENTO_AUDITORIA, EventoAuditoria } from '../auditoria/eventos-auditoria';
+import { VERSAO_PRIVACIDADE, VERSAO_TERMOS } from './legal.constants';
 
 /**
  * Autenticação (Passo 3, M1) — ver Especificação Técnica do Passo 3
@@ -66,6 +67,18 @@ export class AuthService {
           email: dto.utilizador.email,
           passwordHash,
           papel: 'admin_empresa',
+        },
+      });
+
+      // RGPD (Especificação Técnica do Passo 47, Decisão A) — registo de
+      // consentimento na mesma transação de bootstrap; `RegistarDto.aceiteTermos`
+      // já garante estruturalmente que só chega aqui quando `true` literal.
+      await tx.consentimentoRegisto.create({
+        data: {
+          empresaId: empresa.id,
+          utilizadorId: utilizador.id,
+          versaoTermos: VERSAO_TERMOS,
+          versaoPrivacidade: VERSAO_PRIVACIDADE,
         },
       });
 

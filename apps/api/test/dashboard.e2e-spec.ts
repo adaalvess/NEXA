@@ -47,7 +47,7 @@ describe('Dashboard Inteligente', () => {
     const email = `dash-${sufixo}-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: `Dash ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA } })
+      .send({ empresa: { nome: `Dash ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const login = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
     return {

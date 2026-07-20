@@ -67,6 +67,7 @@ describe('Propagação do TenantContext via pedido HTTP real', () => {
       .send({
         empresa: { nome: `Diag ${sufixo}`, pais: 'PT' },
         utilizador: { nome: `Diag ${sufixo}`, email, password: 'senha1234' },
+        aceiteTermos: true,
       })
       .expect(201);
 

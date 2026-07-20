@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Input } from '../../components/ui/Input';
 import { Botao } from '../../components/ui/Botao';
+import { Checkbox } from '../../components/ui/Checkbox';
 import { useToast } from '../../hooks/use-toast';
 import { api, ApiError } from '../../lib/api';
 
@@ -17,10 +18,10 @@ import { api, ApiError } from '../../lib/api';
  * imediatamente `POST /auth/login` com as mesmas credenciais (Decisão D1,
  * Business Goals H1.4: percurso completo sem intervenção manual).
  *
- * Sem checkbox de consentimento RGPD (Decisão B, aprovada) — a ausência de
- * Termos de Serviço/Política de Privacidade é uma lacuna real, registada
- * como bloqueador explícito antes de qualquer registo real em produção
- * (Especificação Técnica do Passo 26, §5, Questão 1); nunca simulada aqui.
+ * Checkbox de consentimento RGPD (Especificação Técnica do Passo 47) —
+ * resolve o bloqueador registado desde o Passo 26. Desabilita a submissão
+ * até estar marcado, mas a proteção real é sempre do backend
+ * (`RegistarDto.aceiteTermos`, `@Equals(true)`) — nunca só desta UI.
  */
 export default function PaginaRegistar() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function PaginaRegistar() {
   const [nomeUtilizador, setNomeUtilizador] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [aceiteTermos, setAceiteTermos] = useState(false);
   const [aCarregar, setACarregar] = useState(false);
 
   async function submeter(e: FormEvent) {
@@ -39,7 +41,7 @@ export default function PaginaRegistar() {
     try {
       await api('/auth/registar', {
         method: 'POST',
-        body: { empresa: { nome: nomeEmpresa, pais }, utilizador: { nome: nomeUtilizador, email, password } },
+        body: { empresa: { nome: nomeEmpresa, pais }, utilizador: { nome: nomeUtilizador, email, password }, aceiteTermos },
       });
 
       try {
@@ -79,7 +81,21 @@ export default function PaginaRegistar() {
           <Input placeholder="O Teu Nome" value={nomeUtilizador} onChange={(e) => setNomeUtilizador(e.target.value)} required minLength={2} maxLength={100} />
           <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <Input type="password" placeholder="Palavra-passe" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
-          <Botao type="submit" className="w-full" carregando={aCarregar}>
+          <label className="flex items-start gap-2 text-small text-nexa-gray">
+            <Checkbox checked={aceiteTermos} onChange={(e) => setAceiteTermos(e.target.checked)} className="mt-0.5" />
+            <span>
+              Li e aceito os{' '}
+              <Link href="/termos" target="_blank" className="text-nexa-purple hover:underline">
+                Termos de Serviço
+              </Link>{' '}
+              e a{' '}
+              <Link href="/privacidade" target="_blank" className="text-nexa-purple hover:underline">
+                Política de Privacidade
+              </Link>
+              .
+            </span>
+          </label>
+          <Botao type="submit" className="w-full" carregando={aCarregar} disabled={!aceiteTermos}>
             Criar Conta
           </Botao>
         </form>

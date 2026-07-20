@@ -47,7 +47,7 @@ describe('Comercial — Webhooks Stripe (Passo 22)', () => {
     const email = `webhook-${sufixo}-${Date.now()}-${Math.random()}@teste.pt`;
     const res = await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: `Webhook ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA } })
+      .send({ empresa: { nome: `Webhook ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     return { empresaId: res.body.empresaId as string };
   }

@@ -79,7 +79,7 @@ describe('Comercial — Stripe Checkout (Passo 21)', () => {
     const email = `checkout-${sufixo}-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: `Checkout ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA } })
+      .send({ empresa: { nome: `Checkout ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const login = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
     return { cookie: login.headers['set-cookie'][0] as string, empresaId: login.body.empresaId as string };

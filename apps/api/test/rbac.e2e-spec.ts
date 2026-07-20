@@ -53,7 +53,7 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
     const email = `rbac-admin-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'RBAC Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA } })
+      .send({ empresa: { nome: 'RBAC Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA }, aceiteTermos: true })
       .expect(201);
 
     const loginAdmin = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
@@ -164,7 +164,7 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
     const email = `rbac-solo-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'RBAC Solo', pais: 'PT' }, utilizador: { nome: 'Solo Admin', email, password: SENHA } })
+      .send({ empresa: { nome: 'RBAC Solo', pais: 'PT' }, utilizador: { nome: 'Solo Admin', email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const login = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
     const soloEmpresaId: string = login.body.empresaId;
@@ -202,7 +202,7 @@ describe('RBAC granular — PATCH /utilizadores/:id/papel', () => {
     const emailB = `rbac-outra-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'RBAC Outra Empresa', pais: 'PT' }, utilizador: { nome: 'Admin B', email: emailB, password: SENHA } })
+      .send({ empresa: { nome: 'RBAC Outra Empresa', pais: 'PT' }, utilizador: { nome: 'Admin B', email: emailB, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const loginB = await request(app.getHttpServer()).post('/auth/login').send({ email: emailB, password: SENHA }).expect(200);
     const empresaBId: string = loginB.body.empresaId;
@@ -324,7 +324,7 @@ describe('RBAC granular — GET /utilizadores', () => {
     const email = `list-utilizadores-admin-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'Listagem Utilizadores Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA } })
+      .send({ empresa: { nome: 'Listagem Utilizadores Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA }, aceiteTermos: true })
       .expect(201);
 
     const loginAdmin = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
@@ -395,7 +395,7 @@ describe('RBAC granular — GET /utilizadores', () => {
     const emailB = `list-outra-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'Listagem Outra Empresa', pais: 'PT' }, utilizador: { nome: 'Admin B', email: emailB, password: SENHA } })
+      .send({ empresa: { nome: 'Listagem Outra Empresa', pais: 'PT' }, utilizador: { nome: 'Admin B', email: emailB, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const loginB = await request(app.getHttpServer()).post('/auth/login').send({ email: emailB, password: SENHA }).expect(200);
     const empresaBId: string = loginB.body.empresaId;

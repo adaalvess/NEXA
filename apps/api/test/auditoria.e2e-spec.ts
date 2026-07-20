@@ -42,7 +42,7 @@ describe('Registo de Auditoria', () => {
     const email = `aud-${sufixo}-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: `Aud ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Aud ${sufixo}`, email, password: SENHA } })
+      .send({ empresa: { nome: `Aud ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Aud ${sufixo}`, email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const login = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
     return {

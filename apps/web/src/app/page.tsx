@@ -94,6 +94,15 @@ export default async function Home() {
           Começar
         </Link>
       </section>
+
+      <footer className="flex justify-center gap-4 border-t border-nexa-slate/40 pt-8 text-small text-nexa-gray">
+        <Link href="/termos" className="hover:underline">
+          Termos de Serviço
+        </Link>
+        <Link href="/privacidade" className="hover:underline">
+          Política de Privacidade
+        </Link>
+      </footer>
     </div>
   );
 }

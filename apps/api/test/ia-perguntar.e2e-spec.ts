@@ -64,7 +64,7 @@ describe('POST /ia/perguntar (Passo 16)', () => {
     const email = `ia-pergunta-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: 'IA Perguntar Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA } })
+      .send({ empresa: { nome: 'IA Perguntar Teste', pais: 'PT' }, utilizador: { nome: 'Admin', email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const login = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
     cookieAdmin = login.headers['set-cookie'][0];

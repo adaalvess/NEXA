@@ -1,14 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Elimina Empresas de teste que já têm entradas de RegistoAuditoria
- * associadas (Passo 6 em diante — qualquer teste que registe/faça login
- * gera auditoria real). O trigger de imutabilidade (Especificação Técnica
- * do Passo 6, 3.4) bloqueia sempre UPDATE/DELETE em RegistoAuditoria,
- * incluindo via cascade a partir de Empresa — por isso a limpeza de dados
- * de teste tem de desativar o trigger, apagar, e reativá-lo. `adminClient`
- * liga como `nexa_dev` (owner), com privilégio para o fazer; a aplicação
- * em runtime nunca faz isto.
+ * Elimina Empresas de teste que já têm entradas de RegistoAuditoria e/ou
+ * ConsentimentoRegisto associadas (Passo 6 em diante — qualquer teste que
+ * registe/faça login gera auditoria real; a partir do Passo 47, qualquer
+ * teste que registe via `/auth/registar` gera também um registo de
+ * consentimento). Os triggers de imutabilidade (Especificação Técnica do
+ * Passo 6, 3.4; Especificação Técnica do Passo 47, Decisão B) bloqueiam
+ * sempre UPDATE/DELETE nestas tabelas, incluindo via cascade a partir de
+ * Empresa — por isso a limpeza de dados de teste tem de desativar ambos os
+ * triggers, apagar, e reativá-los. `adminClient` liga como `nexa_dev`
+ * (owner), com privilégio para o fazer; a aplicação em runtime nunca faz
+ * isto.
  *
  * `ALTER TABLE ... DISABLE/ENABLE TRIGGER` é uma alteração de catálogo
  * **global**, não scoped à sessão (a alternativa `SET LOCAL
@@ -36,9 +39,11 @@ export async function limparEmpresasDeTeste(adminClient: PrismaClient, empresaId
   await new Promise((resolve) => setTimeout(resolve, 150));
 
   await adminClient.$executeRawUnsafe('ALTER TABLE "RegistoAuditoria" DISABLE TRIGGER trg_registo_auditoria_imutavel');
+  await adminClient.$executeRawUnsafe('ALTER TABLE "ConsentimentoRegisto" DISABLE TRIGGER trg_consentimento_registo_imutavel');
   try {
     await adminClient.empresa.deleteMany({ where: { id: { in: empresaIds } } });
   } finally {
     await adminClient.$executeRawUnsafe('ALTER TABLE "RegistoAuditoria" ENABLE TRIGGER trg_registo_auditoria_imutavel');
+    await adminClient.$executeRawUnsafe('ALTER TABLE "ConsentimentoRegisto" ENABLE TRIGGER trg_consentimento_registo_imutavel');
   }
 }

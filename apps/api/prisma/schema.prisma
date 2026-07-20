@@ -65,6 +65,7 @@ model Empresa {
   subscricaoPlano   SubscricaoPlano?
   webhooksStripeProcessados WebhookStripeProcessado[]
   convites          ConviteUtilizador[]
+  consentimentos    ConsentimentoRegisto[]
 }
 
 /// Papel RBAC predefinido (Vision Document, RBAC; Passo 5) — enum, não String
@@ -110,6 +111,7 @@ model Utilizador {
   partilhasRecebidas   Partilha[]           @relation("PartilhaConvidado")
   partilhasConcedidas  Partilha[]           @relation("PartilhaConcedidaPor")
   convitesEnviados     ConviteUtilizador[]  @relation("ConviteConvidadoPor")
+  consentimentos       ConsentimentoRegisto[]
 
   // Unicidade de email com escopo de tenant — o mesmo email pode existir em
   // Empresas diferentes (Data & Consistency Rules, 3.2), nunca duplicado dentro
@@ -509,6 +511,27 @@ model ConviteUtilizador {
   convidadoPor             Utilizador     @relation("ConviteConvidadoPor", fields: [convidadoPorId, empresaId], references: [id, empresaId])
   expiraEm                 DateTime
   criadoEm                 DateTime       @default(now())
+
+  @@index([empresaId])
+}
+
+/// Registo de consentimento RGPD capturado no registo público (UC-01;
+/// Especificação Técnica do Passo 47) — prova legal permanente de que um
+/// Utilizador aceitou uma versão específica dos Termos de Serviço e da
+/// Política de Privacidade num dado momento. **Append-only, igual ao
+/// RegistoAuditoria** (trigger de imutabilidade a nível de BD, migração
+/// dedicada) — nunca UPDATE nem DELETE, mesmo pelo role owner. Se uma
+/// política mudar de versão, o fluxo cria um NOVO registo; nunca altera
+/// um já existente, preservando sempre o histórico completo de consentimento.
+model ConsentimentoRegisto {
+  id               String     @id @default(cuid())
+  empresaId        String
+  empresa          Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  utilizadorId     String
+  utilizador       Utilizador @relation(fields: [utilizadorId, empresaId], references: [id, empresaId])
+  versaoTermos     String
+  versaoPrivacidade String
+  aceiteEm         DateTime   @default(now())
 
   @@index([empresaId])
 }

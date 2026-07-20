@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsOptional, IsString, Length, MinLength, ValidateNested } from 'class-validator';
+import { Equals, IsEmail, IsOptional, IsString, Length, MinLength, ValidateNested } from 'class-validator';
 
 /**
  * Validação de campos (fronteira única, Data & Consistency Rules 3.6):
@@ -40,4 +40,12 @@ export class RegistarDto {
   @ValidateNested()
   @Type(() => UtilizadorRegistoDto)
   utilizador!: UtilizadorRegistoDto;
+
+  // RGPD (Especificação Técnica do Passo 47, Decisão D) — enforcement
+  // estrutural, nunca só visual: o backend rejeita (400) qualquer registo
+  // sem consentimento explícito, mesmo contornando a UI diretamente via API.
+  // `@Equals(true)` (não `@IsBoolean()`) porque `false`/ausente têm de falhar
+  // a validação da mesma forma — só `true` literal é aceite.
+  @Equals(true, { message: 'É necessário aceitar os Termos de Serviço e a Política de Privacidade.' })
+  aceiteTermos!: true;
 }

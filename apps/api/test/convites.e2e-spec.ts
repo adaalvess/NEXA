@@ -63,7 +63,7 @@ describe('Convites (Passo 30)', () => {
     const email = `convite-${sufixo}-${Date.now()}-${Math.random()}@teste.pt`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: `Convite ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA } })
+      .send({ empresa: { nome: `Convite ${sufixo}`, pais: 'PT' }, utilizador: { nome: `Admin ${sufixo}`, email, password: SENHA }, aceiteTermos: true })
       .expect(201);
     const login = await request(app.getHttpServer()).post('/auth/login').send({ email, password: SENHA }).expect(200);
     return { cookie: login.headers['set-cookie'][0] as string, empresaId: login.body.empresaId as string, email };
@@ -351,7 +351,7 @@ describe('Convites (Passo 30)', () => {
     const nomeOutraEmpresa = `Outra t17 ${Date.now()}`;
     await request(app.getHttpServer())
       .post('/auth/registar')
-      .send({ empresa: { nome: nomeOutraEmpresa, pais: 'PT' }, utilizador: { nome: 'Outro', email: emailCorrida, password: SENHA } })
+      .send({ empresa: { nome: nomeOutraEmpresa, pais: 'PT' }, utilizador: { nome: 'Outro', email: emailCorrida, password: SENHA }, aceiteTermos: true })
       .expect(201);
 
     await request(app.getHttpServer()).post(`/convites/${token}/aceitar`).send({ nome: 'Pessoa Convidada', password: 'novaSenha1234' }).expect(409);
