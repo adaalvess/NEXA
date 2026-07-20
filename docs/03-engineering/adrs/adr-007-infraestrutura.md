@@ -4,11 +4,11 @@
 |---|---|
 | **Documento** | ADR-007 — Infraestrutura, Hosting e Observabilidade |
 | **Fase** | 3b — Architecture Decision Records (7 de 7 — último ADR planeado) |
-| **Versão** | 1.3 |
+| **Versão** | 1.4 |
 | **Estado** | ✅ Aprovado |
 | **Owner** | CTO / Arquiteto Principal / Fundadora / CEO |
 | **Documentos de referência** | ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-008 · Vision Document v1.1 (3.10) · Security & Access Principles v1.1 (3.8) · NFR-09, NFR-10, NFR-11, NFR-12, NFR-20, NFR-21 |
-| **Última atualização** | 2026-07-14 |
+| **Última atualização** | 2026-07-20 |
 
 ---
 
@@ -92,6 +92,8 @@ Backups automáticos diários com retenção mínima de 7 dias, e recuperação 
 
 Deployment automático a partir do repositório git principal (suportado nativamente por Vercel e Render). Uma verificação automática dos testes obrigatórios (NFR-17) corre antes de cada deployment via GitHub Actions, como último portão antes de produção.
 
+**Lacuna real identificada (Passo 47, M8, 2026-07-20)**: o pipeline aplica migrações de schema (`prisma migrate deploy`) só contra a base de dados **efémera do próprio runner de CI** (usada para correr a suite de testes) — nunca contra a base de dados real de staging (Neon). O `buildCommand` do Render (`render.yaml`) nunca incluiu este passo. Até este passo, isto nunca se tinha manifestado como incidente porque cada passo anterior que introduziu uma migração de schema lembrou-se de a aplicar manualmente à Neon de staging antes ou durante a validação (Passo 40 em diante) — mas não é um processo automatizado nem à prova de esquecimento, como este próprio passo demonstrou (a migração do Passo 47 só foi aplicada à Neon de staging depois de um `500` real em produção de staging, diagnosticado e corrigido na hora). Adicionalmente, ao contrário do ambiente local (onde os 3 roles de runtime têm privilégios concedidos automaticamente em tabelas novas), a Neon de staging **não tem `ALTER DEFAULT PRIVILEGES` configurado** para o role `nexa_owner` — cada tabela nova exige `GRANT` explícito aos roles `nexa_app`/`nexa_fundacao` depois de cada migração, também nunca automatizado. Registado como Questão em Aberto Q6 (secção 5) — decisão de como automatizar isto (passo dedicado no pipeline, com `DATABASE_ADMIN_URL` como novo secret) fica para validação explícita, não assumida aqui, dado o risco de introduzir migrações automáticas contra uma base de dados real sem um portão manual.
+
 ### 3.10 Suporte à Camada Comercial (ADR-008)
 
 Consistente com a expansão de âmbito aprovada (PRD v1.1, Camada Comercial e Produto): esta infraestrutura já suporta diretamente o fluxo de Stripe Checkout (ADR-008) — os webhooks de pagamento chegam ao backend alojado no Render, verificados e processados de forma idempotente (ADR-008, 3.4), sem exigir nenhuma peça de infraestrutura adicional além das já decididas aqui.
@@ -128,6 +130,7 @@ Sempre que existir uma escolha entre gerir manualmente uma capacidade de infraes
 | Q3 | Parâmetros exatos de calibração do rate limiting | Coding Standards / observação pós-lançamento | CTO |
 | Q4 | Upgrade do plano Neon (Free → pago) para elevar a retenção de PITR de 6h para o mínimo de 7 dias já exigido em 3.8 — **obrigatório antes de qualquer lançamento em produção**, aceite temporariamente só para staging (Passo 40, M7, 2026-07-12) | Bloqueante para produção, não para staging | Fundadora/CEO (decisão de custo) |
 | Q5 | Criação dos 2 monitores UptimeRobot (backend `nexa-api-staging`, frontend `nexa-web-staging`, ambos já identificados no Passo 43, M7, 2026-07-14) — bloqueada por `access_denied` da API da UptimeRobot na conta da Fundadora/CEO (leitura funciona, escrita não; conta com `active_subscription: null`, criada horas antes, indício de verificação pendente do lado do fornecedor); Sentry (rastreio de erros) já concluído e validado, não afetado por esta questão | **Obrigatório antes de qualquer lançamento com empresas piloto/produção** (ADR-007 §3.4/D6), não bloqueante para o encerramento do M7 nem do Passo 43 | Fundadora/CEO (ação na conta UptimeRobot) |
+| Q6 | Migrações de schema (`prisma migrate deploy`) e `GRANT`s de tabelas novas nunca automatizados contra a Neon de staging (só contra a BD efémera de CI) — aplicados manualmente a cada passo desde o Passo 40; incidente real no Passo 47 (M8, 2026-07-20) quando isto foi esquecido, causando um `500` real em staging até ser diagnosticado e corrigido na hora (ver §3.9) | A decidir antes do Passo 49 (ambiente de produção) — automatizar no pipeline exige um novo secret (`DATABASE_ADMIN_URL`) e uma decisão explícita sobre o nível de portão manual para migrações contra bases de dados reais, nunca assumida | CTO (Claude), decisão de arquitetura a validar com a Fundadora/CEO |
 
 ---
 
@@ -157,3 +160,4 @@ Sempre que existir uma escolha entre gerir manualmente uma capacidade de infraes
 | 1.1 | 2026-07-02 | **Aprovação oficial.** Documento passa a estado Aprovado. Fecha os 7 ADRs planeados da Fase 3b (mais o ADR-008 adicional) | Fundadora/CEO |
 | 1.2 | 2026-07-12 | **Exceção temporária registada em 3.8, aprovada pela Fundadora/CEO (Passo 40, M7)**: staging usa o plano Neon Free (retenção de PITR de 6h, abaixo do mínimo de 7 dias já decidido nesta secção) — exceção exclusiva de staging, nunca de produção; upgrade do plano obrigatório antes de qualquer lançamento em produção. Nova Questão em Aberto Q4 (secção 5), com responsável e critério de bloqueio explícitos, para que a exceção nunca seja esquecida | CTO (Claude) + Fundadora/CEO |
 | 1.3 | 2026-07-14 | **Passo 43 (M7, Observabilidade) concluído e formalmente aprovado pela Fundadora/CEO — Sentry (§3.4/D2) implementado e validado ao vivo** nos dois componentes de staging. Monitorização de disponibilidade (§3.4/D6, UptimeRobot) bloqueada por `access_denied` na conta da Fundadora/CEO (leitura funciona, escrita não — indício de verificação de conta pendente do lado do fornecedor); decisão explícita da Fundadora/CEO de encerrar o Passo 43 sem esta dependência externa, registando-a como nova Questão em Aberto Q5 (secção 5) — **obrigatória antes de qualquer lançamento com empresas piloto/produção**, nunca esquecida | CTO (Claude) + Fundadora/CEO |
+| 1.4 | 2026-07-20 | **Lacuna real identificada e corrigida durante o Passo 47 (M8): migrações de schema e `GRANT`s de tabelas novas nunca automatizados contra a Neon de staging** — o pipeline de CI/CD (§3.9) só aplica migrações contra a base de dados efémera do próprio runner, nunca contra a Neon real; incidente real (`500` em staging) causado por esta lacuna, diagnosticado e corrigido na hora (migração + `GRANT`s aplicados manualmente, mesma disciplina do Passo 40). Nova Questão em Aberto Q6 (secção 5) — decisão sobre automatizar isto no pipeline fica para validação explícita antes do Passo 49 (ambiente de produção), nunca assumida | CTO (Claude) + Fundadora/CEO |

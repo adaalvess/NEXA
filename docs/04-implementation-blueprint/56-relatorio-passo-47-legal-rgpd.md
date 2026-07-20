@@ -4,8 +4,8 @@
 |---|---|
 | **Documento** | Relatório de execução — Passo 47: Documentos Legais e Consentimento RGPD |
 | **Fase** | 7 — Desenvolvimento da Plataforma, M8 (Preparação para Lançamento), Passo 47 — segundo passo do M8 |
-| **Versão** | 1.0 |
-| **Estado** | 🔶 Aguarda aprovação formal da Fundadora/CEO |
+| **Versão** | 2.0 |
+| **Estado** | ✅ Concluído e aprovado |
 | **Owner** | CTO / Arquiteto Principal |
 | **Documentos de referência** | [Especificação Técnica do Passo 47](55-especificacao-tecnica-passo-47-legal-rgpd.md); Especificação Técnica do Passo 26 (bloqueador original) |
 | **Última atualização** | 2026-07-20 |
@@ -14,7 +14,7 @@
 
 ## 1. Resumo Executivo
 
-O bloqueador de pré-lançamento registado desde o Passo 26 está **tecnicamente resolvido**: o registo público exige agora consentimento explícito, estruturalmente aplicado pelo backend (nunca só visual), e as páginas `/termos`/`/privacidade` estão publicadas com conteúdo factual sobre o que o sistema realmente faz. **A conclusão para uso em produção com clientes reais permanece pendente da tua confirmação sobre a revisão jurídica do conteúdo** — os campos `[A PREENCHER]` (nome legal da entidade, NIF, jurisdição, contacto de privacidade, DPO) ainda não foram preenchidos, conforme instruído.
+O bloqueador de pré-lançamento registado desde o Passo 26 está **tecnicamente resolvido e implantado em staging**: o registo público exige agora consentimento explícito, estruturalmente aplicado pelo backend (nunca só visual), e as páginas `/termos`/`/privacidade` estão publicadas com conteúdo factual sobre o que o sistema realmente faz. O deploy via pipeline CI/CD real revelou e permitiu corrigir um incidente genuíno de infraestrutura (migrações/`GRANT`s nunca automatizados contra a Neon de staging, secção 10) — diagnosticado, corrigido e registado permanentemente como Q6 do ADR-007, nunca escondido. **A conclusão para uso em produção com clientes reais permanece pendente da tua confirmação sobre a revisão jurídica do conteúdo** — os campos `[A PREENCHER]` (nome legal da entidade, NIF, jurisdição, contacto de privacidade, DPO) ainda não foram preenchidos, conforme instruído.
 
 ---
 
@@ -86,11 +86,55 @@ Como `RegistarDto.aceiteTermos` passou a ser obrigatório, **todos os 20 ficheir
 - [x] Marcadores `[A PREENCHER]` usados para todos os dados legais que não posso inventar — nenhuma informação fictícia criada.
 - [x] Decisões A-E confirmadas antes de qualquer alteração de código.
 - [x] Páginas `/termos`/`/privacidade` publicadas; checkbox obrigatório e funcional; consentimento registado na BD (nunca só visual); testes e2e novos verdes; suite completa sem regressão (223/223).
-- [ ] Deploy a staging via o pipeline real — **ainda pendente**, a fazer depois da tua revisão deste relatório (mesma disciplina do Passo 46).
+- [x] Deploy a staging via o pipeline real confirmado, sem intervenção manual no código — ver secção 10.
 - [x] Registado explicitamente: a conclusão deste passo é técnica, não legal — só fica aprovado para produção depois da tua confirmação sobre a validação jurídica do conteúdo.
 
 ---
 
-## 10. Próximo Passo
+## 10. Deploy a Staging Via Pipeline Real — Concluído, com um Incidente Real Encontrado e Corrigido
 
-Aguardo a tua revisão. Se aprovares o conteúdo técnico (com os marcadores `[A PREENCHER]` a preencher depois, à parte), avanço para o deploy a staging exclusivamente via pipeline CI/CD — mesma disciplina do Passo 46 — antes de considerar o Passo 47 formalmente encerrado.
+Commit `238e69f` enviado ao `main`; pipeline (`.github/workflows/ci-cd.yml`) disparado automaticamente.
+
+### 10.1 Resultado do Pipeline (run `29781575995`)
+
+| Job | Resultado |
+|---|---|
+| `test-backend` | ✅ `success` (169s) — **223/223 testes**, incluindo os 4 novos deste passo |
+| `build-frontend` | ✅ `success` (93s) |
+| `deploy` | ✅ `success` (149s) — Render confirmado `live`, seguido de deploy no Vercel |
+
+### 10.2 Incidente Real Encontrado Durante a Validação de Staging — Diagnosticado e Corrigido na Hora
+
+A primeira tentativa de registo real contra o staging já atualizado devolveu **`500 Internal server error`**. Parei, diagnostiquei antes de continuar (nunca ignorei nem contornei):
+
+**Causa raiz**: o `buildCommand` do Render (`render.yaml`) nunca incluiu `prisma migrate deploy` contra a Neon de staging — só a base de dados efémera do runner de CI recebe as migrações automaticamente. Todas as migrações de schema desde o Passo 40 foram aplicadas manualmente à Neon de staging em cada passo; desta vez, esse passo manual foi esquecido no meio do fluxo de implementação. Sem a tabela `ConsentimentoRegisto`, `AuthService.registar()` falhava dentro da transação.
+
+**Segunda causa, encontrada ao corrigir a primeira**: mesmo depois de aplicar a migração manualmente (`prisma migrate deploy` com `DATABASE_ADMIN_URL`), o registo continuou a falhar com `500`. Diagnóstico mais profundo revelou que, ao contrário do ambiente local, a Neon de staging **não tem `ALTER DEFAULT PRIVILEGES` configurado** para o role usado nas migrações (`nexa_owner`) — cada tabela nova nunca recebe privilégios automáticos para os roles de runtime (`nexa_app`/`nexa_fundacao`), exigindo sempre `GRANT` explícito após cada migração (confirmado por comparação direta com uma tabela mais antiga, `ConviteUtilizador`, que já tinha esses grants concedidos manualmente no seu próprio passo de origem).
+
+**Corrigido**: migração aplicada + `GRANT SELECT, INSERT, UPDATE, DELETE` concedido a `nexa_app`/`nexa_fundacao` na Neon de staging, ambos via `DATABASE_ADMIN_URL` (mesmo role/mecanismo já usado desde o Passo 40, nenhuma credencial nova). Registo confirmado a funcionar de imediato a seguir.
+
+**Registado permanentemente, nunca escondido**: nova Questão em Aberto **Q6 do ADR-007** (v1.4) — este processo manual, repetido em silêncio desde o Passo 40, é um risco real de esquecimento (como este incidente acabou de provar). Decisão sobre automatizar migrações/grants no pipeline fica explicitamente para validação contigo antes do Passo 49 (ambiente de produção), nunca assumida unilateralmente — automatizar isto exigiria um novo secret (`DATABASE_ADMIN_URL`) e uma decisão consciente sobre o nível de portão manual para alterações de schema contra bases de dados reais.
+
+### 10.3 Validação Real Completa Contra o Staging Corrigido
+
+Depois da correção, executado ao vivo contra o staging real (nunca simulado):
+
+- `GET /health`, `/`, `/precos`, `/login`, `/registar`, `/termos`, `/privacidade` → todos `200`; conteúdo de `/termos` confirmado como a versão nova (não uma resposta em cache).
+- **Enforcement de consentimento confirmado em produção de staging**: pedido direto sem `aceiteTermos` → `400`, mensagem exata.
+- **Registo real com consentimento** → `201`, `ConsentimentoRegisto` confirmado na Neon de staging com versão/timestamp corretos.
+- **Isolamento multi-tenant confirmado no staging atualizado**: duas Empresas registadas, Processo criado pela Empresa A, `GET /processos` da Empresa B devolveu `[]` enquanto a A viu o seu próprio Processo.
+- Todas as Empresas de teste eliminadas no final; confirmado **0 Empresas de teste restantes** na Neon de staging.
+
+**Nenhuma regressão encontrada** — o incidente foi de infraestrutura/processo (migração/grants em falta), nunca do código da aplicação em si; depois de corrigido, todo o comportamento validado correspondeu exatamente ao esperado.
+
+### 10.4 Correção Adicional, Cosmética
+
+Os nomes dos jobs/passos do pipeline ainda mencionavam "219 testes"/"18 migrações" (desatualizados desde antes deste passo) — corrigidos para refletir a contagem real atual (223 testes), sem alteração de comportamento.
+
+---
+
+## 11. Encerramento Formal
+
+Com o deploy via pipeline confirmado, o incidente real encontrado e corrigido de forma transparente (nunca escondido, registado permanentemente como Q6 do ADR-007), e a validação completa em staging sem regressões, o **Passo 47 está formalmente concluído tecnicamente** — segundo passo do M8 encerrado. **Reitera-se explicitamente**: esta conclusão é técnica; a entrada em produção com clientes reais exige ainda a substituição dos marcadores `[A PREENCHER]` pelos dados oficiais da entidade e revisão por quem tenha responsabilidade legal pela plataforma — nenhuma dessas duas condições foi cumprida neste passo, por decisão tua.
+
+**Próximo: Passo 48 (Base de Dados de Produção, Neon, plano pago, região UE)** — conforme a sequência já aprovada do M8, com a Questão em Aberto Q6 (migrações/grants automatizados) a considerar explicitamente antes do Passo 49.

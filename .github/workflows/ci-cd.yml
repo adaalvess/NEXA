@@ -9,7 +9,7 @@ env:
 
 jobs:
   test-backend:
-    name: Backend — build + suite e2e (219 testes)
+    name: Backend — build + suite e2e (223 testes)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -39,7 +39,7 @@ jobs:
       # Réplica exata do padrão já validado localmente (nexa_test) e na Neon
       # de staging (Passo 40) — base de dados efémera do próprio runner,
       # nunca a Neon real (nem staging, nem produção).
-      - name: Aplicar as 18 migrações (schema, RLS, trigger de imutabilidade)
+      - name: Aplicar as migrações (schema, RLS, trigger de imutabilidade)
         working-directory: apps/api
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nexa_ci
@@ -84,7 +84,7 @@ jobs:
           WEB_APP_URL=http://localhost:3000
           EOF
 
-      - name: Suite e2e (219 testes — 4 fluxos críticos incluídos)
+      - name: Suite e2e (223 testes — 4 fluxos críticos incluídos)
         working-directory: apps/api
         run: npm run test:e2e
 
