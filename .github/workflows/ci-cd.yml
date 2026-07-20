@@ -77,6 +77,7 @@ jobs:
           DATABASE_URL=postgresql://nexa_app:ci_nexa_app@localhost:5432/nexa_ci
           FUNDACAO_DATABASE_URL=postgresql://nexa_fundacao:ci_nexa_fundacao@localhost:5432/nexa_ci
           AUDITORIA_INTERNA_DATABASE_URL=postgresql://nexa_auditoria_interna:ci_nexa_auditoria@localhost:5432/nexa_ci
+          DATABASE_ADMIN_URL=postgresql://postgres:postgres@localhost:5432/nexa_ci
           SESSION_SECRET=$(openssl rand -hex 32)
           ARGON2_MEMORY_COST=19456
           ARGON2_TIME_COST=2
